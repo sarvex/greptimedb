@@ -102,8 +102,8 @@ impl LogFile {
 
         let metadata = log.file.read().await.metadata().await.context(IoSnafu)?;
         let expect_length = metadata.len() as usize;
-        log.write_offset.store(expect_length, Ordering::Relaxed);
-        log.flush_offset.store(expect_length, Ordering::Relaxed);
+        log.write_offset.store(expect_length, Ordering::Release);
+        log.flush_offset.store(expect_length, Ordering::Release);
 
         let replay_start_time = time::Instant::now();
         let (actual_offset, next_entry_id) = log.replay().await?;
@@ -114,9 +114,9 @@ impl LogFile {
             time::Instant::now().duration_since(replay_start_time).as_millis()
         );
 
-        log.write_offset.store(actual_offset, Ordering::Relaxed);
-        log.flush_offset.store(actual_offset, Ordering::Relaxed);
-        log.next_entry_id.store(next_entry_id, Ordering::Relaxed);
+        log.write_offset.store(actual_offset, Ordering::Release);
+        log.flush_offset.store(actual_offset, Ordering::Release);
+        log.next_entry_id.store(next_entry_id, Ordering::Release);
         log.seek(actual_offset).await?;
         Ok(log)
     }
@@ -147,12 +147,12 @@ impl LogFile {
     #[allow(unused)]
     #[inline]
     pub fn persisted_size(&self) -> usize {
-        self.flush_offset.load(Ordering::Relaxed)
+        self.flush_offset.load(Ordering::Acquire)
     }
 
     #[inline]
     pub fn next_entry_id(&self) -> Id {
-        self.next_entry_id.load(Ordering::Relaxed)
+        self.next_entry_id.load(Ordering::Acquire)
     }
 
     /// Increases write offset field by `delta` and return the previous value.
@@ -160,14 +160,14 @@ impl LogFile {
     fn inc_offset(&self, delta: usize) -> usize {
         // Relaxed order is enough since no sync-with relationship
         // between `offset` and any other field.
-        self.write_offset.fetch_add(delta, Ordering::Relaxed)
+        self.write_offset.fetch_add(delta, Ordering::SeqCst)
     }
 
     /// Increases next entry field by `delta` and return the previous value.
     fn inc_entry_id(&self) -> u64 {
         // Relaxed order is enough since no sync-with relationship
         // between `offset` and any other field.
-        self.next_entry_id.fetch_add(1, Ordering::Relaxed)
+        self.next_entry_id.fetch_add(1, Ordering::SeqCst)
     }
 
     /// Starts log file and it's internal components(including flush task, etc.).
@@ -212,7 +212,7 @@ impl LogFile {
                     }
 
                     // flush all pending data to disk
-                    let write_offset_read = write_offset.load(Ordering::Relaxed);
+                    let write_offset_read = write_offset.load(Ordering::Acquire);
                     // TODO(hl): add flush metrics
                     if let Err(flush_err) = file.sync_all().await {
                         error!("Failed to flush log file: {}", flush_err);
@@ -222,14 +222,14 @@ impl LogFile {
                         info!("Flush task stop");
                         break;
                     }
-                    flush_offset.store(write_offset_read, Ordering::Relaxed);
+                    flush_offset.store(write_offset_read, Ordering::Release);
                     while let Some(req) = batch.pop() {
                         req.complete();
                     }
                 }
 
                 // drain all pending request on stopping.
-                let write_offset_read = write_offset.load(Ordering::Relaxed);
+                let write_offset_read = write_offset.load(Ordering::Acquire);
                 if file.sync_all().await.is_ok() {
                     flush_offset.store(write_offset_read, Ordering::Release);
                     while let Ok(req) = rx.try_recv() {
@@ -270,7 +270,7 @@ impl LogFile {
     /// Replays current file til last entry read
     pub async fn replay(&mut self) -> Result<(usize, Id)> {
         let log_name = self.name.to_string();
-        let previous_offset = self.flush_offset.load(Ordering::Relaxed);
+        let previous_offset = self.flush_offset.load(Ordering::Acquire);
         let mut stream = self.create_stream(
             // TODO(hl): LocalNamespace should be filled
             LocalNamespace::default(),
@@ -312,7 +312,7 @@ impl LogFile {
     /// the first entry with an id greater than `start_entry_id`.
     pub fn create_stream(&self, _ns: impl Namespace, start_entry_id: u64) -> impl EntryStream + '_ {
         let s = stream!({
-            let length = self.flush_offset.load(Ordering::Relaxed);
+            let length = self.flush_offset.load(Ordering::Acquire);
             info!("Read mmap file: {}, length: {}", self.to_string(), length);
             let mmap = self.map(0, length).await?;
 
@@ -352,7 +352,7 @@ impl LogFile {
         let mut serialized = e.serialize();
         let size = serialized.len();
 
-        if size + self.write_offset.load(Ordering::Relaxed) > self.max_file_size {
+        if size + self.write_offset.load(Ordering::Acquire) > self.max_file_size {
             return Err(Error::Eof);
         }
 
