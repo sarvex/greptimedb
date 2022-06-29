@@ -304,6 +304,15 @@ mod tests {
 
         info!("ap");
         let active_file = logstore.active_file();
+        let file_len = tokio::fs::File::open(dir.path().join(active_file.file_name()))
+            .await
+            .unwrap()
+            .metadata()
+            .await
+            .unwrap()
+            .len();
+        println!("Mmap file len: {}", file_len);
+        assert_eq!(119, file_len);
         let stream = active_file.create_stream(LocalNamespace::default(), 0);
         tokio::pin!(stream);
 
