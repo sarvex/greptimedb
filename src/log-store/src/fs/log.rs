@@ -293,10 +293,7 @@ mod tests {
         };
         let logstore = LocalFileLogStore::open(&config).await.unwrap();
         let id = logstore
-            .append(
-                LocalNamespace::default(),
-                EntryImpl::new(generate_data(100)),
-            )
+            .append(LocalNamespace::default(), EntryImpl::new(generate_data(95)))
             .await
             .unwrap()
             .entry_id;
