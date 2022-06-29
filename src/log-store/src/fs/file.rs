@@ -316,6 +316,7 @@ impl LogFile {
             let length = self.flush_offset.load(Ordering::SeqCst);
             info!("Read mmap file: {}, length: {}", self.to_string(), length);
             let mmap = self.map(0, length).await?;
+            info!("mmap actual: {}", mmap.len());
 
             let mut buf: &[u8] = mmap.as_ref();
             if buf.len() == 0 {
