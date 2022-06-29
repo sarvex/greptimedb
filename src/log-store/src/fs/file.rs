@@ -137,7 +137,6 @@ impl LogFile {
             let file = self.file.read().await.try_clone().await.context(IoSnafu)?;
             MmapOptions::new()
                 .offset(start)
-                .len(length)
                 .populate()
                 .map(&file)
                 .context(IoSnafu)
