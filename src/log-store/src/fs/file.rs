@@ -219,6 +219,7 @@ impl LogFile {
                         error!("Failed to flush log file: {}", flush_err);
                         error_occurred = true;
                     }
+                    info!("Flush:{}", write_offset_read);
                     if error_occurred {
                         info!("Flush task stop");
                         break;

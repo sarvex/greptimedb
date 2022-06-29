@@ -302,6 +302,7 @@ mod tests {
             .entry_id;
         assert_eq!(0, id);
 
+        info!("ap");
         let active_file = logstore.active_file();
         let stream = active_file.create_stream(LocalNamespace::default(), 0);
         tokio::pin!(stream);
