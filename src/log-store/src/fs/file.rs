@@ -138,6 +138,7 @@ impl LogFile {
             MmapOptions::new()
                 .offset(start)
                 .len(length)
+                .populate()
                 .map(&file)
                 .context(IoSnafu)
         }
