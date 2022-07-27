@@ -194,8 +194,8 @@ fn transverse_recursive<T, F: Fn(&DataType) -> T + Clone>(
     }
 }
 
-pub struct ParquetReader<'a> {
-    file_name: &'a str,
+pub struct ParquetReader {
+    file_name: String,
     object_store: ObjectStore,
 }
 
@@ -204,51 +204,51 @@ type ReaderFactoryFuture<'a, R> =
 
 pub type FieldProjection = Box<dyn Fn(&Schema) -> Vec<Field> + Send + Sync>;
 
-impl<'a> ParquetReader<'a> {
+impl ParquetReader {
     #[allow(dead_code)]
     pub async fn chunk_stream(
         &self,
         projection: Option<FieldProjection>,
         chunk_size: usize,
-    ) -> Result<ChunkStream<'_>> {
-        let reader_factory = || -> ReaderFactoryFuture<SeekableReader> {
-            Box::pin(async { Ok(self.object_store.object(self.file_name).seekable_reader(..)) })
+    ) -> Result<ChunkStream> {
+        let file_name = self.file_name.clone();
+        let operator = self.object_store.clone();
+        let reader_factory = move || -> ReaderFactoryFuture<SeekableReader> {
+            let file_name = file_name.clone();
+            let operator = operator.clone();
+            Box::pin(async move { Ok(operator.object(&file_name).seekable_reader(..)) })
         };
-        let mut reader = reader_factory().await.context(ReadParquetIoSnafu {
-            file: self.file_name,
-        })?;
+
+        let file_name = self.file_name.clone();
+        let mut reader = reader_factory()
+            .await
+            .context(ReadParquetIoSnafu { file: &file_name })?;
         let metadata = read_metadata_async(&mut reader)
             .await
-            .context(ReadParquetSnafu {
-                file: self.file_name,
-            })?;
-        let schema = infer_schema(&metadata).context(ReadParquetSnafu {
-            file: self.file_name,
-        })?;
+            .context(ReadParquetSnafu { file: &file_name })?;
+        let schema = infer_schema(&metadata).context(ReadParquetSnafu { file: &file_name })?;
 
         let projected_fields = projection.map_or_else(|| schema.fields.clone(), |p| p(&schema));
         let projected_schema = Schema {
             fields: projected_fields.clone(),
             metadata: schema.metadata,
         };
+
         let chunk_stream = try_stream!({
             for rg in metadata.row_groups {
                 let column_chunks = read_columns_many_async(
-                    reader_factory,
+                    &reader_factory,
                     &rg,
                     projected_fields.clone(),
                     Some(chunk_size),
                 )
                 .await
-                .context(ReadParquetSnafu {
-                    file: self.file_name,
-                })?;
+                .context(ReadParquetSnafu { file: &file_name })?;
 
                 let chunks = RowGroupDeserializer::new(column_chunks, rg.num_rows() as usize, None);
                 for maybe_chunk in chunks {
-                    let columns_in_chunk = maybe_chunk.context(ReadParquetSnafu {
-                        file: self.file_name,
-                    })?;
+                    let columns_in_chunk =
+                        maybe_chunk.context(ReadParquetSnafu { file: &file_name })?;
                     yield columns_in_chunk;
                 }
             }
@@ -260,16 +260,15 @@ impl<'a> ParquetReader<'a> {
 
 type ChunkConverter = Box<dyn Fn(Chunk<Arc<dyn Array>>) -> Result<Batch> + Send + Sync>;
 
-pub type SendableChunkStream<'a> =
-    Pin<Box<dyn Stream<Item = Result<Chunk<Arc<dyn Array>>>> + Send + 'a>>;
+pub type SendableChunkStream = Pin<Box<dyn Stream<Item = Result<Chunk<Arc<dyn Array>>>> + Send>>;
 
-pub struct ChunkStream<'a> {
-    stream: SendableChunkStream<'a>,
+pub struct ChunkStream {
+    stream: SendableChunkStream,
     converter: ChunkConverter,
 }
 
-impl<'a> ChunkStream<'a> {
-    pub fn new(schema: Schema, stream: SendableChunkStream<'a>) -> Result<Self> {
+impl ChunkStream {
+    pub fn new(schema: Schema, stream: SendableChunkStream) -> Result<Self> {
         Ok(Self {
             converter: batch_converter_factory(schema)?,
             stream,
@@ -278,7 +277,7 @@ impl<'a> ChunkStream<'a> {
 }
 
 #[async_trait]
-impl<'a> BatchReader for ChunkStream<'a> {
+impl BatchReader for ChunkStream {
     async fn next_batch(&mut self) -> Result<Option<Batch>> {
         self.stream
             .try_next()
