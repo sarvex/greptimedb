@@ -19,6 +19,12 @@ message ProjectionExecNode {
 message PhysicalExprNode {
   oneof ExprType {
     PhysicalColumn column = 1;
+
+    // null checks
+    PhysicalIsNull is_null_expr = 2;
+    PhysicalIsNotNull is_not_null_expr = 3;
+    PhysicalNot not_expr = 4;
+
     // TODO(fys): impl other physical expr node
   }
 }
@@ -30,4 +36,16 @@ message PhysicalColumn {
 
 message MockInputExecNode {
   string name = 1;
+}
+
+message PhysicalIsNull {
+  PhysicalExprNode expr = 1;
+}
+
+message PhysicalIsNotNull {
+  PhysicalExprNode expr = 1;
+}
+
+message PhysicalNot {
+  PhysicalExprNode expr = 1;
 }
