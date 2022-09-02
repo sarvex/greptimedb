@@ -1,16 +1,22 @@
 use std::{result::Result, sync::Arc};
 
 use api::v1::codec;
-use datafusion::physical_plan::{
-    expressions::{
-        Column as DfColumn, IsNotNullExpr as DfIsNotNullExpr, IsNullExpr as DfIsNullExpr,
-        NotExpr as DfNotExpr,
+use datafusion::{
+    logical_plan::Operator,
+    physical_plan::{
+        expressions::{
+            BinaryExpr as DfBinaryExpr, Column as DfColumn, IsNotNullExpr as DfIsNotNullExpr,
+            IsNullExpr as DfIsNullExpr, NotExpr as DfNotExpr,
+        },
+        PhysicalExpr as DfPhysicalExpr,
     },
-    PhysicalExpr as DfPhysicalExpr,
 };
 use snafu::OptionExt;
 
-use crate::error::{EmptyPhysicalExprSnafu, Error, MissingFieldSnafu, UnsupportedDfExprSnafu};
+use crate::error::{
+    EmptyPhysicalExprSnafu, Error, MissingFieldSnafu, UnsupportedBinaryOpSnafu,
+    UnsupportedDfExprSnafu,
+};
 
 pub type PhysicalExprRef = Arc<dyn DfPhysicalExpr>;
 
@@ -24,8 +30,8 @@ pub(crate) fn parse_grpc_physical_expr(
 
     // TODO(fys): impl other physical expr
     let pexpr: PhysicalExprRef = match expr_type {
-        codec::physical_expr_node::ExprType::Column(c) => {
-            let pcol = DfColumn::new(&c.name, c.index as usize);
+        codec::physical_expr_node::ExprType::Column(expr) => {
+            let pcol = DfColumn::new(&expr.name, expr.index as usize);
             Arc::new(pcol)
         }
         codec::physical_expr_node::ExprType::IsNullExpr(expr) => Arc::new(DfIsNullExpr::new(
@@ -37,6 +43,12 @@ pub(crate) fn parse_grpc_physical_expr(
         codec::physical_expr_node::ExprType::NotExpr(expr) => Arc::new(DfNotExpr::new(
             parse_required_physical_box_expr(&expr.expr)?,
         )),
+        codec::physical_expr_node::ExprType::BinaryExpr(expr) => {
+            let l = parse_required_physical_box_expr(&expr.l)?;
+            let r = parse_required_physical_box_expr(&expr.r)?;
+            let op = from_proto_binary_op(&expr.op)?;
+            Arc::new(DfBinaryExpr::new(l, op, r))
+        }
     };
     Ok(pexpr)
 }
@@ -48,6 +60,27 @@ fn parse_required_physical_box_expr(
         .map(|e| parse_grpc_physical_expr(e.as_ref()))
         .transpose()?
         .context(MissingFieldSnafu { field: "expr" })
+}
+
+fn from_proto_binary_op(op: &str) -> Result<Operator, Error> {
+    match op {
+        "And" => Ok(Operator::And),
+        "Or" => Ok(Operator::Or),
+        "Eq" => Ok(Operator::Eq),
+        "NotEq" => Ok(Operator::NotEq),
+        "LtEq" => Ok(Operator::LtEq),
+        "Lt" => Ok(Operator::Lt),
+        "Gt" => Ok(Operator::Gt),
+        "GtEq" => Ok(Operator::GtEq),
+        "Plus" => Ok(Operator::Plus),
+        "Minus" => Ok(Operator::Minus),
+        "Multiply" => Ok(Operator::Multiply),
+        "Divide" => Ok(Operator::Divide),
+        "Modulo" => Ok(Operator::Modulo),
+        "Like" => Ok(Operator::Like),
+        "NotLike" => Ok(Operator::NotLike),
+        other => UnsupportedBinaryOpSnafu { op: other }.fail(),
+    }
 }
 
 // datafusion -> grpc (physical expr)
@@ -93,6 +126,18 @@ pub(crate) fn parse_df_physical_expr(
                 },
             ))),
         })
+    } else if let Some(expr) = expr.downcast_ref::<DfBinaryExpr>() {
+        let l = parse_df_physical_expr(expr.left().to_owned())?;
+        let r = parse_df_physical_expr(expr.right().to_owned())?;
+        Ok(codec::PhysicalExprNode {
+            expr_type: Some(codec::physical_expr_node::ExprType::BinaryExpr(Box::new(
+                codec::PhysicalBinaryExprNode {
+                    l: Some(Box::new(l)),
+                    r: Some(Box::new(r)),
+                    op: format!("{:?}", expr.op()),
+                },
+            ))),
+        })
     } else {
         UnsupportedDfExprSnafu {
             name: df_expr.to_string(),
@@ -105,9 +150,12 @@ pub(crate) fn parse_df_physical_expr(
 mod tests {
     use std::sync::Arc;
 
-    use datafusion::physical_plan::{
-        expressions::{Column as DfColumn, IsNotNullExpr, IsNullExpr, NotExpr},
-        PhysicalExpr,
+    use datafusion::{
+        logical_plan::Operator,
+        physical_plan::{
+            expressions::{BinaryExpr, Column as DfColumn, IsNotNullExpr, IsNullExpr, NotExpr},
+            PhysicalExpr,
+        },
     };
 
     use super::PhysicalExprRef;
@@ -122,9 +170,22 @@ mod tests {
     }
 
     #[test]
+    fn test_binary_expr() {
+        let df_column = Arc::new(DfColumn::new("name", 11));
+        let binary_expr = Arc::new(BinaryExpr::new(df_column.clone(), Operator::Eq, df_column));
+
+        roundtrip_test(binary_expr, |x, y| {
+            let x = x.as_any().downcast_ref::<BinaryExpr>().unwrap();
+            let y = y.as_any().downcast_ref::<BinaryExpr>().unwrap();
+            assert_eq_column(x.left(), y.left());
+            assert_eq_column(x.right(), y.right());
+            assert_eq!(x.op(), y.op());
+        });
+    }
+
+    #[test]
     fn test_is_null_expr() {
-        let df_column = DfColumn::new("name", 11);
-        let df_column = Arc::new(df_column);
+        let df_column = Arc::new(DfColumn::new("name", 11));
         let df_expr = Arc::new(IsNullExpr::new(df_column));
 
         roundtrip_test(df_expr, |x, y| {
@@ -136,8 +197,7 @@ mod tests {
 
     #[test]
     fn test_is_not_null_expr() {
-        let df_column = DfColumn::new("name", 11);
-        let df_column = Arc::new(df_column);
+        let df_column = Arc::new(DfColumn::new("name", 11));
         let df_expr = Arc::new(IsNotNullExpr::new(df_column));
 
         roundtrip_test(df_expr, |x, y| {
@@ -149,8 +209,7 @@ mod tests {
 
     #[test]
     fn test_not_expr() {
-        let df_column = DfColumn::new("name", 11);
-        let df_column = Arc::new(df_column);
+        let df_column = Arc::new(DfColumn::new("name", 11));
         let df_expr = Arc::new(NotExpr::new(df_column));
 
         roundtrip_test(df_expr, |x, y| {

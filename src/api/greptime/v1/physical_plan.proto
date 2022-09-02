@@ -20,13 +20,21 @@ message PhysicalExprNode {
   oneof ExprType {
     PhysicalColumn column = 1;
 
+    PhysicalBinaryExprNode binary_expr = 2;
+
     // null checks
-    PhysicalIsNull is_null_expr = 2;
-    PhysicalIsNotNull is_not_null_expr = 3;
-    PhysicalNot not_expr = 4;
+    PhysicalIsNull is_null_expr = 3;
+    PhysicalIsNotNull is_not_null_expr = 4;
+    PhysicalNot not_expr = 5;
 
     // TODO(fys): impl other physical expr node
   }
+}
+
+message PhysicalBinaryExprNode {
+  PhysicalExprNode l = 1;
+  PhysicalExprNode r = 2;
+  string op = 3;
 }
 
 message PhysicalColumn {

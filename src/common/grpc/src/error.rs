@@ -31,4 +31,7 @@ pub enum Error {
         source: DecodeError,
         backtrace: Backtrace,
     },
+
+    #[snafu(display("Unsupported binary operator: {}", op))]
+    UnsupportedBinaryOp { op: String },
 }
