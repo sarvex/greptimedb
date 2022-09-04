@@ -1,20 +1,20 @@
 use std::{result::Result, sync::Arc};
 
-use api::v1::codec;
+use api::v1::codec::{self, PhysicalWhenThen};
 use datafusion::{
     logical_plan::Operator,
     physical_plan::{
         expressions::{
-            BinaryExpr as DfBinaryExpr, Column as DfColumn, IsNotNullExpr as DfIsNotNullExpr,
-            IsNullExpr as DfIsNullExpr, NotExpr as DfNotExpr,
+            BinaryExpr as DfBinaryExpr, CaseExpr, Column as DfColumn,
+            IsNotNullExpr as DfIsNotNullExpr, IsNullExpr as DfIsNullExpr, NotExpr as DfNotExpr,
         },
         PhysicalExpr as DfPhysicalExpr,
     },
 };
-use snafu::OptionExt;
+use snafu::{OptionExt, ResultExt};
 
 use crate::error::{
-    EmptyPhysicalExprSnafu, Error, MissingFieldSnafu, UnsupportedBinaryOpSnafu,
+    EmptyPhysicalExprSnafu, Error, MissingFieldSnafu, NewCaseSnafu, UnsupportedBinaryOpSnafu,
     UnsupportedDfExprSnafu,
 };
 
@@ -49,6 +49,29 @@ pub(crate) fn parse_grpc_physical_expr(
             let op = from_proto_binary_op(&expr.op)?;
             Arc::new(DfBinaryExpr::new(l, op, r))
         }
+        codec::physical_expr_node::ExprType::Case(expr) => {
+            let e = expr
+                .expr
+                .as_ref()
+                .map(|e| parse_grpc_physical_expr(e.as_ref()))
+                .transpose()?;
+            let when_then_expr = expr
+                .when_then_expr
+                .iter()
+                .map(|e| {
+                    Ok((
+                        parse_required_physical_expr(&e.when_expr)?,
+                        parse_required_physical_expr(&e.then_expr)?,
+                    ))
+                })
+                .collect::<Result<Vec<_>, Error>>()?;
+            let else_expr = expr
+                .else_expr
+                .as_ref()
+                .map(|e| parse_grpc_physical_expr(e))
+                .transpose()?;
+            Arc::new(CaseExpr::try_new(e, &when_then_expr, else_expr).context(NewCaseSnafu)?)
+        }
     };
     Ok(pexpr)
 }
@@ -58,6 +81,14 @@ fn parse_required_physical_box_expr(
 ) -> Result<PhysicalExprRef, Error> {
     expr.as_ref()
         .map(|e| parse_grpc_physical_expr(e.as_ref()))
+        .transpose()?
+        .context(MissingFieldSnafu { field: "expr" })
+}
+fn parse_required_physical_expr(
+    expr: &Option<codec::PhysicalExprNode>,
+) -> Result<PhysicalExprRef, Error> {
+    expr.as_ref()
+        .map(parse_grpc_physical_expr)
         .transpose()?
         .context(MissingFieldSnafu { field: "expr" })
 }
@@ -138,6 +169,35 @@ pub(crate) fn parse_df_physical_expr(
                 },
             ))),
         })
+    } else if let Some(expr) = expr.downcast_ref::<CaseExpr>() {
+        let e = expr
+            .expr()
+            .as_ref()
+            .map(|expr| parse_df_physical_expr(expr.to_owned()).map(Box::new))
+            .transpose()?;
+        let else_expr = expr
+            .else_expr()
+            .map(|expr| parse_df_physical_expr(expr.to_owned()).map(Box::new))
+            .transpose()?;
+        let when_then_expr = expr.when_then_expr();
+        let mut when_then_expr = Vec::with_capacity(when_then_expr.len());
+        for (when, then) in expr.when_then_expr() {
+            let when = parse_df_physical_expr(when.to_owned())?;
+            let then = parse_df_physical_expr(then.to_owned())?;
+            when_then_expr.push(PhysicalWhenThen {
+                when_expr: Some(when),
+                then_expr: Some(then),
+            });
+        }
+        Ok(codec::PhysicalExprNode {
+            expr_type: Some(codec::physical_expr_node::ExprType::Case(Box::new(
+                codec::PhysicalCaseNode {
+                    expr: e,
+                    when_then_expr,
+                    else_expr,
+                },
+            ))),
+        })
     } else {
         UnsupportedDfExprSnafu {
             name: df_expr.to_string(),
@@ -153,13 +213,38 @@ mod tests {
     use datafusion::{
         logical_plan::Operator,
         physical_plan::{
-            expressions::{BinaryExpr, Column as DfColumn, IsNotNullExpr, IsNullExpr, NotExpr},
+            expressions::{
+                BinaryExpr, CaseExpr, Column as DfColumn, IsNotNullExpr, IsNullExpr, NotExpr,
+            },
             PhysicalExpr,
         },
     };
 
     use super::PhysicalExprRef;
     use crate::physical::expr::{parse_df_physical_expr, parse_grpc_physical_expr};
+
+    #[test]
+    fn test_case_expr() {
+        let mock_expr = Arc::new(DfColumn::new("name", 11)) as Arc<dyn PhysicalExpr>;
+        let when_then_expr = vec![(mock_expr.clone(), mock_expr.clone())];
+        let df_expr =
+            Arc::new(CaseExpr::try_new(Some(mock_expr.clone()), &when_then_expr, None).unwrap());
+
+        roundtrip_test(df_expr, |x, y| {
+            let x = x.as_any().downcast_ref::<CaseExpr>().unwrap();
+            let y = y.as_any().downcast_ref::<CaseExpr>().unwrap();
+            assert_eq_column(x.expr().as_ref().unwrap(), y.expr().as_ref().unwrap());
+            assert!(x.else_expr().is_none());
+            assert!(y.else_expr().is_none());
+            x.when_then_expr()
+                .iter()
+                .zip(y.when_then_expr().iter())
+                .for_each(|(x, y)| {
+                    assert_eq_column(&x.0, &y.0);
+                    assert_eq_column(&x.1, &y.1);
+                });
+        });
+    }
 
     #[test]
     fn test_column_expr() {

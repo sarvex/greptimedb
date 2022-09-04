@@ -27,6 +27,8 @@ message PhysicalExprNode {
     PhysicalIsNotNull is_not_null_expr = 4;
     PhysicalNot not_expr = 5;
 
+    PhysicalCaseNode case = 6;
+
     // TODO(fys): impl other physical expr node
   }
 }
@@ -56,4 +58,15 @@ message PhysicalIsNotNull {
 
 message PhysicalNot {
   PhysicalExprNode expr = 1;
+}
+
+message PhysicalCaseNode {
+  PhysicalExprNode expr = 1;
+  repeated PhysicalWhenThen when_then_expr = 2;
+  PhysicalExprNode else_expr = 3;
+}
+
+message PhysicalWhenThen {
+  PhysicalExprNode when_expr = 1;
+  PhysicalExprNode then_expr = 2;
 }

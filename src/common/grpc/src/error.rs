@@ -34,4 +34,10 @@ pub enum Error {
 
     #[snafu(display("Unsupported binary operator: {}", op))]
     UnsupportedBinaryOp { op: String },
+
+    #[snafu(display("Failed to new datafusion case expr, source: {}", source))]
+    NewCase {
+        source: DataFusionError,
+        backtrace: Backtrace,
+    },
 }
