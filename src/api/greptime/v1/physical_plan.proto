@@ -28,6 +28,8 @@ message PhysicalExprNode {
     PhysicalNot not_expr = 5;
 
     PhysicalCaseNode case = 6;
+    PhysicalNegativeNode negative = 7;
+    PhysicalInListNode in_list = 8;
 
     // TODO(fys): impl other physical expr node
   }
@@ -69,4 +71,14 @@ message PhysicalCaseNode {
 message PhysicalWhenThen {
   PhysicalExprNode when_expr = 1;
   PhysicalExprNode then_expr = 2;
+}
+
+message PhysicalNegativeNode {
+  PhysicalExprNode expr = 1;
+}
+
+message PhysicalInListNode {
+  PhysicalExprNode expr = 1;
+  repeated PhysicalExprNode list = 2;
+  bool negated = 3;
 }

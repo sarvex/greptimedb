@@ -5,8 +5,9 @@ use datafusion::{
     logical_plan::Operator,
     physical_plan::{
         expressions::{
-            BinaryExpr as DfBinaryExpr, CaseExpr, Column as DfColumn,
-            IsNotNullExpr as DfIsNotNullExpr, IsNullExpr as DfIsNullExpr, NotExpr as DfNotExpr,
+            BinaryExpr as DfBinaryExpr, CaseExpr, Column as DfColumn, InListExpr,
+            IsNotNullExpr as DfIsNotNullExpr, IsNullExpr as DfIsNullExpr, NegativeExpr,
+            NotExpr as DfNotExpr,
         },
         PhysicalExpr as DfPhysicalExpr,
     },
@@ -71,6 +72,18 @@ pub(crate) fn parse_grpc_physical_expr(
                 .map(|e| parse_grpc_physical_expr(e))
                 .transpose()?;
             Arc::new(CaseExpr::try_new(e, &when_then_expr, else_expr).context(NewCaseSnafu)?)
+        }
+        codec::physical_expr_node::ExprType::Negative(expr) => Arc::new(NegativeExpr::new(
+            parse_required_physical_box_expr(&expr.expr)?,
+        )),
+        codec::physical_expr_node::ExprType::InList(expr) => {
+            let e = parse_required_physical_box_expr(&expr.expr)?;
+            let list = expr
+                .list
+                .iter()
+                .map(parse_grpc_physical_expr)
+                .collect::<Result<Vec<_>, _>>()?;
+            Arc::new(InListExpr::new(e, list, expr.negated))
         }
     };
     Ok(pexpr)
@@ -198,6 +211,29 @@ pub(crate) fn parse_df_physical_expr(
                 },
             ))),
         })
+    } else if let Some(expr) = expr.downcast_ref::<NegativeExpr>() {
+        Ok(codec::PhysicalExprNode {
+            expr_type: Some(codec::physical_expr_node::ExprType::Negative(Box::new(
+                codec::PhysicalNegativeNode {
+                    expr: Some(Box::new(parse_df_physical_expr(expr.arg().to_owned())?)),
+                },
+            ))),
+        })
+    } else if let Some(expr) = expr.downcast_ref::<InListExpr>() {
+        let list = expr
+            .list()
+            .iter()
+            .map(|e| parse_df_physical_expr(e.to_owned()))
+            .collect::<Result<Vec<_>, _>>()?;
+        Ok(codec::PhysicalExprNode {
+            expr_type: Some(codec::physical_expr_node::ExprType::InList(Box::new(
+                codec::PhysicalInListNode {
+                    expr: Some(Box::new(parse_df_physical_expr(expr.expr().to_owned())?)),
+                    list,
+                    negated: expr.negated(),
+                },
+            ))),
+        })
     } else {
         UnsupportedDfExprSnafu {
             name: df_expr.to_string(),
@@ -214,7 +250,8 @@ mod tests {
         logical_plan::Operator,
         physical_plan::{
             expressions::{
-                BinaryExpr, CaseExpr, Column as DfColumn, IsNotNullExpr, IsNullExpr, NotExpr,
+                BinaryExpr, CaseExpr, Column as DfColumn, InListExpr, IsNotNullExpr, IsNullExpr,
+                NegativeExpr, NotExpr,
             },
             PhysicalExpr,
         },
@@ -222,6 +259,33 @@ mod tests {
 
     use super::PhysicalExprRef;
     use crate::physical::expr::{parse_df_physical_expr, parse_grpc_physical_expr};
+
+    #[test]
+    fn test_in_list() {
+        let column_expr = Arc::new(DfColumn::new("name", 11));
+        let expr_list: Vec<Arc<dyn PhysicalExpr>> = vec![column_expr.clone(), column_expr.clone()];
+        let df_expr = Arc::new(InListExpr::new(column_expr, expr_list, false));
+
+        roundtrip_test(df_expr, |x, y| {
+            let x = x.as_any().downcast_ref::<InListExpr>().unwrap();
+            let y = y.as_any().downcast_ref::<InListExpr>().unwrap();
+            assert_eq_column(x.expr(), y.expr());
+            assert_eq_column(&x.list()[0], &y.list()[0]);
+            assert_eq!(x.negated(), y.negated());
+        })
+    }
+
+    #[test]
+    fn test_negative_expr() {
+        let column_expr = Arc::new(DfColumn::new("name", 11));
+        let df_expr = Arc::new(NegativeExpr::new(column_expr));
+
+        roundtrip_test(df_expr, |x, y| {
+            let x = x.as_any().downcast_ref::<NegativeExpr>().unwrap();
+            let y = y.as_any().downcast_ref::<NegativeExpr>().unwrap();
+            assert_eq_column(x.arg(), y.arg());
+        });
+    }
 
     #[test]
     fn test_case_expr() {
