@@ -11,10 +11,32 @@ use serde::{Deserialize, Serialize};
 use crate::http::JsonResponse;
 use crate::query_handler::SqlQueryHandlerRef;
 
+#[derive(Debug, Serialize, Deserialize, JsonSchema)]
+pub enum Format {
+    JSON,
+    CSV,
+}
+
+impl Default for Format {
+    fn default() -> Self {
+        Format::JSON
+    }
+}
+
+impl From<&str> for Format {
+    fn from(fstr: &str) -> Self {
+        match fstr.to_lowercase().as_ref() {
+            "csv" => Self::CSV,
+            _ => Self::JSON,
+        }
+    }
+}
+
 #[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 pub struct SqlQuery {
     pub database: Option<String>,
     pub sql: Option<String>,
+    pub format: Option<Format>,
 }
 
 /// Handler to execute sql
@@ -24,7 +46,11 @@ pub async fn sql(
     Query(params): Query<SqlQuery>,
 ) -> Json<JsonResponse> {
     if let Some(ref sql) = params.sql {
-        Json(JsonResponse::from_output(sql_handler.do_query(sql).await).await)
+        let output = sql_handler.do_query(sql).await;
+        match params.format.unwrap_or(Format::JSON) {
+            Format::JSON => Json(JsonResponse::from_output(output).await),
+            Format::CSV => todo!(),
+        }
     } else {
         Json(JsonResponse::with_error(
             "sql parameter is required.".to_string(),
