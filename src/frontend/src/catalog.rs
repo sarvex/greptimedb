@@ -1,5 +1,6 @@
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
+use std::sync::mpsc::{Receiver, Sender};
 use std::sync::Arc;
 
 use catalog::error::{
@@ -14,7 +15,8 @@ use common_error::ext::BoxedError;
 use futures::StreamExt;
 use snafu::{OptionExt, ResultExt};
 use table::TableRef;
-use tokio::sync::RwLock;
+use tokio::runtime::Builder;
+use tokio::sync::{oneshot, RwLock};
 
 use crate::error::DatanodeNotAvailableSnafu;
 use crate::mock::{DatanodeId, DatanodeInstance};
@@ -26,16 +28,50 @@ pub type DatanodeInstances = HashMap<DatanodeId, DatanodeInstance>;
 pub struct FrontendCatalogManager {
     backend: KvBackendRef,
     datanode_instances: Arc<RwLock<DatanodeInstances>>,
+    sender: Arc<RwLock<Sender<Query>>>,
 }
 
 impl FrontendCatalogManager {
     #[allow(dead_code)]
     pub fn new(backend: KvBackendRef, datanode_instances: Arc<RwLock<DatanodeInstances>>) -> Self {
+        let (sender, receiver) = std::sync::mpsc::channel();
+        Self::stast_back_task(backend.clone(), receiver);
         Self {
             backend,
             datanode_instances,
+            sender,
         }
     }
+
+    fn stast_back_task(backend: KvBackendRef, receiver: Receiver<Query>) {
+        std::thread::spawn(move || {
+            let runtime = Builder::new_multi_thread().build().unwrap();
+            runtime.block_on(async {
+                while let Ok(query) = receiver.recv() {
+                    match query {
+                        Query::CatalogName(sender) => {
+                            let key = common_catalog::build_catalog_prefix();
+                            let mut iter = backend.range(key.as_bytes());
+                            let mut res = HashSet::new();
+
+                            while let Some(r) = iter.next().await {
+                                let Kv(k, _) = r.unwrap();
+                                let key = CatalogKey::parse(String::from_utf8_lossy(&k))
+                                    .context(InvalidCatalogValueSnafu)
+                                    .unwrap();
+                                res.insert(key.catalog_name);
+                            }
+                            sender.send(Ok(res.into_iter().collect())).unwrap();
+                        }
+                    }
+                }
+            });
+        });
+    }
+}
+
+enum Query {
+    CatalogName(oneshot::Sender<catalog::error::Result<Vec<String>>>),
 }
 
 impl CatalogList for FrontendCatalogManager {
