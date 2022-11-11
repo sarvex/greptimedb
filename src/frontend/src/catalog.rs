@@ -1,6 +1,6 @@
 use std::any::Any;
 use std::collections::{HashMap, HashSet};
-use std::sync::mpsc::{Receiver, Sender};
+use std::sync::mpsc::{Receiver, SyncSender};
 use std::sync::Arc;
 
 use catalog::error::{
@@ -28,13 +28,13 @@ pub type DatanodeInstances = HashMap<DatanodeId, DatanodeInstance>;
 pub struct FrontendCatalogManager {
     backend: KvBackendRef,
     datanode_instances: Arc<RwLock<DatanodeInstances>>,
-    sender: Arc<RwLock<Sender<Query>>>,
+    sender: SyncSender<Query>,
 }
 
 impl FrontendCatalogManager {
     #[allow(dead_code)]
     pub fn new(backend: KvBackendRef, datanode_instances: Arc<RwLock<DatanodeInstances>>) -> Self {
-        let (sender, receiver) = std::sync::mpsc::channel();
+        let (sender, receiver) = std::sync::mpsc::sync_channel(100);
         Self::stast_back_task(backend.clone(), receiver);
         Self {
             backend,
@@ -88,25 +88,12 @@ impl CatalogList for FrontendCatalogManager {
     }
 
     fn catalog_names(&self) -> catalog::error::Result<Vec<String>> {
-        let backend = self.backend.clone();
-        let res = std::thread::spawn(|| {
-            common_runtime::block_on_read(async move {
-                let key = common_catalog::build_catalog_prefix();
-                let mut iter = backend.range(key.as_bytes());
-                let mut res = HashSet::new();
-
-                while let Some(r) = iter.next().await {
-                    let Kv(k, _) = r?;
-                    let key = CatalogKey::parse(String::from_utf8_lossy(&k))
-                        .context(InvalidCatalogValueSnafu)?;
-                    res.insert(key.catalog_name);
-                }
-                Ok(res.into_iter().collect())
-            })
-        })
-        .join()
-        .unwrap();
-        res
+        let (sender, receiver) = oneshot::channel();
+        self.sender
+            .clone()
+            .send(Query::CatalogName(sender))
+            .unwrap();
+        receiver.blocking_recv().unwrap()
     }
 
     fn catalog(&self, name: &str) -> catalog::error::Result<Option<CatalogProviderRef>> {
