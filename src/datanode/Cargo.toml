@@ -24,9 +24,7 @@ common-runtime = { path = "../common/runtime" }
 common-telemetry = { path = "../common/telemetry" }
 common-time = { path = "../common/time" }
 common-insert = { path = "../common/insert" }
-datafusion = { git = "https://github.com/apache/arrow-datafusion.git", branch = "arrow2", features = [
-  "simd",
-] }
+datafusion = { git = "https://github.com/apache/arrow-datafusion.git", branch = "arrow2" }
 datatypes = { path = "../datatypes" }
 futures = "0.3"
 hyper = { version = "0.14", features = ["full"] }
@@ -69,12 +67,10 @@ features = [
 ]
 
 [dev-dependencies]
+datafusion = { git = "https://github.com/apache/arrow-datafusion.git", branch = "arrow2" }
 axum-test-helper = { git = "https://github.com/sunng87/axum-test-helper.git", branch = "patch-1" }
 client = { path = "../client" }
 common-query = { path = "../common/query" }
-datafusion = { git = "https://github.com/apache/arrow-datafusion.git", branch = "arrow2", features = [
-  "simd",
-] }
 datafusion-common = { git = "https://github.com/apache/arrow-datafusion.git", branch = "arrow2" }
 tempdir = "0.3"
 
