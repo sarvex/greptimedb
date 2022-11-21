@@ -1,5 +1,7 @@
 <p align="center">
-    <img src="/docs/logo-text-padding.png" alt="GreptimeDB Logo" width="400px"></img>
+    <a href="https://greptime.com" target="_blank">
+    <img src="/docs/logo-text-padding.svg" alt="GreptimeDB Logo" width="400px"></img>
+    </a>
 </p>
 
 <h3 align="center">
@@ -56,7 +58,7 @@ To compile GreptimeDB from source, you'll need:
   find an installation instructions [here](https://grpc.io/docs/protoc-installation/).
   **Note that `protoc` version needs to be >= 3.15** because we have used the `optional`
   keyword. You can check it with `protoc --version`.
-  
+
 
 #### Build with Docker
 
