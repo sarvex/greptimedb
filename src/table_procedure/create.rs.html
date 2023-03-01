@@ -600,7 +600,7 @@
                 </span><span class="self">self</span>.data.state = CreateTableState::RegisterCatalog;
                 <span class="prelude-val">Ok</span>(Status::executing(<span class="bool-val">true</span>))
             }
-            ProcedureState::Failed =&gt; {
+            ProcedureState::Failed { .. } =&gt; {
                 <span class="comment">// Return error if the subprocedure is failed.
                 </span>SubprocedureFailedSnafu {
                     subprocedure_id: sub_id,

@@ -523,14 +523,6 @@
 <a href="#523" id="523">523</a>
 <a href="#524" id="524">524</a>
 <a href="#525" id="525">525</a>
-<a href="#526" id="526">526</a>
-<a href="#527" id="527">527</a>
-<a href="#528" id="528">528</a>
-<a href="#529" id="529">529</a>
-<a href="#530" id="530">530</a>
-<a href="#531" id="531">531</a>
-<a href="#532" id="532">532</a>
-<a href="#533" id="533">533</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -548,7 +540,7 @@
 </span><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use </span>catalog::{RegisterSchemaRequest, RegisterTableRequest};
-<span class="kw">use </span>common_procedure::{ProcedureManagerRef, ProcedureState, ProcedureWithId};
+<span class="kw">use </span>common_procedure::{watcher, ProcedureManagerRef, ProcedureWithId};
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::tracing::{error, info};
 <span class="kw">use </span>datatypes::schema::RawSchema;
@@ -566,8 +558,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, CatalogNotFoundSnafu, CatalogSnafu, ConstraintNotSupportedSnafu, CreateTableSnafu,
     IllegalPrimaryKeysDefSnafu, InsertSystemCatalogSnafu, KeyColumnNotFoundSnafu,
-    ProcedureExecSnafu, RegisterSchemaSnafu, <span class="prelude-ty">Result</span>, SchemaExistsSnafu, SchemaNotFoundSnafu,
-    SubmitProcedureSnafu, UnrecognizedTableOptionSnafu, WaitProcedureSnafu,
+    RegisterSchemaSnafu, <span class="prelude-ty">Result</span>, SchemaExistsSnafu, SchemaNotFoundSnafu, SubmitProcedureSnafu,
+    UnrecognizedTableOptionSnafu, WaitProcedureSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::sql::SqlHandler;
 
@@ -685,21 +677,13 @@
         <span class="kw">let </span><span class="kw-2">mut </span>watcher = procedure_manager
             .submit(procedure_with_id)
             .<span class="kw">await
-            </span>.context(SubmitProcedureSnafu)<span class="question-mark">?</span>;
+            </span>.context(SubmitProcedureSnafu { procedure_id })<span class="question-mark">?</span>;
 
-        <span class="comment">// TODO(yingwen): Wrap this into a function and add error to ProcedureState::Failed.
-        </span><span class="kw">loop </span>{
-            watcher.changed().<span class="kw">await</span>.context(WaitProcedureSnafu)<span class="question-mark">?</span>;
-            <span class="kw">match </span><span class="kw-2">*</span>watcher.borrow() {
-                ProcedureState::Running =&gt; (),
-                ProcedureState::Done =&gt; {
-                    <span class="kw">return </span><span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>));
-                }
-                ProcedureState::Failed =&gt; {
-                    <span class="kw">return </span>ProcedureExecSnafu { procedure_id }.fail();
-                }
-            }
-        }
+        watcher::wait(<span class="kw-2">&amp;mut </span>watcher)
+            .<span class="kw">await
+            </span>.context(WaitProcedureSnafu { procedure_id })<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>))
     }
 
     <span class="doccomment">/// Converts [CreateTable] to [SqlRequest::CreateTable].

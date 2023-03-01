@@ -820,6 +820,11 @@
 <a href="#820" id="820">820</a>
 <a href="#821" id="821">821</a>
 <a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -840,7 +845,7 @@
 <span class="kw">use </span>common_telemetry::logging;
 <span class="kw">use </span>tokio::time;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{Error, <span class="prelude-ty">Result</span>};
+<span class="kw">use </span><span class="kw">crate</span>::error::{ProcedurePanicSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::local::{ManagerContext, ProcedureMeta, ProcedureMetaRef};
 <span class="kw">use </span><span class="kw">crate</span>::store::ProcedureStore;
 <span class="kw">use crate</span>::{BoxedProcedure, Context, ProcedureId, ProcedureState, ProcedureWithId, Status};
@@ -852,7 +857,7 @@
     Continue,
     Done,
     RetryLater,
-    Failed(Error),
+    Failed,
 }
 
 <span class="attr">#[cfg(test)]
@@ -870,7 +875,7 @@
     }
 
     <span class="kw">fn </span>is_failed(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; bool {
-        <span class="macro">matches!</span>(<span class="self">self</span>, ExecResult::Failed(<span class="kw">_</span>))
+        <span class="macro">matches!</span>(<span class="self">self</span>, ExecResult::Failed)
     }
 }
 
@@ -905,7 +910,11 @@
             <span class="comment">// Set state to failed. This is useful in test as runtime may not abort when the runner task panics.
             // See https://github.com/tokio-rs/tokio/issues/2002 .
             // We set set_panic_hook() in the application&#39;s main function. But our tests don&#39;t have this panic hook.
-            </span><span class="self">self</span>.meta.set_state(ProcedureState::Failed);
+            </span><span class="kw">let </span>err = ProcedurePanicSnafu {
+                procedure_id: <span class="self">self</span>.meta.id,
+            }
+            .build();
+            <span class="self">self</span>.meta.set_state(ProcedureState::failed(Arc::new(err)));
         }
 
         <span class="comment">// Notify parent procedure.
@@ -931,7 +940,7 @@
 
 <span class="kw">impl </span>Runner {
     <span class="doccomment">/// Run the procedure.
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>run(<span class="kw-2">mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>run(<span class="kw-2">mut </span><span class="self">self</span>) {
         <span class="comment">// Ensure we can update the procedure state.
         </span><span class="kw">let </span>guard = ProcedureGuard::new(<span class="self">self</span>.meta.clone(), <span class="self">self</span>.manager_ctx.clone());
 
@@ -951,12 +960,9 @@
                 .<span class="kw">await</span>;
         }
 
-        <span class="kw">let </span><span class="kw-2">mut </span>result = <span class="prelude-val">Ok</span>(());
         <span class="comment">// Execute the procedure. We need to release the lock whenever the the execution
         // is successful or fail.
-        </span><span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="self">self</span>.execute_procedure_in_loop().<span class="kw">await </span>{
-            result = <span class="prelude-val">Err</span>(e);
-        }
+        </span><span class="self">self</span>.execute_procedure_in_loop().<span class="kw">await</span>;
 
         <span class="comment">// We can&#39;t remove the metadata of the procedure now as users and its parent might
         // need to query its state.
@@ -977,11 +983,9 @@
             <span class="self">self</span>.procedure.type_name(),
             <span class="self">self</span>.meta.id
         );
-
-        result
     }
 
-    <span class="kw">async fn </span>execute_procedure_in_loop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">async fn </span>execute_procedure_in_loop(<span class="kw-2">&amp;mut </span><span class="self">self</span>) {
         <span class="kw">let </span>ctx = Context {
             procedure_id: <span class="self">self</span>.meta.id,
             provider: <span class="self">self</span>.manager_ctx.clone(),
@@ -990,11 +994,10 @@
         <span class="kw">loop </span>{
             <span class="kw">match </span><span class="self">self</span>.execute_once(<span class="kw-2">&amp;</span>ctx).<span class="kw">await </span>{
                 ExecResult::Continue =&gt; (),
-                ExecResult::Done =&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(()),
+                ExecResult::Done | ExecResult::Failed =&gt; <span class="kw">return</span>,
                 ExecResult::RetryLater =&gt; {
                     <span class="self">self</span>.wait_on_err().<span class="kw">await</span>;
                 }
-                ExecResult::Failed(e) =&gt; <span class="kw">return </span><span class="prelude-val">Err</span>(e),
             }
         }
     }
@@ -1044,14 +1047,14 @@
                     <span class="kw">return </span>ExecResult::RetryLater;
                 }
 
-                <span class="self">self</span>.meta.set_state(ProcedureState::Failed);
+                <span class="self">self</span>.meta.set_state(ProcedureState::failed(Arc::new(e)));
 
                 <span class="comment">// Write rollback key so we can skip this procedure while recovering procedures.
                 </span><span class="kw">if </span><span class="self">self</span>.rollback_procedure().<span class="kw">await</span>.is_err() {
                     <span class="kw">return </span>ExecResult::RetryLater;
                 }
 
-                ExecResult::Failed(e)
+                ExecResult::Failed
             }
         }
     }
@@ -1226,7 +1229,7 @@
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::local::test_util;
-    <span class="kw">use crate</span>::{ContextProvider, LockKey, Procedure};
+    <span class="kw">use crate</span>::{ContextProvider, Error, LockKey, Procedure};
 
     <span class="kw">const </span>ROOT_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;9f805a1f-05f7-490c-9f91-bd56e3cc54c1&quot;</span>;
 
@@ -1452,9 +1455,14 @@
                     <span class="comment">// Wait for subprocedures.
                     </span><span class="kw">let </span><span class="kw-2">mut </span>all_child_done = <span class="bool-val">true</span>;
                     <span class="kw">for </span>id <span class="kw">in </span>children_ids {
-                        <span class="kw">if </span>ctx.provider.procedure_state(id).<span class="kw">await</span>.unwrap()
-                            != <span class="prelude-val">Some</span>(ProcedureState::Done)
-                        {
+                        <span class="kw">let </span>is_not_done = ctx
+                            .provider
+                            .procedure_state(id)
+                            .<span class="kw">await
+                            </span>.unwrap()
+                            .map(|s| !s.is_done())
+                            .unwrap_or(<span class="bool-val">true</span>);
+                        <span class="kw">if </span>is_not_done {
                             all_child_done = <span class="bool-val">false</span>;
                         }
                     }
@@ -1490,7 +1498,7 @@
         <span class="comment">// Replace the manager ctx.
         </span>runner.manager_ctx = manager_ctx;
 
-        runner.run().<span class="kw">await</span>.unwrap();
+        runner.run().<span class="kw">await</span>;
 
         <span class="comment">// Check files on store.
         </span><span class="kw">for </span>child_id <span class="kw">in </span>children_ids {
@@ -1528,7 +1536,7 @@
 
         <span class="kw">let </span>res = runner.execute_once(<span class="kw-2">&amp;</span>ctx).<span class="kw">await</span>;
         <span class="macro">assert!</span>(res.is_failed(), <span class="string">&quot;{res:?}&quot;</span>);
-        <span class="macro">assert_eq!</span>(ProcedureState::Failed, meta.state());
+        <span class="macro">assert!</span>(meta.state().is_failed());
         check_files(<span class="kw-2">&amp;</span>object_store, ctx.procedure_id, <span class="kw-2">&amp;</span>[<span class="string">&quot;0000000000.rollback&quot;</span>]).<span class="kw">await</span>;
     }
 
@@ -1563,11 +1571,11 @@
 
         <span class="kw">let </span>res = runner.execute_once(<span class="kw-2">&amp;</span>ctx).<span class="kw">await</span>;
         <span class="macro">assert!</span>(res.is_retry_later(), <span class="string">&quot;{res:?}&quot;</span>);
-        <span class="macro">assert_eq!</span>(ProcedureState::Running, meta.state());
+        <span class="macro">assert!</span>(meta.state().is_running());
 
         <span class="kw">let </span>res = runner.execute_once(<span class="kw-2">&amp;</span>ctx).<span class="kw">await</span>;
         <span class="macro">assert!</span>(res.is_done(), <span class="string">&quot;{res:?}&quot;</span>);
-        <span class="macro">assert_eq!</span>(ProcedureState::Done, meta.state());
+        <span class="macro">assert!</span>(meta.state().is_done());
         check_files(<span class="kw-2">&amp;</span>object_store, ctx.procedure_id, <span class="kw-2">&amp;</span>[<span class="string">&quot;0000000000.commit&quot;</span>]).<span class="kw">await</span>;
     }
 
@@ -1601,7 +1609,8 @@
                 } <span class="kw">else </span>{
                     <span class="comment">// Wait for subprocedures.
                     </span><span class="kw">let </span>state = ctx.provider.procedure_state(child_id).<span class="kw">await</span>.unwrap();
-                    <span class="kw">if </span>state == <span class="prelude-val">Some</span>(ProcedureState::Failed) {
+                    <span class="kw">let </span>is_failed = state.map(|s| s.is_failed()).unwrap_or(<span class="bool-val">false</span>);
+                    <span class="kw">if </span>is_failed {
                         <span class="comment">// The parent procedure to abort itself if child procedure is failed.
                         </span><span class="prelude-val">Err</span>(Error::from_error_ext(PlainError::new(
                             <span class="string">&quot;subprocedure failed&quot;</span>.to_string(),
@@ -1633,13 +1642,14 @@
 
         <span class="kw">let </span>manager_ctx = Arc::new(ManagerContext::new());
         <span class="comment">// Manually add this procedure to the manager ctx.
-        </span><span class="macro">assert!</span>(manager_ctx.try_insert_procedure(meta));
+        </span><span class="macro">assert!</span>(manager_ctx.try_insert_procedure(meta.clone()));
         <span class="comment">// Replace the manager ctx.
         </span>runner.manager_ctx = manager_ctx;
 
         <span class="comment">// Run the runer and execute the procedure.
-        </span><span class="kw">let </span>err = runner.run().<span class="kw">await</span>.unwrap_err();
-        <span class="macro">assert!</span>(err.to_string().contains(<span class="string">&quot;subprocedure failed&quot;</span>), <span class="string">&quot;{err}&quot;</span>);
+        </span>runner.run().<span class="kw">await</span>;
+        <span class="kw">let </span>err = meta.state().error().unwrap().to_string();
+        <span class="macro">assert!</span>(err.contains(<span class="string">&quot;subprocedure failed&quot;</span>), <span class="string">&quot;{err}&quot;</span>);
     }
 }
 </code></pre></div>

@@ -619,8 +619,7 @@
         };
 
         <span class="kw">let </span>procedure_manager = create_procedure_manager(<span class="kw-2">&amp;</span>opts.procedure).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="comment">// Recover procedures.
-        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span>procedure_manager {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span>procedure_manager {
             table_engine.register_procedure_loaders(<span class="kw-2">&amp;**</span>procedure_manager);
             table_procedure::register_procedure_loaders(
                 catalog_manager.clone(),
@@ -629,7 +628,8 @@
                 <span class="kw-2">&amp;**</span>procedure_manager,
             );
 
-            procedure_manager
+            <span class="comment">// Recover procedures.
+            </span>procedure_manager
                 .recover()
                 .<span class="kw">await
                 </span>.context(RecoverProcedureSnafu)<span class="question-mark">?</span>;
@@ -865,7 +865,7 @@
     <span class="prelude-val">Ok</span>(logstore)
 }
 
-<span class="kw">async fn </span>create_procedure_manager(
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>create_procedure_manager(
     procedure_config: <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;ProcedureConfig&gt;,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;ProcedureManagerRef&gt;&gt; {
     <span class="kw">let </span><span class="prelude-val">Some</span>(procedure_config) = procedure_config <span class="kw">else </span>{

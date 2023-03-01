@@ -24,6 +24,8 @@
 <a href="#24" id="24">24</a>
 <a href="#25" id="25">25</a>
 <a href="#26" id="26">26</a>
+<a href="#27" id="27">27</a>
+<a href="#28" id="28">28</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -44,11 +46,13 @@
 <span class="kw">pub mod </span>local;
 <span class="kw">mod </span>procedure;
 <span class="kw">mod </span>store;
+<span class="kw">pub mod </span>watcher;
 
 <span class="kw">pub use </span><span class="kw">crate</span>::error::{Error, <span class="prelude-ty">Result</span>};
 <span class="kw">pub use </span><span class="kw">crate</span>::procedure::{
     BoxedProcedure, Context, ContextProvider, LockKey, Procedure, ProcedureId, ProcedureManager,
-    ProcedureManagerRef, ProcedureState, ProcedureWithId, Status, Watcher,
+    ProcedureManagerRef, ProcedureState, ProcedureWithId, Status,
 };
+<span class="kw">pub use </span><span class="kw">crate</span>::watcher::Watcher;
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="common_procedure" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

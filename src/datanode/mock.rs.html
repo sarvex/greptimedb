@@ -148,6 +148,18 @@
 <a href="#148" id="148">148</a>
 <a href="#149" id="149">149</a>
 <a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
+<a href="#162" id="162">162</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -181,9 +193,11 @@
 <span class="kw">use </span>table::table::TableIdProvider;
 
 <span class="kw">use </span><span class="kw">crate</span>::datanode::DatanodeOptions;
-<span class="kw">use </span><span class="kw">crate</span>::error::{CatalogSnafu, <span class="prelude-ty">Result</span>};
+<span class="kw">use </span><span class="kw">crate</span>::error::{CatalogSnafu, RecoverProcedureSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::heartbeat::HeartbeatTask;
-<span class="kw">use </span><span class="kw">crate</span>::instance::{create_log_store, new_object_store, DefaultEngine, Instance};
+<span class="kw">use </span><span class="kw">crate</span>::instance::{
+    create_log_store, create_procedure_manager, new_object_store, DefaultEngine, Instance,
+};
 <span class="kw">use </span><span class="kw">crate</span>::script::ScriptExecutor;
 <span class="kw">use </span><span class="kw">crate</span>::sql::SqlHandler;
 
@@ -243,6 +257,16 @@
         <span class="kw">let </span>script_executor =
             ScriptExecutor::new(catalog_manager.clone(), query_engine.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
 
+        <span class="kw">let </span>procedure_manager = create_procedure_manager(<span class="kw-2">&amp;</span>opts.procedure).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span>procedure_manager {
+            table_engine.register_procedure_loaders(<span class="kw-2">&amp;**</span>procedure_manager);
+            <span class="comment">// Recover procedures.
+            </span>procedure_manager
+                .recover()
+                .<span class="kw">await
+                </span>.context(RecoverProcedureSnafu)<span class="question-mark">?</span>;
+        }
+
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             query_engine: query_engine.clone(),
             sql_handler: SqlHandler::new(
@@ -250,7 +274,7 @@
                 catalog_manager.clone(),
                 query_engine.clone(),
                 table_engine,
-                <span class="prelude-val">None</span>,
+                procedure_manager,
             ),
             catalog_manager,
             script_executor,

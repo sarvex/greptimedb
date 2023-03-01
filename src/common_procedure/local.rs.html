@@ -1041,7 +1041,7 @@
 
         common_runtime::spawn_bg(<span class="kw">async move </span>{
             <span class="comment">// Run the root procedure.
-            </span><span class="kw">let _ </span>= runner.run().<span class="kw">await</span>;
+            </span>runner.run().<span class="kw">await</span>;
         });
 
         <span class="prelude-val">Ok</span>(watcher)
@@ -1154,9 +1154,9 @@
         <span class="macro">assert!</span>(ctx.try_insert_procedure(meta.clone()));
         <span class="macro">assert!</span>(ctx.contains_procedure(meta.id));
 
-        <span class="macro">assert_eq!</span>(ProcedureState::Running, ctx.state(meta.id).unwrap());
+        <span class="macro">assert!</span>(ctx.state(meta.id).unwrap().is_running());
         meta.set_state(ProcedureState::Done);
-        <span class="macro">assert_eq!</span>(ProcedureState::Done, ctx.state(meta.id).unwrap());
+        <span class="macro">assert!</span>(ctx.state(meta.id).unwrap().is_done());
     }
 
     <span class="attr">#[test]
@@ -1341,7 +1341,7 @@
         <span class="comment">// Wait for the procedure done.
         </span><span class="kw">let </span><span class="kw-2">mut </span>watcher = manager.procedure_watcher(procedure_id).unwrap();
         watcher.changed().<span class="kw">await</span>.unwrap();
-        <span class="macro">assert_eq!</span>(ProcedureState::Done, <span class="kw-2">*</span>watcher.borrow());
+        <span class="macro">assert!</span>(watcher.borrow().is_done());
 
         <span class="comment">// Try to submit procedure with same id again.
         </span><span class="kw">let </span>err = manager
@@ -1404,7 +1404,7 @@
                     </span>.unwrap();
                 <span class="comment">// Wait for the notification.
                 </span>watcher.changed().<span class="kw">await</span>.unwrap();
-                <span class="macro">assert_eq!</span>(ProcedureState::Failed, <span class="kw-2">*</span>watcher.borrow());
+                <span class="macro">assert!</span>(watcher.borrow().is_failed());
             }
         };
 
