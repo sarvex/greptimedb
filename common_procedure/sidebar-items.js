@@ -1,0 +1,1 @@
+window.SIDEBAR_ITEMS = {"enum":["ProcedureState","Status"],"mod":["error","local","procedure","store"],"struct":["Context","LockKey","ProcedureId","ProcedureWithId"],"trait":["ContextProvider","Procedure","ProcedureManager"],"type":["BoxedProcedure","ProcedureManagerRef","Watcher"]};
