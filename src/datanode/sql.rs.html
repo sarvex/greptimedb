@@ -373,6 +373,9 @@
 <a href="#373" id="373">373</a>
 <a href="#374" id="374">374</a>
 <a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -408,6 +411,7 @@
 
 <span class="kw">mod </span>alter;
 <span class="kw">mod </span>copy_table;
+<span class="kw">mod </span>copy_table_from;
 <span class="kw">mod </span>create;
 <span class="kw">mod </span>delete;
 <span class="kw">mod </span>drop_table;
@@ -426,6 +430,7 @@
     Explain(Box&lt;Explain&gt;),
     Delete(Delete),
     CopyTable(CopyTableRequest),
+    CopyTableFrom(CopyTableFromRequest),
 }
 
 <span class="comment">// Handler to execute SQL except query
@@ -467,6 +472,7 @@
             SqlRequest::DropTable(req) =&gt; <span class="self">self</span>.drop_table(req).<span class="kw">await</span>,
             SqlRequest::Delete(req) =&gt; <span class="self">self</span>.delete(query_ctx.clone(), req).<span class="kw">await</span>,
             SqlRequest::CopyTable(req) =&gt; <span class="self">self</span>.copy_table(req).<span class="kw">await</span>,
+            SqlRequest::CopyTableFrom(req) =&gt; <span class="self">self</span>.copy_table_from(req).<span class="kw">await</span>,
             SqlRequest::ShowDatabases(req) =&gt; {
                 show_databases(req, <span class="self">self</span>.catalog_manager.clone()).context(ExecuteSqlSnafu)
             }
