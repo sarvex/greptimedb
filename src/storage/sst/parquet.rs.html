@@ -952,6 +952,28 @@
 <a href="#952" id="952">952</a>
 <a href="#953" id="953">953</a>
 <a href="#954" id="954">954</a>
+<a href="#955" id="955">955</a>
+<a href="#956" id="956">956</a>
+<a href="#957" id="957">957</a>
+<a href="#958" id="958">958</a>
+<a href="#959" id="959">959</a>
+<a href="#960" id="960">960</a>
+<a href="#961" id="961">961</a>
+<a href="#962" id="962">962</a>
+<a href="#963" id="963">963</a>
+<a href="#964" id="964">964</a>
+<a href="#965" id="965">965</a>
+<a href="#966" id="966">966</a>
+<a href="#967" id="967">967</a>
+<a href="#968" id="968">968</a>
+<a href="#969" id="969">969</a>
+<a href="#970" id="970">970</a>
+<a href="#971" id="971">971</a>
+<a href="#972" id="972">972</a>
+<a href="#973" id="973">973</a>
+<a href="#974" id="974">974</a>
+<a href="#975" id="975">975</a>
+<a href="#976" id="976">976</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1084,7 +1106,17 @@
         object.write(buf).<span class="kw">await</span>.context(WriteObjectSnafu {
             path: object.path(),
         })<span class="question-mark">?</span>;
-        <span class="prelude-val">Ok</span>(SstInfo { time_range })
+        <span class="kw">let </span>file_size = object
+            .metadata()
+            .<span class="kw">await
+            </span>.context(WriteObjectSnafu {
+                path: object.path(),
+            })<span class="question-mark">?
+            </span>.content_length();
+        <span class="prelude-val">Ok</span>(SstInfo {
+            time_range,
+            file_size,
+        })
     }
 }
 
@@ -1621,7 +1653,10 @@
         <span class="kw">let </span>iter = memtable.iter(<span class="kw-2">&amp;</span>IterContext::default()).unwrap();
         <span class="kw">let </span>writer = ParquetWriter::new(sst_file_name, Source::Iter(iter), object_store.clone());
 
-        <span class="kw">let </span>SstInfo { time_range } = writer
+        <span class="kw">let </span>SstInfo {
+            time_range,
+            file_size,
+        } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
             </span>.unwrap();
@@ -1633,6 +1668,7 @@
             )),
             time_range
         );
+        <span class="macro">assert_ne!</span>(file_size, <span class="number">0</span>);
         <span class="kw">let </span>operator = ObjectStore::new(
             Fs::default()
                 .root(dir.path().to_str().unwrap())
@@ -1694,7 +1730,10 @@
         <span class="kw">let </span>iter = memtable.iter(<span class="kw-2">&amp;</span>IterContext::default()).unwrap();
         <span class="kw">let </span>writer = ParquetWriter::new(sst_file_name, Source::Iter(iter), object_store.clone());
 
-        <span class="kw">let </span>SstInfo { time_range } = writer
+        <span class="kw">let </span>SstInfo {
+            time_range,
+            file_size,
+        } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
             </span>.unwrap();
@@ -1706,6 +1745,7 @@
             )),
             time_range
         );
+        <span class="macro">assert_ne!</span>(file_size, <span class="number">0</span>);
         <span class="kw">let </span>operator = ObjectStore::new(
             Fs::default()
                 .root(dir.path().to_str().unwrap())
@@ -1807,7 +1847,10 @@
         <span class="kw">let </span>iter = memtable.iter(<span class="kw-2">&amp;</span>IterContext::default()).unwrap();
         <span class="kw">let </span>writer = ParquetWriter::new(sst_file_name, Source::Iter(iter), object_store.clone());
 
-        <span class="kw">let </span>SstInfo { time_range } = writer
+        <span class="kw">let </span>SstInfo {
+            time_range,
+            file_size,
+        } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
             </span>.unwrap();
@@ -1819,6 +1862,7 @@
             )),
             time_range
         );
+        <span class="macro">assert_ne!</span>(file_size, <span class="number">0</span>);
 
         <span class="kw">let </span>projected_schema =
             Arc::new(ProjectedSchema::new(schema, <span class="prelude-val">Some</span>(<span class="macro">vec!</span>[<span class="number">1</span>, <span class="number">0</span>, <span class="number">3</span>, <span class="number">2</span>])).unwrap());

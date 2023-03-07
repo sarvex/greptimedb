@@ -233,6 +233,7 @@
 <a href="#233" id="233">233</a>
 <a href="#234" id="234">234</a>
 <a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -378,7 +379,7 @@
         <span class="kw">let </span>iter = memtable.iter(<span class="kw-2">&amp;</span>IterContext::default()).unwrap();
         <span class="kw">let </span>sst_path = <span class="string">&quot;table1&quot;</span>;
         <span class="kw">let </span>layer = Arc::new(FsAccessLayer::new(sst_path, os.clone()));
-        <span class="kw">let </span>_sst_info = layer
+        <span class="kw">let </span>sst_info = layer
             .write_sst(sst_file_name, Source::Iter(iter), <span class="kw-2">&amp;</span>WriteOptions {})
             .<span class="kw">await
             </span>.unwrap();
@@ -390,6 +391,7 @@
                     file_name: sst_file_name.to_string(),
                     time_range: <span class="prelude-val">None</span>,
                     level: <span class="number">0</span>,
+                    file_size: sst_info.file_size,
                 },
                 layer.clone(),
                 file_purger,

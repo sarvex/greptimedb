@@ -529,6 +529,16 @@
 <a href="#529" id="529">529</a>
 <a href="#530" id="530">530</a>
 <a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
+<a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -763,6 +773,11 @@
     </span><span class="kw">pub fn </span>meta(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; FileMeta {
         <span class="self">self</span>.inner.meta.clone()
     }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>file_size(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u64 {
+        <span class="self">self</span>.inner.meta.file_size
+    }
 }
 
 <span class="doccomment">/// Actually data of [FileHandle].
@@ -817,7 +832,8 @@
 }
 
 <span class="doccomment">/// Immutable metadata of a sst file.
-</span><span class="attr">#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize)]
+</span><span class="attr">#[derive(Clone, Debug, PartialEq, Eq, Hash, Serialize, Deserialize, Default)]
+#[serde(default)]
 </span><span class="kw">pub struct </span>FileMeta {
     <span class="doccomment">/// Region of file.
     </span><span class="kw">pub </span>region_id: RegionId,
@@ -827,6 +843,8 @@
     </span><span class="kw">pub </span>time_range: <span class="prelude-ty">Option</span>&lt;(Timestamp, Timestamp)&gt;,
     <span class="doccomment">/// SST level of the file.
     </span><span class="kw">pub </span>level: Level,
+    <span class="doccomment">/// Size of the file.
+    </span><span class="kw">pub </span>file_size: u64,
 }
 
 <span class="attr">#[derive(Debug, Default)]
@@ -848,6 +866,7 @@
 <span class="attr">#[derive(Debug, PartialEq)]
 </span><span class="kw">pub struct </span>SstInfo {
     <span class="kw">pub </span>time_range: <span class="prelude-ty">Option</span>&lt;(Timestamp, Timestamp)&gt;,
+    <span class="kw">pub </span>file_size: u64,
 }
 
 <span class="doccomment">/// SST access layer.
@@ -968,6 +987,7 @@
             file_name: name.to_string(),
             time_range: <span class="prelude-val">None</span>,
             level,
+            file_size: <span class="number">0</span>,
         }
     }
 
