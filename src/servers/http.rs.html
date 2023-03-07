@@ -693,6 +693,18 @@
 <a href="#693" id="693">693</a>
 <a href="#694" id="694">694</a>
 <a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -713,6 +725,9 @@
 <span class="kw">pub mod </span>opentsdb;
 <span class="kw">pub mod </span>prometheus;
 <span class="kw">pub mod </span>script;
+
+<span class="attr">#[cfg(feature = <span class="string">&quot;mem-prof&quot;</span>)]
+</span><span class="kw">pub mod </span>mem_prof;
 
 <span class="kw">use </span>std::net::SocketAddr;
 <span class="kw">use </span>std::sync::Arc;
@@ -1137,6 +1152,15 @@
             router = router.nest(
                 <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/{HTTP_API_VERSION}/prometheus&quot;</span>),
                 <span class="self">self</span>.route_prom(prom_handler),
+            );
+        }
+
+        <span class="comment">// mem profiler
+        </span><span class="attr">#[cfg(feature = <span class="string">&quot;mem-prof&quot;</span>)]
+        </span>{
+            router = router.nest(
+                <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;/{HTTP_API_VERSION}/prof&quot;</span>),
+                Router::new().route(<span class="string">&quot;/mem&quot;</span>, routing::get(<span class="kw">crate</span>::http::mem_prof::mem_prof)),
             );
         }
 
