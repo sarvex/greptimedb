@@ -7,7 +7,7 @@ var sourcesIndex = JSON.parse('{\
 "common_catalog":["",[],["consts.rs","error.rs","lib.rs"]],\
 "common_error":["",[],["ext.rs","format.rs","lib.rs","mock.rs","status_code.rs"]],\
 "common_function":["",[["scalars",[["aggregate",[],["argmax.rs","argmin.rs","diff.rs","mean.rs","percentile.rs","polyval.rs","scipy_stats_norm_cdf.rs","scipy_stats_norm_pdf.rs"]],["expression",[],["binary.rs","ctx.rs","unary.rs"]],["math",[],["pow.rs","rate.rs"]],["numpy",[],["clip.rs","interp.rs"]],["timestamp",[],["from_unixtime.rs"]]],["aggregate.rs","expression.rs","function.rs","function_registry.rs","math.rs","numpy.rs","timestamp.rs","udf.rs"]]],["lib.rs","scalars.rs"]],\
-"common_function_macro":["",[],["lib.rs"]],\
+"common_function_macro":["",[],["lib.rs","range_fn.rs"]],\
 "common_grpc":["",[],["channel_manager.rs","error.rs","flight.rs","lib.rs","select.rs","writer.rs"]],\
 "common_grpc_expr":["",[],["alter.rs","error.rs","insert.rs","lib.rs"]],\
 "common_mem_prof":["",[],["error.rs","lib.rs"]],\
@@ -28,7 +28,7 @@ var sourcesIndex = JSON.parse('{\
 "nyc_taxi":["",[],["nyc-taxi.rs"]],\
 "object_store":["",[],["cache_policy.rs","lib.rs","test_util.rs","util.rs"]],\
 "partition":["",[],["columns.rs","error.rs","lib.rs","manager.rs","partition.rs","range.rs","route.rs","splitter.rs"]],\
-"promql":["",[["engine",[],["evaluator.rs","functions.rs"]],["extension_plan",[],["empty_metric.rs","instant_manipulate.rs","normalize.rs","planner.rs","range_manipulate.rs","series_divide.rs"]],["functions",[],["idelta.rs","increase.rs"]]],["engine.rs","error.rs","extension_plan.rs","functions.rs","lib.rs","planner.rs","range_array.rs"]],\
+"promql":["",[["engine",[],["evaluator.rs","functions.rs"]],["extension_plan",[],["empty_metric.rs","instant_manipulate.rs","normalize.rs","planner.rs","range_manipulate.rs","series_divide.rs"]],["functions",[],["aggr_over_time.rs","idelta.rs","increase.rs"]]],["engine.rs","error.rs","extension_plan.rs","functions.rs","lib.rs","planner.rs","range_array.rs"]],\
 "query":["",[["datafusion",[],["catalog_adapter.rs","error.rs","planner.rs"]],["query_engine",[],["context.rs","options.rs","state.rs"]]],["datafusion.rs","error.rs","executor.rs","lib.rs","logical_optimizer.rs","metric.rs","optimizer.rs","parser.rs","physical_optimizer.rs","physical_planner.rs","plan.rs","planner.rs","query_engine.rs","sql.rs"]],\
 "script":["",[["python",[["ffi_types",[["copr",[],["compile.rs","parse.rs"]]],["copr.rs","utils.rs","vector.rs"]],["rspython",[],["builtins.rs","copr_impl.rs","dataframe_impl.rs","utils.rs","vector_impl.rs"]]],["engine.rs","error.rs","ffi_types.rs","rspython.rs","utils.rs"]]],["engine.rs","error.rs","lib.rs","manager.rs","python.rs","table.rs"]],\
 "servers":["",[["auth",[],["user_provider.rs"]],["grpc",[["flight",[],["stream.rs"]]],["flight.rs"]],["http",[],["authorize.rs","handler.rs","influxdb.rs","opentsdb.rs","prometheus.rs","script.rs"]],["mysql",[],["federated.rs","handler.rs","server.rs","writer.rs"]],["opentsdb",[],["codec.rs","connection.rs","handler.rs"]],["postgres",[],["auth_handler.rs","handler.rs","server.rs"]],["query_handler",[],["grpc.rs","sql.rs"]]],["auth.rs","error.rs","grpc.rs","http.rs","influxdb.rs","interceptor.rs","lib.rs","line_writer.rs","mysql.rs","opentsdb.rs","postgres.rs","prom.rs","prometheus.rs","query_handler.rs","server.rs","shutdown.rs","tls.rs"]],\
