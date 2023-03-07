@@ -334,6 +334,7 @@
 <a href="#334" id="334">334</a>
 <a href="#335" id="335">335</a>
 <a href="#336" id="336">336</a>
+<a href="#337" id="337">337</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -434,6 +435,7 @@
             DdlExpr::Alter(expr) =&gt; <span class="self">self</span>.handle_alter(expr).<span class="kw">await</span>,
             DdlExpr::CreateDatabase(expr) =&gt; <span class="self">self</span>.handle_create_database(expr, query_ctx).<span class="kw">await</span>,
             DdlExpr::DropTable(expr) =&gt; <span class="self">self</span>.handle_drop_table(expr).<span class="kw">await</span>,
+            DdlExpr::FlushTable(<span class="kw">_</span>) =&gt; <span class="macro">todo!</span>(),
         }
     }
 }
