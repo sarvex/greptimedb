@@ -443,12 +443,6 @@
 <a href="#443" id="443">443</a>
 <a href="#444" id="444">444</a>
 <a href="#445" id="445">445</a>
-<a href="#446" id="446">446</a>
-<a href="#447" id="447">447</a>
-<a href="#448" id="448">448</a>
-<a href="#449" id="449">449</a>
-<a href="#450" id="450">450</a>
-<a href="#451" id="451">451</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -473,7 +467,6 @@
 <span class="kw">use </span>datatypes::vectors::{Helper, VectorRef};
 <span class="kw">use </span>futures::future;
 <span class="kw">use </span>futures_util::TryStreamExt;
-<span class="kw">use </span>lazy_static::lazy_static;
 <span class="kw">use </span>object_store::services::{Fs, S3};
 <span class="kw">use </span>object_store::{Object, ObjectStore, ObjectStoreBuilder};
 <span class="kw">use </span>regex::Regex;
@@ -485,10 +478,6 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::sql::SqlHandler;
-
-<span class="macro">lazy_static! </span>{
-    <span class="kw">static </span><span class="kw-2">ref </span>SCHEMA_PATTERN: Regex = Regex::new(<span class="string">r&quot;^\w*://&quot;</span>).unwrap();
-}
 
 <span class="kw">const </span>S3_SCHEMA: <span class="kw-2">&amp;</span>str = <span class="string">&quot;S3&quot;</span>;
 <span class="kw">const </span>ENDPOINT_URL: <span class="kw-2">&amp;</span>str = <span class="string">&quot;ENDPOINT_URL&quot;</span>;
@@ -674,18 +663,17 @@
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(enable_str) = connection.get(ENABLE_VIRTUAL_HOST_STYLE) {
-            <span class="kw">let </span>enable = enable_str.as_str().parse::&lt;bool&gt;();
-
-            <span class="kw">match </span>enable {
-                <span class="prelude-val">Ok</span>(<span class="bool-val">true</span>) =&gt; {
-                    builder.enable_virtual_host_style();
+            <span class="kw">let </span>enable = enable_str.as_str().parse::&lt;bool&gt;().map_err(|e| {
+                error::InvalidConnectionSnafu {
+                    msg: <span class="macro">format!</span>(
+                        <span class="string">&quot;failed to parse the option {}={}, {}&quot;</span>,
+                        ENABLE_VIRTUAL_HOST_STYLE, enable_str, e
+                    ),
                 }
-                <span class="prelude-val">Err</span>(<span class="kw">_</span>) =&gt; {
-                    <span class="kw">return </span><span class="prelude-val">Err</span>(error::Error::InvalidConnection {
-                        msg: <span class="macro">format!</span>(<span class="string">&quot;failed to parse the {}&quot;</span>, ENABLE_VIRTUAL_HOST_STYLE),
-                    })
-                }
-                <span class="kw">_ </span>=&gt; (),
+                .build()
+            })<span class="question-mark">?</span>;
+            <span class="kw">if </span>enable {
+                builder.enable_virtual_host_style();
             }
         }
 
