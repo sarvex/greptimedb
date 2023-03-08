@@ -387,6 +387,9 @@
 <a href="#387" id="387">387</a>
 <a href="#388" id="388">388</a>
 <a href="#389" id="389">389</a>
+<a href="#390" id="390">390</a>
+<a href="#391" id="391">391</a>
+<a href="#392" id="392">392</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -652,6 +655,8 @@
         <span class="attr">#[snafu(backtrace)]
         </span>source: common_mem_prof::error::Error,
     },
+    <span class="attr">#[snafu(display(<span class="string">&quot;Invalid prepare statement: {}&quot;</span>, err_msg))]
+    </span>InvalidPrepareStatement { err_msg: String },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -691,6 +696,7 @@
             | DecompressPromRemoteRequest { .. }
             | InvalidPromRemoteRequest { .. }
             | InvalidFlightTicket { .. }
+            | InvalidPrepareStatement { .. }
             | TimePrecision { .. } =&gt; StatusCode::InvalidArguments,
 
             InfluxdbLinesWrite { source, .. } | ConvertFlightMessage { source } =&gt; {
