@@ -1222,10 +1222,10 @@
     <span class="kw">use </span>common_error::ext::PlainError;
     <span class="kw">use </span>common_error::mock::MockError;
     <span class="kw">use </span>common_error::prelude::StatusCode;
+    <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
     <span class="kw">use </span>futures_util::future::BoxFuture;
     <span class="kw">use </span>futures_util::{FutureExt, TryStreamExt};
     <span class="kw">use </span>object_store::ObjectStore;
-    <span class="kw">use </span>tempdir::TempDir;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::local::test_util;
@@ -1338,7 +1338,7 @@
             exec_fn,
         };
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;normal&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;normal&quot;</span>);
         <span class="kw">let </span>meta = normal.new_meta(ROOT_ID);
         <span class="kw">let </span>ctx = context_without_provider(meta.id);
         <span class="kw">let </span>object_store = test_util::new_object_store(<span class="kw-2">&amp;</span>dir);
@@ -1386,7 +1386,7 @@
             exec_fn,
         };
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;suspend&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;suspend&quot;</span>);
         <span class="kw">let </span>meta = suspend.new_meta(ROOT_ID);
         <span class="kw">let </span>ctx = context_without_provider(meta.id);
         <span class="kw">let </span>object_store = test_util::new_object_store(<span class="kw-2">&amp;</span>dir);
@@ -1485,7 +1485,7 @@
             exec_fn,
         };
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;parent&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;parent&quot;</span>);
         <span class="kw">let </span>meta = parent.new_meta(ROOT_ID);
         <span class="kw">let </span>procedure_id = meta.id;
 
@@ -1527,7 +1527,7 @@
             exec_fn,
         };
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;fail&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;fail&quot;</span>);
         <span class="kw">let </span>meta = fail.new_meta(ROOT_ID);
         <span class="kw">let </span>ctx = context_without_provider(meta.id);
         <span class="kw">let </span>object_store = test_util::new_object_store(<span class="kw-2">&amp;</span>dir);
@@ -1562,7 +1562,7 @@
             exec_fn,
         };
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;retry_later&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;retry_later&quot;</span>);
         <span class="kw">let </span>meta = retry_later.new_meta(ROOT_ID);
         <span class="kw">let </span>ctx = context_without_provider(meta.id);
         <span class="kw">let </span>object_store = test_util::new_object_store(<span class="kw-2">&amp;</span>dir);
@@ -1633,7 +1633,7 @@
             exec_fn,
         };
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;child_err&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;child_err&quot;</span>);
         <span class="kw">let </span>meta = parent.new_meta(ROOT_ID);
 
         <span class="kw">let </span>object_store = test_util::new_object_store(<span class="kw-2">&amp;</span>dir);

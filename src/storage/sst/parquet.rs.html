@@ -1505,6 +1505,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>std::sync::Arc;
 
+    <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
     <span class="kw">use </span>datatypes::arrow::array::{Array, ArrayRef, UInt64Array, UInt8Array};
     <span class="kw">use </span>datatypes::prelude::{ScalarVector, Vector};
     <span class="kw">use </span>datatypes::types::{TimestampMillisecondType, TimestampType};
@@ -1512,7 +1513,6 @@
     <span class="kw">use </span>object_store::services::Fs;
     <span class="kw">use </span>object_store::ObjectStoreBuilder;
     <span class="kw">use </span>store_api::storage::OpType;
-    <span class="kw">use </span>tempdir::TempDir;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::memtable::{
@@ -1547,7 +1547,7 @@
             ], <span class="comment">// values
         </span>);
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;write_parquet&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;write_parquet&quot;</span>);
         <span class="kw">let </span>path = dir.path().to_str().unwrap();
         <span class="kw">let </span>backend = Fs::default().root(path).build().unwrap();
         <span class="kw">let </span>object_store = ObjectStore::new(backend).finish();
@@ -1645,7 +1645,7 @@
             </span><span class="kw-2">&amp;</span>values_vec, <span class="comment">// values
         </span>);
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;write_parquet&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;write_parquet&quot;</span>);
         <span class="kw">let </span>path = dir.path().to_str().unwrap();
         <span class="kw">let </span>backend = Fs::default().root(path).build().unwrap();
         <span class="kw">let </span>object_store = ObjectStore::new(backend).finish();
@@ -1722,7 +1722,7 @@
             ], <span class="comment">// values
         </span>);
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;write_parquet&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;write_parquet&quot;</span>);
         <span class="kw">let </span>path = dir.path().to_str().unwrap();
         <span class="kw">let </span>backend = Fs::default().root(path).build().unwrap();
         <span class="kw">let </span>object_store = ObjectStore::new(backend).finish();
@@ -1839,7 +1839,7 @@
             ], <span class="comment">// values
         </span>);
 
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;read-parquet-by-range&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;read-parquet-by-range&quot;</span>);
         <span class="kw">let </span>path = dir.path().to_str().unwrap();
         <span class="kw">let </span>backend = Fs::default().root(path).build().unwrap();
         <span class="kw">let </span>object_store = ObjectStore::new(backend).finish();

@@ -663,6 +663,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>std::sync::Arc;
 
+    <span class="kw">use </span>common_test_util::temp_dir::{create_temp_dir, TempDir};
     <span class="kw">use </span>datafusion::parquet::arrow::ArrowWriter;
     <span class="kw">pub use </span>datafusion::parquet::schema::types::BasicTypeInfo;
     <span class="kw">use </span>datafusion_common::{Column, ScalarValue};
@@ -673,7 +674,6 @@
     <span class="kw">use </span>datatypes::arrow_array::StringArray;
     <span class="kw">use </span>parquet::arrow::ParquetRecordBatchStreamBuilder;
     <span class="kw">use </span>parquet::file::properties::WriterProperties;
-    <span class="kw">use </span>tempdir::TempDir;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -716,7 +716,7 @@
     }
 
     <span class="kw">async fn </span>assert_prune(array_cnt: usize, predicate: Predicate, expect: Vec&lt;bool&gt;) {
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;prune_parquet&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;prune_parquet&quot;</span>);
         <span class="kw">let </span>(path, schema) = gen_test_parquet_file(<span class="kw-2">&amp;</span>dir, array_cnt).<span class="kw">await</span>;
         <span class="kw">let </span>schema = Arc::new(datatypes::schema::Schema::try_from(schema).unwrap());
         <span class="kw">let </span>builder = ParquetRecordBatchStreamBuilder::new(

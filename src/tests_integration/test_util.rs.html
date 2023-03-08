@@ -389,6 +389,7 @@
 <span class="kw">use </span>catalog::CatalogManagerRef;
 <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID};
 <span class="kw">use </span>common_runtime::Builder <span class="kw">as </span>RuntimeBuilder;
+<span class="kw">use </span>common_test_util::temp_dir::{create_temp_dir, TempDir};
 <span class="kw">use </span>datanode::datanode::{
     DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, S3Config, WalConfig,
 };
@@ -413,7 +414,6 @@
 <span class="kw">use </span>snafu::ResultExt;
 <span class="kw">use </span>table::engine::{EngineContext, TableEngineRef};
 <span class="kw">use </span>table::requests::{CreateTableRequest, TableOptions};
-<span class="kw">use </span>tempdir::TempDir;
 
 <span class="kw">static </span>PORTS: OnceCell&lt;AtomicUsize&gt; = OnceCell::new();
 
@@ -516,7 +516,7 @@
             (config, <span class="prelude-val">Some</span>(TempDirGuard::S3(TempFolder::new(<span class="kw-2">&amp;</span>store, <span class="string">&quot;/&quot;</span>))))
         }
         StorageType::File =&gt; {
-            <span class="kw">let </span>data_tmp_dir = TempDir::new(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_data_{name}&quot;</span>)).unwrap();
+            <span class="kw">let </span>data_tmp_dir = create_temp_dir(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_data_{name}&quot;</span>));
 
             (
                 ObjectStoreConfig::File(FileConfig {
@@ -556,7 +556,7 @@
     store_type: StorageType,
     name: <span class="kw-2">&amp;</span>str,
 ) -&gt; (DatanodeOptions, TestGuard) {
-    <span class="kw">let </span>wal_tmp_dir = TempDir::new(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_wal_{name}&quot;</span>)).unwrap();
+    <span class="kw">let </span>wal_tmp_dir = create_temp_dir(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_wal_{name}&quot;</span>));
 
     <span class="kw">let </span>(storage, data_tmp_dir) = get_test_store_config(<span class="kw-2">&amp;</span>store_type, name);
 

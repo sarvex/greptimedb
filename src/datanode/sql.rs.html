@@ -528,6 +528,7 @@
     <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
     <span class="kw">use </span>common_query::logical_plan::Expr;
     <span class="kw">use </span>common_query::physical_plan::PhysicalPlanRef;
+    <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
     <span class="kw">use </span>common_time::timestamp::Timestamp;
     <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
     <span class="kw">use </span>datatypes::schema::{ColumnSchema, SchemaBuilder, SchemaRef};
@@ -548,7 +549,6 @@
     <span class="kw">use </span>table::error::Result <span class="kw">as </span>TableResult;
     <span class="kw">use </span>table::metadata::TableInfoRef;
     <span class="kw">use </span>table::Table;
-    <span class="kw">use </span>tempdir::TempDir;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::error::Error;
@@ -599,7 +599,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_statement_to_request() {
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;setup_test_engine_and_table&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;setup_test_engine_and_table&quot;</span>);
         <span class="kw">let </span>store_dir = dir.path().to_string_lossy();
         <span class="kw">let </span>accessor = Builder::default().root(<span class="kw-2">&amp;</span>store_dir).build().unwrap();
         <span class="kw">let </span>object_store = ObjectStore::new(accessor).finish();

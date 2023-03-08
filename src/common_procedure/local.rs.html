@@ -1116,9 +1116,9 @@
 <span class="doccomment">/// Create a new [ProcedureMeta] for test purpose.
 </span><span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test_util {
+    <span class="kw">use </span>common_test_util::temp_dir::TempDir;
     <span class="kw">use </span>object_store::services::Fs <span class="kw">as </span>Builder;
     <span class="kw">use </span>object_store::ObjectStoreBuilder;
-    <span class="kw">use </span>tempdir::TempDir;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -1137,7 +1137,7 @@
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>common_error::mock::MockError;
     <span class="kw">use </span>common_error::prelude::StatusCode;
-    <span class="kw">use </span>tempdir::TempDir;
+    <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::error::Error;
@@ -1247,7 +1247,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_register_loader() {
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;register&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;register&quot;</span>);
         <span class="kw">let </span>config = ManagerConfig {
             object_store: test_util::new_object_store(<span class="kw-2">&amp;</span>dir),
         };
@@ -1265,7 +1265,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_recover() {
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;recover&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;recover&quot;</span>);
         <span class="kw">let </span>object_store = test_util::new_object_store(<span class="kw-2">&amp;</span>dir);
         <span class="kw">let </span>config = ManagerConfig {
             object_store: object_store.clone(),
@@ -1310,7 +1310,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_submit_procedure() {
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;submit&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;submit&quot;</span>);
         <span class="kw">let </span>config = ManagerConfig {
             object_store: test_util::new_object_store(<span class="kw-2">&amp;</span>dir),
         };
@@ -1356,7 +1356,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_state_changed_on_err() {
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;on_err&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;on_err&quot;</span>);
         <span class="kw">let </span>config = ManagerConfig {
             object_store: test_util::new_object_store(<span class="kw-2">&amp;</span>dir),
         };

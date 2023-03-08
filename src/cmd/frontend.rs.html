@@ -494,8 +494,8 @@
     <span class="kw">use </span>std::io::Write;
     <span class="kw">use </span>std::time::Duration;
 
+    <span class="kw">use </span>common_test_util::temp_dir::create_named_temp_file;
     <span class="kw">use </span>servers::auth::{Identity, Password, UserProviderRef};
-    <span class="kw">use </span>tempfile::NamedTempFile;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -553,7 +553,7 @@
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_read_from_config_file() {
-        <span class="kw">let </span><span class="kw-2">mut </span>file = NamedTempFile::new().unwrap();
+        <span class="kw">let </span><span class="kw-2">mut </span>file = create_named_temp_file();
         <span class="kw">let </span>toml_str = <span class="string">r#&quot;
             mode = &quot;distributed&quot;
 

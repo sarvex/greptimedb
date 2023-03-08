@@ -342,10 +342,10 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
+    <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
     <span class="kw">use </span>object_store::services::Fs;
     <span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
     <span class="kw">use </span>store_api::storage::OpType;
-    <span class="kw">use </span>tempdir::TempDir;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::file_purger::noop::NoopFilePurgeHandler;
@@ -403,7 +403,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_file_purger_handler() {
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;file-purge&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;file-purge&quot;</span>);
         <span class="kw">let </span>object_store = ObjectStore::new(
             Fs::default()
                 .root(dir.path().to_str().unwrap())
@@ -441,7 +441,7 @@
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_file_purge_loop() {
         common_telemetry::init_default_ut_logging();
-        <span class="kw">let </span>dir = TempDir::new(<span class="string">&quot;file-purge&quot;</span>).unwrap();
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;file-purge&quot;</span>);
         <span class="kw">let </span>object_store = ObjectStore::new(
             Fs::default()
                 .root(dir.path().to_str().unwrap())
