@@ -95,11 +95,6 @@
 <a href="#95" id="95">95</a>
 <a href="#96" id="96">96</a>
 <a href="#97" id="97">97</a>
-<a href="#98" id="98">98</a>
-<a href="#99" id="99">99</a>
-<a href="#100" id="100">100</a>
-<a href="#101" id="101">101</a>
-<a href="#102" id="102">102</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -128,12 +123,7 @@
         backtrace: Backtrace,
     },
 
-    <span class="attr">#[snafu(display(
-        <span class="string">&quot;Failed to do Flight get, addr: {}, code: {}, source: {}&quot;</span>,
-        addr,
-        tonic_code,
-        source
-    ))]
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to do Flight get, code: {}, source: {}&quot;</span>, tonic_code, source))]
     </span>FlightGet {
         addr: String,
         tonic_code: Code,

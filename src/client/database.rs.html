@@ -310,6 +310,16 @@
 <a href="#310" id="310">310</a>
 <a href="#311" id="311">311</a>
 <a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -338,6 +348,7 @@
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>common_grpc::flight::{flight_messages_to_recordbatches, FlightDecoder, FlightMessage};
 <span class="kw">use </span>common_query::Output;
+<span class="kw">use </span>common_telemetry::logging;
 <span class="kw">use </span>futures_util::{TryFutureExt, TryStreamExt};
 <span class="kw">use </span>prost::Message;
 <span class="kw">use </span>snafu::{ensure, ResultExt};
@@ -460,6 +471,15 @@
                     .context(error::FlightGetSnafu {
                         tonic_code: e.code(),
                         addr: client.addr(),
+                    })
+                    .map_err(|error| {
+                        <span class="macro">logging::error!</span>(
+                            <span class="string">&quot;Failed to do Flight get, addr: {}, code: {}, source: {}&quot;</span>,
+                            client.addr(),
+                            e.code(),
+                            error
+                        );
+                        error
                     })
                     .unwrap_err()
             })<span class="question-mark">?</span>;
