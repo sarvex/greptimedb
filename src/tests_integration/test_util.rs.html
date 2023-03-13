@@ -624,7 +624,7 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">async fn </span>build_frontend_instance(datanode_instance: InstanceRef) -&gt; FeInstance {
+<span class="kw">fn </span>build_frontend_instance(datanode_instance: InstanceRef) -&gt; FeInstance {
     <span class="kw">let </span><span class="kw-2">mut </span>frontend_instance = FeInstance::new_standalone(datanode_instance.clone());
     frontend_instance.set_script_handler(datanode_instance);
     frontend_instance
@@ -642,7 +642,7 @@
     .<span class="kw">await
     </span>.unwrap();
     <span class="kw">let </span>http_server = HttpServer::new(
-        ServerSqlQueryHandlerAdaptor::arc(instance),
+        ServerSqlQueryHandlerAdaptor::arc(Arc::new(build_frontend_instance(instance))),
         HttpOptions::default(),
     );
     (http_server.make_app(), guard)
@@ -654,7 +654,7 @@
 ) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone()).<span class="kw">await</span>;
+    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone());
     instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         frontend.catalog_manager(),
@@ -678,7 +678,7 @@
 ) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone()).<span class="kw">await</span>;
+    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone());
     instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         frontend.catalog_manager(),

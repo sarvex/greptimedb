@@ -680,6 +680,29 @@
 <a href="#680" id="680">680</a>
 <a href="#681" id="681">681</a>
 <a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
+<a href="#689" id="689">689</a>
+<a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -713,6 +736,24 @@
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to execute sql, source: {}&quot;</span>, source))]
     </span>ExecuteSql {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: query::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to plan statement, source: {}&quot;</span>, source))]
+    </span>PlanStatement {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: query::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to execute statement, source: {}&quot;</span>, source))]
+    </span>ExecuteStatement {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: query::error::Error,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to execute logical plan, source: {}&quot;</span>, source))]
+    </span>ExecuteLogicalPlan {
         <span class="attr">#[snafu(backtrace)]
         </span>source: query::error::Error,
     },
@@ -1190,7 +1231,12 @@
     <span class="kw">fn </span>status_code(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StatusCode {
         <span class="kw">use </span>Error::<span class="kw-2">*</span>;
         <span class="kw">match </span><span class="self">self </span>{
-            ExecuteSql { source } | DescribeStatement { source } =&gt; source.status_code(),
+            ExecuteSql { source }
+            | PlanStatement { source }
+            | ExecuteStatement { source }
+            | ExecuteLogicalPlan { source }
+            | DescribeStatement { source } =&gt; source.status_code(),
+
             DecodeLogicalPlan { source } =&gt; source.status_code(),
             NewCatalog { source } | RegisterSchema { source } =&gt; source.status_code(),
             FindTable { source, .. } =&gt; source.status_code(),

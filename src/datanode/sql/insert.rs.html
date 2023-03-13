@@ -330,6 +330,7 @@
 <a href="#330" id="330">330</a>
 <a href="#331" id="331">331</a>
 <a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -371,8 +372,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     CatalogSnafu, CollectRecordsSnafu, ColumnDefaultValueSnafu, ColumnNoneDefaultValueSnafu,
     ColumnNotFoundSnafu, ColumnTypeMismatchSnafu, ColumnValuesNumberMismatchSnafu, Error,
-    ExecuteSqlSnafu, InsertSnafu, MissingInsertBodySnafu, ParseSqlSnafu, ParseSqlValueSnafu,
-    <span class="prelude-ty">Result</span>, TableNotFoundSnafu,
+    ExecuteLogicalPlanSnafu, InsertSnafu, MissingInsertBodySnafu, ParseSqlSnafu,
+    ParseSqlValueSnafu, PlanStatementSnafu, <span class="prelude-ty">Result</span>, TableNotFoundSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::sql::{table_idents_to_full_name, SqlHandler, SqlRequest};
 
@@ -568,18 +569,19 @@
 
         <span class="kw">let </span>logical_plan = <span class="self">self
             </span>.query_engine
-            .statement_to_plan(
+            .planner()
+            .plan(
                 QueryStatement::Sql(Statement::Query(Box::new(query))),
                 query_ctx.clone(),
             )
             .<span class="kw">await
-            </span>.context(ExecuteSqlSnafu)<span class="question-mark">?</span>;
+            </span>.context(PlanStatementSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>output = <span class="self">self
             </span>.query_engine
             .execute(<span class="kw-2">&amp;</span>logical_plan)
             .<span class="kw">await
-            </span>.context(ExecuteSqlSnafu)<span class="question-mark">?</span>;
+            </span>.context(ExecuteLogicalPlanSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>stream: InsertRequestStream = <span class="kw">match </span>output {
             Output::RecordBatches(batches) =&gt; {

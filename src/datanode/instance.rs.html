@@ -457,6 +457,13 @@
 <a href="#457" id="457">457</a>
 <a href="#458" id="458">458</a>
 <a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -537,9 +544,6 @@
 
 <span class="kw">impl </span>Instance {
     <span class="kw">pub async fn </span>new(opts: <span class="kw-2">&amp;</span>DatanodeOptions) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
-        <span class="kw">let </span>object_store = new_object_store(<span class="kw-2">&amp;</span>opts.storage).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">let </span>logstore = Arc::new(create_log_store(<span class="kw-2">&amp;</span>opts.wal).<span class="kw">await</span><span class="question-mark">?</span>);
-
         <span class="kw">let </span>meta_client = <span class="kw">match </span>opts.mode {
             Mode::Standalone =&gt; <span class="prelude-val">None</span>,
             Mode::Distributed =&gt; {
@@ -556,11 +560,22 @@
 
         <span class="kw">let </span>compaction_scheduler = create_compaction_scheduler(opts);
 
+        <span class="self">Self</span>::new_with(opts, meta_client, compaction_scheduler).<span class="kw">await
+    </span>}
+
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>new_with(
+        opts: <span class="kw-2">&amp;</span>DatanodeOptions,
+        meta_client: <span class="prelude-ty">Option</span>&lt;Arc&lt;MetaClient&gt;&gt;,
+        compaction_scheduler: CompactionSchedulerRef&lt;RaftEngineLogStore&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">let </span>object_store = new_object_store(<span class="kw-2">&amp;</span>opts.storage).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>log_store = Arc::new(create_log_store(<span class="kw-2">&amp;</span>opts.wal).<span class="kw">await</span><span class="question-mark">?</span>);
+
         <span class="kw">let </span>table_engine = Arc::new(DefaultEngine::new(
             TableEngineConfig::default(),
             EngineImpl::new(
                 StorageEngineConfig::from(opts),
-                logstore.clone(),
+                log_store.clone(),
                 object_store.clone(),
                 compaction_scheduler,
             ),
@@ -568,7 +583,7 @@
         ));
 
         <span class="comment">// create remote catalog manager
-        </span><span class="kw">let </span>(catalog_manager, factory, table_id_provider) = <span class="kw">match </span>opts.mode {
+        </span><span class="kw">let </span>(catalog_manager, table_id_provider) = <span class="kw">match </span>opts.mode {
             Mode::Standalone =&gt; {
                 <span class="kw">if </span>opts.enable_memory_catalog {
                     <span class="kw">let </span>catalog = Arc::new(catalog::local::MemoryCatalogManager::default());
@@ -585,11 +600,8 @@
                         .<span class="kw">await
                         </span>.expect(<span class="string">&quot;Failed to register numbers&quot;</span>);
 
-                    <span class="kw">let </span>factory = QueryEngineFactory::new(catalog.clone());
-
                     (
                         catalog.clone() <span class="kw">as </span>CatalogManagerRef,
-                        factory,
                         <span class="prelude-val">Some</span>(catalog <span class="kw">as </span>TableIdProviderRef),
                     )
                 } <span class="kw">else </span>{
@@ -598,11 +610,9 @@
                             .<span class="kw">await
                             </span>.context(CatalogSnafu)<span class="question-mark">?</span>,
                     );
-                    <span class="kw">let </span>factory = QueryEngineFactory::new(catalog.clone());
 
                     (
                         catalog.clone() <span class="kw">as </span>CatalogManagerRef,
-                        factory,
                         <span class="prelude-val">Some</span>(catalog <span class="kw">as </span>TableIdProviderRef),
                     )
                 }
@@ -616,11 +626,11 @@
                         client: meta_client.as_ref().unwrap().clone(),
                     }),
                 ));
-                <span class="kw">let </span>factory = QueryEngineFactory::new(catalog.clone());
-                (catalog <span class="kw">as </span>CatalogManagerRef, factory, <span class="prelude-val">None</span>)
+                (catalog <span class="kw">as </span>CatalogManagerRef, <span class="prelude-val">None</span>)
             }
         };
 
+        <span class="kw">let </span>factory = QueryEngineFactory::new(catalog_manager.clone());
         <span class="kw">let </span>query_engine = factory.query_engine();
         <span class="kw">let </span>script_executor =
             ScriptExecutor::new(catalog_manager.clone(), query_engine.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
@@ -702,6 +712,10 @@
 
     <span class="kw">pub fn </span>catalog_manager(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>CatalogManagerRef {
         <span class="kw-2">&amp;</span><span class="self">self</span>.catalog_manager
+    }
+
+    <span class="kw">pub fn </span>query_engine(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; QueryEngineRef {
+        <span class="self">self</span>.query_engine.clone()
     }
 }
 

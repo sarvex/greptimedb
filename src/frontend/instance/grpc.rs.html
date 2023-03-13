@@ -657,6 +657,11 @@
 <a href="#657" id="657">657</a>
 <a href="#658" id="658">658</a>
 <a href="#659" id="659">659</a>
+<a href="#660" id="660">660</a>
+<a href="#661" id="661">661</a>
+<a href="#662" id="662">662</a>
+<a href="#663" id="663">663</a>
+<a href="#664" id="664">664</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -756,6 +761,7 @@
     <span class="kw">use </span>catalog::helper::{TableGlobalKey, TableGlobalValue};
     <span class="kw">use </span>common_query::Output;
     <span class="kw">use </span>common_recordbatch::RecordBatches;
+    <span class="kw">use </span>query::parser::QueryLanguageParser;
     <span class="kw">use </span>session::context::QueryContext;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -1114,14 +1120,18 @@ CREATE TABLE {table_name} (
         <span class="macro">assert_eq!</span>(region_to_dn_map.len(), expected_distribution.len());
 
         <span class="kw">for </span>(region, dn) <span class="kw">in </span>region_to_dn_map.iter() {
+            <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(<span class="kw-2">&amp;</span><span class="macro">format!</span>(
+                <span class="string">&quot;SELECT ts, a FROM {table_name} ORDER BY ts&quot;
+            </span>))
+            .unwrap();
             <span class="kw">let </span>dn = instance.datanodes.get(dn).unwrap();
-            <span class="kw">let </span>output = dn
-                .execute_sql(
-                    <span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;SELECT ts, a FROM {table_name} ORDER BY ts&quot;</span>),
-                    QueryContext::arc(),
-                )
+            <span class="kw">let </span>engine = dn.query_engine();
+            <span class="kw">let </span>plan = engine
+                .planner()
+                .plan(stmt, QueryContext::arc())
                 .<span class="kw">await
                 </span>.unwrap();
+            <span class="kw">let </span>output = engine.execute(<span class="kw-2">&amp;</span>plan).<span class="kw">await</span>.unwrap();
             <span class="kw">let </span>Output::Stream(stream) = output <span class="kw">else </span>{ <span class="macro">unreachable!</span>() };
             <span class="kw">let </span>recordbatches = RecordBatches::try_collect(stream).<span class="kw">await</span>.unwrap();
             <span class="kw">let </span>actual = recordbatches.pretty_print().unwrap();

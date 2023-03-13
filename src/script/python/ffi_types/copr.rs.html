@@ -500,6 +500,7 @@
 <a href="#500" id="500">500</a>
 <a href="#501" id="501">501</a>
 <a href="#502" id="502">502</a>
+<a href="#503" id="503">503</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -869,7 +870,8 @@
                 <span class="kw">let </span>handle = rt.handle().clone();
                 <span class="kw">let </span>res = handle.block_on(<span class="kw">async </span>{
                     <span class="kw">let </span>plan = engine
-                        .statement_to_plan(stmt, Default::default())
+                        .planner()
+                        .plan(stmt, Default::default())
                         .<span class="kw">await
                         </span>.map_err(|e| e.to_string())<span class="question-mark">?</span>;
                     <span class="kw">let </span>res = engine

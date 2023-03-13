@@ -382,11 +382,6 @@
 <a href="#382" id="382">382</a>
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
-<a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -407,12 +402,11 @@
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::error;
 <span class="kw">use </span>query::query_engine::QueryEngineRef;
-<span class="kw">use </span>query::sql::{describe_table, explain, show_databases, show_tables};
+<span class="kw">use </span>query::sql::{describe_table, show_databases, show_tables};
 <span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>sql::statements::delete::Delete;
 <span class="kw">use </span>sql::statements::describe::DescribeTable;
-<span class="kw">use </span>sql::statements::explain::Explain;
 <span class="kw">use </span>sql::statements::show::{ShowDatabases, ShowTables};
 <span class="kw">use </span>table::engine::{EngineContext, TableEngineProcedureRef, TableEngineRef, TableReference};
 <span class="kw">use </span>table::requests::<span class="kw-2">*</span>;
@@ -441,7 +435,6 @@
     ShowDatabases(ShowDatabases),
     ShowTables(ShowTables),
     DescribeTable(DescribeTable),
-    Explain(Box&lt;Explain&gt;),
     Delete(Delete),
     CopyTable(CopyTableRequest),
     CopyTableFrom(CopyTableFromRequest),
@@ -507,9 +500,6 @@
                     })<span class="question-mark">?</span>;
                 describe_table(table).context(ExecuteSqlSnafu)
             }
-            SqlRequest::Explain(req) =&gt; explain(req, <span class="self">self</span>.query_engine.clone(), query_ctx.clone())
-                .<span class="kw">await
-                </span>.context(ExecuteSqlSnafu),
         };
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="kw-2">&amp;</span>result {
             <span class="macro">error!</span>(e; <span class="string">&quot;{query_ctx}&quot;</span>);
