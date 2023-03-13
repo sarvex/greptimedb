@@ -108,6 +108,11 @@
 <a href="#108" id="108">108</a>
 <a href="#109" id="109">109</a>
 <a href="#110" id="110">110</a>
+<a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -136,7 +141,7 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="prelude-ty">Result</span>, UnsupportedSnafu};
 <span class="kw">use </span><span class="kw">crate</span>::metadata::{FilterPushDownType, TableId, TableInfoRef, TableType};
-<span class="kw">use </span><span class="kw">crate</span>::requests::{AlterTableRequest, DeleteRequest, InsertRequest};
+<span class="kw">use </span><span class="kw">crate</span>::requests::{AlterTableRequest, DeleteRequest, FlushTableRequest, InsertRequest};
 
 <span class="kw">pub type </span>AlterContext = anymap::Map&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;;
 
@@ -202,6 +207,11 @@
             operation: <span class="string">&quot;DELETE&quot;</span>,
         }
         .fail()<span class="question-mark">?
+    </span>}
+
+    <span class="doccomment">/// Flush table.
+    </span><span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, _request: FlushTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        UnsupportedSnafu { operation: <span class="string">&quot;FLUSH&quot; </span>}.fail()<span class="question-mark">?
     </span>}
 
     <span class="doccomment">/// Close the table.

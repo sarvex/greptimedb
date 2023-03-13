@@ -382,6 +382,9 @@
 <a href="#382" id="382">382</a>
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -423,6 +426,7 @@
 <span class="kw">mod </span>create;
 <span class="kw">mod </span>delete;
 <span class="kw">mod </span>drop_table;
+<span class="kw">mod </span>flush_table;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>insert;
 
 <span class="attr">#[derive(Debug)]
@@ -432,6 +436,7 @@
     CreateDatabase(CreateDatabaseRequest),
     Alter(AlterTableRequest),
     DropTable(DropTableRequest),
+    FlushTable(FlushTableRequest),
     ShowDatabases(ShowDatabases),
     ShowTables(ShowTables),
     DescribeTable(DescribeTable),
@@ -500,6 +505,7 @@
                     })<span class="question-mark">?</span>;
                 describe_table(table).context(ExecuteSqlSnafu)
             }
+            SqlRequest::FlushTable(req) =&gt; <span class="self">self</span>.flush_table(req).<span class="kw">await</span>,
         };
         <span class="kw">if let </span><span class="prelude-val">Err</span>(e) = <span class="kw-2">&amp;</span>result {
             <span class="macro">error!</span>(e; <span class="string">&quot;{query_ctx}&quot;</span>);

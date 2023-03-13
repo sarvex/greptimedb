@@ -703,6 +703,14 @@
 <a href="#703" id="703">703</a>
 <a href="#704" id="704">704</a>
 <a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -869,6 +877,13 @@
         source
     ))]
     </span>Delete {
+        table_name: String,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: TableError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to flush table: {}, source: {}&quot;</span>, table_name, source))]
+    </span>FlushTable {
         table_name: String,
         <span class="attr">#[snafu(backtrace)]
         </span>source: TableError,
@@ -1244,6 +1259,7 @@
                 source.status_code()
             }
             DropTable { source, .. } =&gt; source.status_code(),
+            FlushTable { source, .. } =&gt; source.status_code(),
 
             Insert { source, .. } =&gt; source.status_code(),
             Delete { source, .. } =&gt; source.status_code(),

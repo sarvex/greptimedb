@@ -497,7 +497,7 @@
             DdlExpr::Alter(expr) =&gt; <span class="self">self</span>.handle_alter(expr).<span class="kw">await</span>,
             DdlExpr::CreateDatabase(expr) =&gt; <span class="self">self</span>.handle_create_database(expr, query_ctx).<span class="kw">await</span>,
             DdlExpr::DropTable(expr) =&gt; <span class="self">self</span>.handle_drop_table(expr).<span class="kw">await</span>,
-            DdlExpr::FlushTable(<span class="kw">_</span>) =&gt; <span class="macro">todo!</span>(),
+            DdlExpr::FlushTable(expr) =&gt; <span class="self">self</span>.handle_flush_table(expr).<span class="kw">await</span>,
         }
     }
 }
