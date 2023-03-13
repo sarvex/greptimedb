@@ -376,6 +376,17 @@
 <a href="#376" id="376">376</a>
 <a href="#377" id="377">377</a>
 <a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -391,6 +402,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>catalog::CatalogManagerRef;
+<span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_procedure::ProcedureManagerRef;
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::error;
@@ -406,7 +418,9 @@
 <span class="kw">use </span>table::requests::<span class="kw-2">*</span>;
 <span class="kw">use </span>table::TableRef;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, ExecuteSqlSnafu, GetTableSnafu, <span class="prelude-ty">Result</span>, TableNotFoundSnafu};
+<span class="kw">use </span><span class="kw">crate</span>::error::{
+    <span class="self">self</span>, CloseTableEngineSnafu, ExecuteSqlSnafu, GetTableSnafu, <span class="prelude-ty">Result</span>, TableNotFoundSnafu,
+};
 <span class="kw">use </span><span class="kw">crate</span>::instance::sql::table_idents_to_full_name;
 
 <span class="kw">mod </span>alter;
@@ -516,6 +530,14 @@
 
     <span class="kw">pub fn </span>table_engine(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableEngineRef {
         <span class="self">self</span>.table_engine.clone()
+    }
+
+    <span class="kw">pub async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="self">self</span>.table_engine
+            .close()
+            .<span class="kw">await
+            </span>.map_err(BoxedError::new)
+            .context(CloseTableEngineSnafu)
     }
 }
 

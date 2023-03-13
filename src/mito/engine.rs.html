@@ -635,6 +635,23 @@
 <a href="#635" id="635">635</a>
 <a href="#636" id="636">636</a>
 <a href="#637" id="637">637</a>
+<a href="#638" id="638">638</a>
+<a href="#639" id="639">639</a>
+<a href="#640" id="640">640</a>
+<a href="#641" id="641">641</a>
+<a href="#642" id="642">642</a>
+<a href="#643" id="643">643</a>
+<a href="#644" id="644">644</a>
+<a href="#645" id="645">645</a>
+<a href="#646" id="646">646</a>
+<a href="#647" id="647">647</a>
+<a href="#648" id="648">648</a>
+<a href="#649" id="649">649</a>
+<a href="#650" id="650">650</a>
+<a href="#651" id="651">651</a>
+<a href="#652" id="652">652</a>
+<a href="#653" id="653">653</a>
+<a href="#654" id="654">654</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -802,6 +819,10 @@
             </span>.map_err(BoxedError::new)
             .context(table_error::TableOperationSnafu)
     }
+
+    <span class="kw">async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableResult&lt;()&gt; {
+        <span class="self">self</span>.inner.close().<span class="kw">await
+    </span>}
 }
 
 <span class="kw">impl</span>&lt;S: StorageEngine&gt; TableEngineProcedure <span class="kw">for </span>MitoEngine&lt;S&gt; {
@@ -1259,6 +1280,19 @@
             .unwrap()
             .remove(<span class="kw-2">&amp;</span>table_reference.to_string())
             .is_some())
+    }
+
+    <span class="kw">async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableResult&lt;()&gt; {
+        <span class="kw">let </span>_lock = <span class="self">self</span>.table_mutex.lock().<span class="kw">await</span>;
+
+        <span class="kw">let </span>tables = <span class="self">self</span>.tables.write().unwrap().clone();
+
+        futures::future::try_join_all(tables.values().map(|t| t.close()))
+            .<span class="kw">await
+            </span>.map_err(BoxedError::new)
+            .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
     }
 }
 

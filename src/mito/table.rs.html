@@ -560,6 +560,15 @@
 <a href="#560" id="560">560</a>
 <a href="#561" id="561">561</a>
 <a href="#562" id="562">562</a>
+<a href="#563" id="563">563</a>
+<a href="#564" id="564">564</a>
+<a href="#565" id="565">565</a>
+<a href="#566" id="566">566</a>
+<a href="#567" id="567">567</a>
+<a href="#568" id="568">568</a>
+<a href="#569" id="569">569</a>
+<a href="#570" id="570">570</a>
+<a href="#571" id="571">571</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -883,6 +892,15 @@
             rows_deleted += rows_num;
         }
         <span class="prelude-val">Ok</span>(rows_deleted)
+    }
+
+    <span class="kw">async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; TableResult&lt;()&gt; {
+        futures::future::try_join_all(<span class="self">self</span>.regions.values().map(|region| region.close()))
+            .<span class="kw">await
+            </span>.map_err(BoxedError::new)
+            .context(table_error::TableOperationSnafu)<span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
     }
 }
 

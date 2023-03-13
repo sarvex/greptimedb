@@ -116,6 +116,21 @@
 <a href="#116" id="116">116</a>
 <a href="#117" id="117">117</a>
 <a href="#118" id="118">118</a>
+<a href="#119" id="119">119</a>
+<a href="#120" id="120">120</a>
+<a href="#121" id="121">121</a>
+<a href="#122" id="122">122</a>
+<a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -148,7 +163,9 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::datanode::DatanodeOptions;
 <span class="kw">use </span><span class="kw">crate</span>::error::Error::StartServer;
-<span class="kw">use </span><span class="kw">crate</span>::error::{ParseAddrSnafu, <span class="prelude-ty">Result</span>, RuntimeResourceSnafu, StartServerSnafu};
+<span class="kw">use </span><span class="kw">crate</span>::error::{
+    ParseAddrSnafu, <span class="prelude-ty">Result</span>, RuntimeResourceSnafu, ShutdownServerSnafu, StartServerSnafu,
+};
 <span class="kw">use </span><span class="kw">crate</span>::instance::InstanceRef;
 
 <span class="kw">pub mod </span>grpc;
@@ -231,6 +248,19 @@
         futures::future::try_join_all(res)
             .<span class="kw">await
             </span>.context(StartServerSnafu)<span class="question-mark">?</span>;
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">pub async fn </span>shutdown(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">let </span><span class="kw-2">mut </span>res = <span class="macro">vec!</span>[<span class="self">self</span>.grpc_server.shutdown()];
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(mysql_server) = <span class="kw-2">&amp;</span><span class="self">self</span>.mysql_server {
+            res.push(mysql_server.shutdown());
+        }
+
+        futures::future::try_join_all(res)
+            .<span class="kw">await
+            </span>.context(ShutdownServerSnafu)<span class="question-mark">?</span>;
+
         <span class="prelude-val">Ok</span>(())
     }
 }

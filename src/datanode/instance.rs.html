@@ -440,6 +440,23 @@
 <a href="#440" id="440">440</a>
 <a href="#441" id="441">441</a>
 <a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
+<a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -462,6 +479,7 @@
 <span class="kw">use </span>catalog::{CatalogManager, CatalogManagerRef, RegisterTableRequest};
 <span class="kw">use </span>common_base::readable_size::ReadableSize;
 <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID};
+<span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_grpc::channel_manager::{ChannelConfig, ChannelManager};
 <span class="kw">use </span>common_procedure::local::{LocalManager, ManagerConfig};
 <span class="kw">use </span>common_procedure::ProcedureManagerRef;
@@ -493,7 +511,7 @@
 };
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, CatalogSnafu, MetaClientInitSnafu, MissingMetasrvOptsSnafu, MissingNodeIdSnafu,
-    NewCatalogSnafu, OpenLogStoreSnafu, RecoverProcedureSnafu, <span class="prelude-ty">Result</span>,
+    NewCatalogSnafu, OpenLogStoreSnafu, RecoverProcedureSnafu, <span class="prelude-ty">Result</span>, ShutdownInstanceSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::heartbeat::HeartbeatTask;
 <span class="kw">use </span><span class="kw">crate</span>::script::ScriptExecutor;
@@ -660,6 +678,22 @@
             task.start().<span class="kw">await</span><span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">pub async fn </span>shutdown(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(heartbeat_task) = <span class="kw-2">&amp;</span><span class="self">self</span>.heartbeat_task {
+            heartbeat_task
+                .close()
+                .<span class="kw">await
+                </span>.map_err(BoxedError::new)
+                .context(ShutdownInstanceSnafu)<span class="question-mark">?</span>;
+        }
+
+        <span class="self">self</span>.sql_handler
+            .close()
+            .<span class="kw">await
+            </span>.map_err(BoxedError::new)
+            .context(ShutdownInstanceSnafu)
     }
 
     <span class="kw">pub fn </span>sql_handler(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>SqlHandler {
