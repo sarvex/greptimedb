@@ -109,6 +109,12 @@
 <a href="#109" id="109">109</a>
 <a href="#110" id="110">110</a>
 <a href="#111" id="111">111</a>
+<a href="#112" id="112">112</a>
+<a href="#113" id="113">113</a>
+<a href="#114" id="114">114</a>
+<a href="#115" id="115">115</a>
+<a href="#116" id="116">116</a>
+<a href="#117" id="117">117</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -176,6 +182,8 @@
     }
 }
 
+<span class="kw">pub const </span>GRPC_SERVER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;GRPC_SERVER&quot;</span>;
+
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>Server <span class="kw">for </span>GrpcServer {
     <span class="kw">async fn </span>shutdown(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
@@ -218,6 +226,10 @@
             </span>.context(StartGrpcSnafu)<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(addr)
+    }
+
+    <span class="kw">fn </span>name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>str {
+        GRPC_SERVER
     }
 }
 </code></pre></div>

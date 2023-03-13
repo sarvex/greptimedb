@@ -310,6 +310,10 @@
 <a href="#310" id="310">310</a>
 <a href="#311" id="311">311</a>
 <a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -328,10 +332,10 @@
 
 <span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>common_base::Plugins;
-<span class="kw">use </span>frontend::frontend::{Frontend, FrontendOptions};
+<span class="kw">use </span>frontend::frontend::FrontendOptions;
 <span class="kw">use </span>frontend::grpc::GrpcOptions;
 <span class="kw">use </span>frontend::influxdb::InfluxdbOptions;
-<span class="kw">use </span>frontend::instance::Instance;
+<span class="kw">use </span>frontend::instance::{FrontendInstance, Instance};
 <span class="kw">use </span>frontend::mysql::MysqlOptions;
 <span class="kw">use </span>frontend::opentsdb::OpentsdbOptions;
 <span class="kw">use </span>frontend::postgres::PostgresOptions;
@@ -406,12 +410,16 @@
         <span class="kw">let </span>plugins = Arc::new(load_frontend_plugins(<span class="kw-2">&amp;</span><span class="self">self</span>.user_provider)<span class="question-mark">?</span>);
         <span class="kw">let </span>opts: FrontendOptions = <span class="self">self</span>.try_into()<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>instance = Instance::try_new_distributed(<span class="kw-2">&amp;</span>opts, plugins.clone())
+        <span class="kw">let </span><span class="kw-2">mut </span>instance = Instance::try_new_distributed(<span class="kw-2">&amp;</span>opts, plugins.clone())
             .<span class="kw">await
             </span>.context(error::StartFrontendSnafu)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span><span class="kw-2">mut </span>frontend = Frontend::new(opts, instance, plugins);
-        frontend.start().<span class="kw">await</span>.context(error::StartFrontendSnafu)
+        instance
+            .build_servers(<span class="kw-2">&amp;</span>opts, plugins)
+            .<span class="kw">await
+            </span>.context(error::StartFrontendSnafu)<span class="question-mark">?</span>;
+
+        instance.start().<span class="kw">await</span>.context(error::StartFrontendSnafu)
     }
 }
 
