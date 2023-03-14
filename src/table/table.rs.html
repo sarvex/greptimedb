@@ -185,10 +185,10 @@
         </span>limit: <span class="prelude-ty">Option</span>&lt;usize&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;PhysicalPlanRef&gt;;
 
-    <span class="doccomment">/// Tests whether the table provider can make use of a filter expression
+    <span class="doccomment">/// Tests whether the table provider can make use of any or all filter expressions
     /// to optimise data retrieval.
-    </span><span class="kw">fn </span>supports_filter_pushdown(<span class="kw-2">&amp;</span><span class="self">self</span>, _filter: <span class="kw-2">&amp;</span>Expr) -&gt; <span class="prelude-ty">Result</span>&lt;FilterPushDownType&gt; {
-        <span class="prelude-val">Ok</span>(FilterPushDownType::Unsupported)
+    </span><span class="kw">fn </span>supports_filters_pushdown(<span class="kw-2">&amp;</span><span class="self">self</span>, filters: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>Expr]) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;FilterPushDownType&gt;&gt; {
+        <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[FilterPushDownType::Unsupported; filters.len()])
     }
 
     <span class="doccomment">/// Alter table.

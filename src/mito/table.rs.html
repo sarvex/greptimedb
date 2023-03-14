@@ -798,8 +798,8 @@
         <span class="prelude-val">Ok</span>(Arc::new(SimpleTableScan::new(stream)))
     }
 
-    <span class="kw">fn </span>supports_filter_pushdown(<span class="kw-2">&amp;</span><span class="self">self</span>, _filter: <span class="kw-2">&amp;</span>Expr) -&gt; table::error::Result&lt;FilterPushDownType&gt; {
-        <span class="prelude-val">Ok</span>(FilterPushDownType::Inexact)
+    <span class="kw">fn </span>supports_filters_pushdown(<span class="kw-2">&amp;</span><span class="self">self</span>, filters: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>Expr]) -&gt; TableResult&lt;Vec&lt;FilterPushDownType&gt;&gt; {
+        <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[FilterPushDownType::Inexact; filters.len()])
     }
 
     <span class="doccomment">/// Alter table changes the schemas of the table.
