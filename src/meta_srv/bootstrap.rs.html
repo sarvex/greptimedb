@@ -121,6 +121,39 @@
 <a href="#121" id="121">121</a>
 <a href="#122" id="122">122</a>
 <a href="#123" id="123">123</a>
+<a href="#124" id="124">124</a>
+<a href="#125" id="125">125</a>
+<a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -162,18 +195,45 @@
 <span class="kw">use </span><span class="kw">crate</span>::service::store::memory::MemStore;
 <span class="kw">use crate</span>::{error, <span class="prelude-ty">Result</span>};
 
+<span class="attr">#[derive(Clone)]
+</span><span class="kw">pub struct </span>MetaSrvInstance {
+    meta_srv: MetaSrv,
+
+    opts: MetaSrvOptions,
+}
+
+<span class="kw">impl </span>MetaSrvInstance {
+    <span class="kw">pub async fn </span>new(opts: MetaSrvOptions) -&gt; <span class="prelude-ty">Result</span>&lt;MetaSrvInstance&gt; {
+        <span class="kw">let </span>meta_srv = build_meta_srv(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(MetaSrvInstance { meta_srv, opts })
+    }
+
+    <span class="kw">pub async fn </span>start(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="self">self</span>.meta_srv.start().<span class="kw">await</span>;
+        bootstrap_meta_srv_with_router(<span class="kw-2">&amp;</span><span class="self">self</span>.opts.bind_addr, router(<span class="self">self</span>.meta_srv.clone())).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
+    <span class="kw">pub async fn </span>close(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="comment">// TODO: shutdown the router
+        </span><span class="self">self</span>.meta_srv.shutdown();
+
+        <span class="prelude-val">Ok</span>(())
+    }
+}
+
 <span class="comment">// Bootstrap the rpc server to serve incoming request
 </span><span class="kw">pub async fn </span>bootstrap_meta_srv(opts: MetaSrvOptions) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>meta_srv = make_meta_srv(opts.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
-    bootstrap_meta_srv_with_router(opts, router(meta_srv)).<span class="kw">await
+    <span class="kw">let </span>meta_srv = make_meta_srv(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>;
+    bootstrap_meta_srv_with_router(<span class="kw-2">&amp;</span>opts.bind_addr, router(meta_srv)).<span class="kw">await
 </span>}
 
-<span class="kw">pub async fn </span>bootstrap_meta_srv_with_router(opts: MetaSrvOptions, router: Router) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-    <span class="kw">let </span>listener = TcpListener::bind(<span class="kw-2">&amp;</span>opts.bind_addr)
+<span class="kw">pub async fn </span>bootstrap_meta_srv_with_router(bind_addr: <span class="kw-2">&amp;</span>str, router: Router) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">let </span>listener = TcpListener::bind(bind_addr)
         .<span class="kw">await
-        </span>.context(error::TcpBindSnafu {
-            addr: <span class="kw-2">&amp;</span>opts.bind_addr,
-        })<span class="question-mark">?</span>;
+        </span>.context(error::TcpBindSnafu { addr: bind_addr })<span class="question-mark">?</span>;
     <span class="kw">let </span>listener = TcpListenerStream::new(listener);
 
     router
@@ -195,7 +255,7 @@
         .add_service(admin::make_admin_service(meta_srv))
 }
 
-<span class="kw">pub async fn </span>make_meta_srv(opts: MetaSrvOptions) -&gt; <span class="prelude-ty">Result</span>&lt;MetaSrv&gt; {
+<span class="kw">pub async fn </span>build_meta_srv(opts: <span class="kw-2">&amp;</span>MetaSrvOptions) -&gt; <span class="prelude-ty">Result</span>&lt;MetaSrv&gt; {
     <span class="kw">let </span>(kv_store, election, lock) = <span class="kw">if </span>opts.use_memory_store {
         (Arc::new(MemStore::new()) <span class="kw">as _</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)
     } <span class="kw">else </span>{
@@ -230,7 +290,7 @@
     };
 
     <span class="kw">let </span>meta_srv = MetaSrvBuilder::new()
-        .options(opts)
+        .options(opts.clone())
         .kv_store(kv_store)
         .in_memory(in_memory)
         .selector(selector)
@@ -239,6 +299,12 @@
         .lock(lock)
         .build()
         .<span class="kw">await</span>;
+
+    <span class="prelude-val">Ok</span>(meta_srv)
+}
+
+<span class="kw">pub async fn </span>make_meta_srv(opts: <span class="kw-2">&amp;</span>MetaSrvOptions) -&gt; <span class="prelude-ty">Result</span>&lt;MetaSrv&gt; {
+    <span class="kw">let </span>meta_srv = build_meta_srv(opts).<span class="kw">await</span><span class="question-mark">?</span>;
 
     meta_srv.start().<span class="kw">await</span>;
 
