@@ -127,6 +127,8 @@
 <a href="#127" id="127">127</a>
 <a href="#128" id="128">128</a>
 <a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -152,10 +154,11 @@
 <span class="kw">use </span>common_query::logical_plan::Expr;
 <span class="kw">use </span>common_query::physical_plan::PhysicalPlanRef;
 <span class="kw">use </span>datatypes::schema::SchemaRef;
+<span class="kw">use </span>store_api::storage::RegionNumber;
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="prelude-ty">Result</span>, UnsupportedSnafu};
 <span class="kw">use </span><span class="kw">crate</span>::metadata::{FilterPushDownType, TableId, TableInfoRef, TableType};
-<span class="kw">use </span><span class="kw">crate</span>::requests::{AlterTableRequest, DeleteRequest, FlushTableRequest, InsertRequest};
+<span class="kw">use </span><span class="kw">crate</span>::requests::{AlterTableRequest, DeleteRequest, InsertRequest};
 
 <span class="kw">pub type </span>AlterContext = anymap::Map&lt;<span class="kw">dyn </span>Any + Send + Sync&gt;;
 
@@ -224,7 +227,8 @@
     </span>}
 
     <span class="doccomment">/// Flush table.
-    </span><span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, _request: FlushTableRequest) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    </span><span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, region_number: <span class="prelude-ty">Option</span>&lt;RegionNumber&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">let _ </span>= region_number;
         UnsupportedSnafu { operation: <span class="string">&quot;FLUSH&quot; </span>}.fail()<span class="question-mark">?
     </span>}
 

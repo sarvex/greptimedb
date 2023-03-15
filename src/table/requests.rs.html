@@ -478,7 +478,7 @@
 </span><span class="kw">pub struct </span>FlushTableRequest {
     <span class="kw">pub </span>catalog_name: String,
     <span class="kw">pub </span>schema_name: String,
-    <span class="kw">pub </span>table_name: String,
+    <span class="kw">pub </span>table_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="kw">pub </span>region_number: <span class="prelude-ty">Option</span>&lt;RegionNumber&gt;,
 }
 

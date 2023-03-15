@@ -645,7 +645,7 @@
     FilterPushDownType, RawTableInfo, TableInfo, TableInfoRef, TableMeta, TableType,
 };
 <span class="kw">use </span>table::requests::{
-    AddColumnRequest, AlterKind, AlterTableRequest, DeleteRequest, FlushTableRequest, InsertRequest,
+    AddColumnRequest, AlterKind, AlterTableRequest, DeleteRequest, InsertRequest,
 };
 <span class="kw">use </span>table::table::scan::SimpleTableScan;
 <span class="kw">use </span>table::table::{AlterContext, RegionStat, Table};
@@ -924,9 +924,9 @@
         <span class="prelude-val">Ok</span>(rows_deleted)
     }
 
-    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, request: FlushTableRequest) -&gt; TableResult&lt;()&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(region_id) = request.region_number {
-            <span class="kw">if let </span><span class="prelude-val">Some</span>(region) = <span class="self">self</span>.regions.get(<span class="kw-2">&amp;</span>region_id) {
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, region_number: <span class="prelude-ty">Option</span>&lt;RegionNumber&gt;) -&gt; TableResult&lt;()&gt; {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(region_number) = region_number {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(region) = <span class="self">self</span>.regions.get(<span class="kw-2">&amp;</span>region_number) {
                 region
                     .flush()
                     .<span class="kw">await
