@@ -267,6 +267,18 @@
 <a href="#267" id="267">267</a>
 <a href="#268" id="268">268</a>
 <a href="#269" id="269">269</a>
+<a href="#270" id="270">270</a>
+<a href="#271" id="271">271</a>
+<a href="#272" id="272">272</a>
+<a href="#273" id="273">273</a>
+<a href="#274" id="274">274</a>
+<a href="#275" id="275">275</a>
+<a href="#276" id="276">276</a>
+<a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
+<a href="#280" id="280">280</a>
+<a href="#281" id="281">281</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -418,11 +430,22 @@
 </span><span class="kw">pub struct </span>ProcedureConfig {
     <span class="doccomment">/// Storage config for procedure manager.
     </span><span class="kw">pub </span>store: ObjectStoreConfig,
+    <span class="doccomment">/// Max retry times of procedure.
+    </span><span class="kw">pub </span>max_retry_times: usize,
+    <span class="doccomment">/// Initial retry delay of procedures, increases exponentially.
+    </span><span class="attr">#[serde(with = <span class="string">&quot;humantime_serde&quot;</span>)]
+    </span><span class="kw">pub </span>retry_delay: Duration,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>ProcedureConfig {
     <span class="kw">fn </span>default() -&gt; ProcedureConfig {
-        ProcedureConfig::from_file_path(<span class="string">&quot;/tmp/greptimedb/procedure/&quot;</span>.to_string())
+        ProcedureConfig {
+            store: ObjectStoreConfig::File(FileConfig {
+                data_dir: <span class="string">&quot;/tmp/greptimedb/procedure/&quot;</span>.to_string(),
+            }),
+            max_retry_times: <span class="number">3</span>,
+            retry_delay: Duration::from_millis(<span class="number">500</span>),
+        }
     }
 }
 
@@ -430,6 +453,7 @@
     <span class="kw">pub fn </span>from_file_path(path: String) -&gt; ProcedureConfig {
         ProcedureConfig {
             store: ObjectStoreConfig::File(FileConfig { data_dir: path }),
+            ..Default::default()
         }
     }
 }

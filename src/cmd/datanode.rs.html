@@ -285,7 +285,6 @@
 <a href="#285" id="285">285</a>
 <a href="#286" id="286">286</a>
 <a href="#287" id="287">287</a>
-<a href="#288" id="288">288</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -438,7 +437,6 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(wal_dir) = cmd.wal_dir {
             opts.wal.dir = wal_dir;
         }
-
         <span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_dir) = cmd.procedure_dir {
             opts.procedure = <span class="prelude-val">Some</span>(ProcedureConfig::from_file_path(procedure_dir));
         }
