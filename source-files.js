@@ -6,7 +6,7 @@ var sourcesIndex = JSON.parse('{\
 "common_base":["",[],["bit_vec.rs","buffer.rs","bytes.rs","lib.rs","readable_size.rs"]],\
 "common_catalog":["",[],["consts.rs","error.rs","lib.rs"]],\
 "common_error":["",[],["ext.rs","format.rs","lib.rs","mock.rs","status_code.rs"]],\
-"common_function":["",[["scalars",[["aggregate",[],["argmax.rs","argmin.rs","diff.rs","mean.rs","percentile.rs","polyval.rs","scipy_stats_norm_cdf.rs","scipy_stats_norm_pdf.rs"]],["expression",[],["binary.rs","ctx.rs","unary.rs"]],["math",[],["pow.rs","rate.rs"]],["numpy",[],["clip.rs","interp.rs"]],["timestamp",[],["from_unixtime.rs"]]],["aggregate.rs","expression.rs","function.rs","function_registry.rs","math.rs","numpy.rs","timestamp.rs","udf.rs"]]],["lib.rs","scalars.rs"]],\
+"common_function":["",[["scalars",[["aggregate",[],["argmax.rs","argmin.rs","diff.rs","mean.rs","percentile.rs","polyval.rs","scipy_stats_norm_cdf.rs","scipy_stats_norm_pdf.rs"]],["expression",[],["binary.rs","ctx.rs","unary.rs"]],["math",[],["pow.rs","rate.rs"]],["numpy",[],["clip.rs","interp.rs"]]],["aggregate.rs","expression.rs","function.rs","function_registry.rs","math.rs","numpy.rs","timestamp.rs","udf.rs"]]],["lib.rs","scalars.rs"]],\
 "common_function_macro":["",[],["lib.rs","range_fn.rs"]],\
 "common_grpc":["",[],["channel_manager.rs","error.rs","flight.rs","lib.rs","select.rs","writer.rs"]],\
 "common_grpc_expr":["",[],["alter.rs","error.rs","insert.rs","lib.rs"]],\
