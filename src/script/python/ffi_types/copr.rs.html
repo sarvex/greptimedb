@@ -643,7 +643,7 @@
             cols.len() == names.len() &amp;&amp; names.len() == anno.len(),
             OtherSnafu {
                 reason: <span class="macro">format!</span>(
-                    <span class="string">&quot;Unmatched length for cols({}), names({}) and anno({})&quot;</span>,
+                    <span class="string">&quot;Unmatched length for cols({}), names({}) and annotation({})&quot;</span>,
                     cols.len(),
                     names.len(),
                     anno.len()
@@ -838,7 +838,7 @@
 
 <span class="attr">#[cfg_attr(feature = <span class="string">&quot;pyo3_backend&quot;</span>, pyo3class(name = <span class="string">&quot;query_engine&quot;</span>))]
 #[rspyclass(module = <span class="bool-val">false</span>, name = <span class="string">&quot;query_engine&quot;</span>)]
-#[derive(Debug, PyPayload)]
+#[derive(Debug, PyPayload, Clone)]
 </span><span class="kw">pub struct </span>PyQueryEngine {
     inner: QueryEngineWeakRef,
 }

@@ -219,6 +219,7 @@
 <a href="#219" id="219">219</a>
 <a href="#220" id="220">220</a>
 <a href="#221" id="221">221</a>
+<a href="#222" id="222">222</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -302,12 +303,13 @@
 <span class="kw">fn </span>set_query_engine_in_scope(
     scope: <span class="kw-2">&amp;</span>Scope,
     vm: <span class="kw-2">&amp;</span>VirtualMachine,
+    name: <span class="kw-2">&amp;</span>str,
     query_engine: PyQueryEngine,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
     scope
         .locals
         .as_object()
-        .set_item(<span class="string">&quot;query&quot;</span>, query_engine.to_pyobject(vm), vm)
+        .set_item(name, query_engine.to_pyobject(vm), vm)
         .map_err(|e| format_py_error(e, vm))
 }
 
@@ -322,7 +324,7 @@
         <span class="comment">// set arguments with given name and values
         </span><span class="kw">let </span>scope = vm.new_scope_with_builtins();
         <span class="kw">if let </span><span class="prelude-val">Some</span>(rb) = rb {
-            set_dataframe_in_scope(<span class="kw-2">&amp;</span>scope, vm, <span class="string">&quot;dataframe&quot;</span>, rb)<span class="question-mark">?</span>;
+            set_dataframe_in_scope(<span class="kw-2">&amp;</span>scope, vm, <span class="string">&quot;__dataframe__&quot;</span>, rb)<span class="question-mark">?</span>;
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(arg_names) = <span class="kw-2">&amp;</span>copr.deco_args.arg_names {
@@ -334,7 +336,7 @@
             <span class="kw">let </span>query_engine = PyQueryEngine::from_weakref(engine.clone());
 
             <span class="comment">// put a object named with query of class PyQueryEngine in scope
-            </span>set_query_engine_in_scope(<span class="kw-2">&amp;</span>scope, vm, query_engine)<span class="question-mark">?</span>;
+            </span>set_query_engine_in_scope(<span class="kw-2">&amp;</span>scope, vm, <span class="string">&quot;__query__&quot;</span>, query_engine)<span class="question-mark">?</span>;
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(kwarg) = <span class="kw-2">&amp;</span>copr.kwarg {

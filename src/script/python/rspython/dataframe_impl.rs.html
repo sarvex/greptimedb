@@ -386,7 +386,7 @@
     <span class="kw">use </span><span class="kw">crate</span>::python::rspython::builtins::greptime_builtin::lit;
     <span class="kw">use </span><span class="kw">crate</span>::python::utils::block_on_async;
     <span class="attr">#[rspyclass(module = <span class="string">&quot;data_frame&quot;</span>, name = <span class="string">&quot;DataFrame&quot;</span>)]
-    #[derive(PyPayload, Debug)]
+    #[derive(PyPayload, Debug, Clone)]
     </span><span class="kw">pub struct </span>PyDataFrame {
         <span class="kw">pub </span>inner: DfDataFrame,
     }

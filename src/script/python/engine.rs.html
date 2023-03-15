@@ -541,6 +541,8 @@
 <a href="#541" id="541">541</a>
 <a href="#542" id="542">542</a>
 <a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -922,7 +924,8 @@ import greptime as gt
 
 @copr(args=[&quot;number&quot;], returns = [&quot;number&quot;], sql = &quot;select * from numbers&quot;)
 def test(number) -&gt; vector[u32]:
-    return query.sql(&quot;select * from numbers&quot;)[0][0]
+    from greptime import query
+    return query().sql(&quot;select * from numbers&quot;)[0][0]
 &quot;#</span>;
         <span class="kw">let </span>script = script_engine
             .compile(script, CompileContext::default())
@@ -981,7 +984,8 @@ from greptime import col
 
 @copr(args=[&quot;number&quot;], returns = [&quot;number&quot;], sql = &quot;select * from numbers&quot;)
 def test(number) -&gt; vector[u32]:
-    return dataframe.filter(col(&quot;number&quot;)==col(&quot;number&quot;)).collect()[0][0]
+    from greptime import dataframe
+    return dataframe().filter(col(&quot;number&quot;)==col(&quot;number&quot;)).collect()[0][0]
 &quot;#</span>;
         <span class="kw">let </span>script = script_engine
             .compile(script, CompileContext::default())
