@@ -558,14 +558,14 @@
             QueryStatement::Sql(Statement::Copy(copy_table)) =&gt; <span class="kw">match </span>copy_table {
                 CopyTable::To(copy_table) =&gt; {
                     <span class="kw">let </span>(catalog_name, schema_name, table_name) =
-                        table_idents_to_full_name(copy_table.table_name(), query_ctx.clone())<span class="question-mark">?</span>;
-                    <span class="kw">let </span>file_name = copy_table.file_name().to_string();
-
+                        table_idents_to_full_name(<span class="kw-2">&amp;</span>copy_table.table_name, query_ctx.clone())<span class="question-mark">?</span>;
+                    <span class="kw">let </span>file_name = copy_table.file_name;
                     <span class="kw">let </span>req = CopyTableRequest {
                         catalog_name,
                         schema_name,
                         table_name,
                         file_name,
+                        connection: copy_table.connection,
                     };
 
                     <span class="self">self</span>.sql_handler

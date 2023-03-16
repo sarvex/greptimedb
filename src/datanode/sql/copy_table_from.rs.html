@@ -443,6 +443,12 @@
 <a href="#443" id="443">443</a>
 <a href="#444" id="444">444</a>
 <a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -479,7 +485,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::sql::SqlHandler;
 
-<span class="kw">const </span>S3_SCHEMA: <span class="kw-2">&amp;</span>str = <span class="string">&quot;S3&quot;</span>;
+<span class="kw">pub const </span>S3_SCHEMA: <span class="kw-2">&amp;</span>str = <span class="string">&quot;S3&quot;</span>;
 <span class="kw">const </span>ENDPOINT_URL: <span class="kw-2">&amp;</span>str = <span class="string">&quot;ENDPOINT_URL&quot;</span>;
 <span class="kw">const </span>ACCESS_KEY_ID: <span class="kw-2">&amp;</span>str = <span class="string">&quot;ACCESS_KEY_ID&quot;</span>;
 <span class="kw">const </span>SECRET_ACCESS_KEY: <span class="kw-2">&amp;</span>str = <span class="string">&quot;SECRET_ACCESS_KEY&quot;</span>;
@@ -610,13 +616,10 @@
                     Source::Dir
                 };
 
-                <span class="kw">let </span>accessor = Fs::default()
-                    .root(<span class="kw-2">&amp;</span>path)
-                    .build()
-                    .context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
+                <span class="kw">let </span>object_store = build_fs_backend(<span class="kw-2">&amp;</span>path)<span class="question-mark">?</span>;
 
                 <span class="prelude-val">Ok</span>(DataSource {
-                    object_store: ObjectStore::new(accessor).finish(),
+                    object_store,
                     source,
                     path,
                     regex,
@@ -627,59 +630,6 @@
             }
             .fail(),
         }
-    }
-
-    <span class="kw">fn </span>build_s3_backend(
-        host: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
-        path: <span class="kw-2">&amp;</span>str,
-        connection: HashMap&lt;String, String&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStore&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>builder = S3::default();
-
-        builder.root(path);
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(bucket) = host {
-            builder.bucket(bucket);
-        }
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(endpoint) = connection.get(ENDPOINT_URL) {
-            builder.endpoint(endpoint);
-        }
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(region) = connection.get(REGION) {
-            builder.region(region);
-        }
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(key_id) = connection.get(ACCESS_KEY_ID) {
-            builder.access_key_id(key_id);
-        }
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(key) = connection.get(SECRET_ACCESS_KEY) {
-            builder.secret_access_key(key);
-        }
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(session_token) = connection.get(SESSION_TOKEN) {
-            builder.security_token(session_token);
-        }
-
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(enable_str) = connection.get(ENABLE_VIRTUAL_HOST_STYLE) {
-            <span class="kw">let </span>enable = enable_str.as_str().parse::&lt;bool&gt;().map_err(|e| {
-                error::InvalidConnectionSnafu {
-                    msg: <span class="macro">format!</span>(
-                        <span class="string">&quot;failed to parse the option {}={}, {}&quot;</span>,
-                        ENABLE_VIRTUAL_HOST_STYLE, enable_str, e
-                    ),
-                }
-                .build()
-            })<span class="question-mark">?</span>;
-            <span class="kw">if </span>enable {
-                builder.enable_virtual_host_style();
-            }
-        }
-
-        <span class="kw">let </span>accessor = builder.build().context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(ObjectStore::new(accessor).finish())
     }
 
     <span class="kw">fn </span>from_url(
@@ -702,7 +652,7 @@
         };
 
         <span class="kw">let </span>object_store = <span class="kw">match </span>schema.to_uppercase().as_str() {
-            S3_SCHEMA =&gt; DataSource::build_s3_backend(host, <span class="kw-2">&amp;</span>dir, connection)<span class="question-mark">?</span>,
+            S3_SCHEMA =&gt; build_s3_backend(host, <span class="kw-2">&amp;</span>dir, connection)<span class="question-mark">?</span>,
             <span class="kw">_ </span>=&gt; {
                 <span class="kw">return </span>error::UnsupportedBackendProtocolSnafu {
                     protocol: schema.to_string(),
@@ -791,6 +741,68 @@
             (<span class="string">&quot;/&quot;</span>.to_string(), <span class="prelude-val">Some</span>(path.to_string()))
         }
     }
+}
+
+<span class="kw">pub fn </span>build_s3_backend(
+    host: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>str&gt;,
+    path: <span class="kw-2">&amp;</span>str,
+    connection: HashMap&lt;String, String&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStore&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>builder = S3::default();
+
+    builder.root(path);
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(bucket) = host {
+        builder.bucket(bucket);
+    }
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(endpoint) = connection.get(ENDPOINT_URL) {
+        builder.endpoint(endpoint);
+    }
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(region) = connection.get(REGION) {
+        builder.region(region);
+    }
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(key_id) = connection.get(ACCESS_KEY_ID) {
+        builder.access_key_id(key_id);
+    }
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(key) = connection.get(SECRET_ACCESS_KEY) {
+        builder.secret_access_key(key);
+    }
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(session_token) = connection.get(SESSION_TOKEN) {
+        builder.security_token(session_token);
+    }
+
+    <span class="kw">if let </span><span class="prelude-val">Some</span>(enable_str) = connection.get(ENABLE_VIRTUAL_HOST_STYLE) {
+        <span class="kw">let </span>enable = enable_str.as_str().parse::&lt;bool&gt;().map_err(|e| {
+            error::InvalidConnectionSnafu {
+                msg: <span class="macro">format!</span>(
+                    <span class="string">&quot;failed to parse the option {}={}, {}&quot;</span>,
+                    ENABLE_VIRTUAL_HOST_STYLE, enable_str, e
+                ),
+            }
+            .build()
+        })<span class="question-mark">?</span>;
+        <span class="kw">if </span>enable {
+            builder.enable_virtual_host_style();
+        }
+    }
+
+    <span class="kw">let </span>accessor = builder.build().context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
+
+    <span class="prelude-val">Ok</span>(ObjectStore::new(accessor).finish())
+}
+
+<span class="kw">pub fn </span>build_fs_backend(root: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStore&gt; {
+    <span class="kw">let </span>accessor = Fs::default()
+        .root(root)
+        .build()
+        .context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
+
+    <span class="prelude-val">Ok</span>(ObjectStore::new(accessor).finish())
 }
 
 <span class="attr">#[cfg(test)]
