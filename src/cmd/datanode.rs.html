@@ -285,6 +285,8 @@
 <a href="#285" id="285">285</a>
 <a href="#286" id="286">286</a>
 <a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -308,7 +310,7 @@
 <span class="kw">use </span>servers::Mode;
 <span class="kw">use </span>snafu::ResultExt;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{Error, MissingConfigSnafu, <span class="prelude-ty">Result</span>, StartDatanodeSnafu};
+<span class="kw">use </span><span class="kw">crate</span>::error::{Error, MissingConfigSnafu, <span class="prelude-ty">Result</span>, ShutdownDatanodeSnafu, StartDatanodeSnafu};
 <span class="kw">use </span><span class="kw">crate</span>::toml_loader;
 
 <span class="kw">pub struct </span>Instance {
@@ -321,8 +323,10 @@
     }
 
     <span class="kw">pub async fn </span>stop(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="comment">// TODO: handle datanode shutdown
-        </span><span class="prelude-val">Ok</span>(())
+        <span class="self">self</span>.datanode
+            .shutdown()
+            .<span class="kw">await
+            </span>.context(ShutdownDatanodeSnafu)
     }
 }
 
