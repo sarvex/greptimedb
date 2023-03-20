@@ -393,6 +393,19 @@
 <a href="#393" id="393">393</a>
 <a href="#394" id="394">394</a>
 <a href="#395" id="395">395</a>
+<a href="#396" id="396">396</a>
+<a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -423,12 +436,10 @@
 <span class="kw">use </span>session::context::{QueryContext, QueryContextRef};
 <span class="kw">use </span>snafu::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>sql::ast::ObjectName;
-<span class="kw">use </span>sql::statements::copy::CopyTable;
+<span class="kw">use </span>sql::statements::copy::{CopyTable, CopyTableArgument};
 <span class="kw">use </span>sql::statements::statement::Statement;
 <span class="kw">use </span>table::engine::TableReference;
-<span class="kw">use </span>table::requests::{
-    CopyTableFromRequest, CopyTableRequest, CreateDatabaseRequest, DropTableRequest,
-};
+<span class="kw">use </span>table::requests::{CopyDirection, CopyTableRequest, CreateDatabaseRequest, DropTableRequest};
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, BumpTableIdSnafu, ExecuteSqlSnafu, ExecuteStatementSnafu, PlanStatementSnafu, <span class="prelude-ty">Result</span>,
@@ -555,39 +566,54 @@
             QueryStatement::Sql(Statement::ShowCreateTable(_show_create_table)) =&gt; {
                 <span class="macro">unimplemented!</span>(<span class="string">&quot;SHOW CREATE TABLE is unimplemented yet&quot;</span>);
             }
-            QueryStatement::Sql(Statement::Copy(copy_table)) =&gt; <span class="kw">match </span>copy_table {
-                CopyTable::To(copy_table) =&gt; {
-                    <span class="kw">let </span>(catalog_name, schema_name, table_name) =
-                        table_idents_to_full_name(<span class="kw-2">&amp;</span>copy_table.table_name, query_ctx.clone())<span class="question-mark">?</span>;
-                    <span class="kw">let </span>file_name = copy_table.file_name;
-                    <span class="kw">let </span>req = CopyTableRequest {
-                        catalog_name,
-                        schema_name,
-                        table_name,
-                        file_name,
-                        connection: copy_table.connection,
-                    };
+            QueryStatement::Sql(Statement::Copy(copy_table)) =&gt; {
+                <span class="kw">let </span>req = <span class="kw">match </span>copy_table {
+                    CopyTable::To(copy_table) =&gt; {
+                        <span class="kw">let </span>CopyTableArgument {
+                            location,
+                            connection,
+                            pattern,
+                            table_name,
+                            ..
+                        } = copy_table;
+                        <span class="kw">let </span>(catalog_name, schema_name, table_name) =
+                            table_idents_to_full_name(<span class="kw-2">&amp;</span>table_name, query_ctx.clone())<span class="question-mark">?</span>;
+                        CopyTableRequest {
+                            catalog_name,
+                            schema_name,
+                            table_name,
+                            location,
+                            connection,
+                            pattern,
+                            direction: CopyDirection::Export,
+                        }
+                    }
+                    CopyTable::From(copy_table) =&gt; {
+                        <span class="kw">let </span>CopyTableArgument {
+                            location,
+                            connection,
+                            pattern,
+                            table_name,
+                            ..
+                        } = copy_table;
+                        <span class="kw">let </span>(catalog_name, schema_name, table_name) =
+                            table_idents_to_full_name(<span class="kw-2">&amp;</span>table_name, query_ctx.clone())<span class="question-mark">?</span>;
+                        CopyTableRequest {
+                            catalog_name,
+                            schema_name,
+                            table_name,
+                            location,
+                            connection,
+                            pattern,
+                            direction: CopyDirection::Import,
+                        }
+                    }
+                };
 
-                    <span class="self">self</span>.sql_handler
-                        .execute(SqlRequest::CopyTable(req), query_ctx)
-                        .<span class="kw">await
-                </span>}
-                CopyTable::From(copy_table) =&gt; {
-                    <span class="kw">let </span>(catalog_name, schema_name, table_name) =
-                        table_idents_to_full_name(<span class="kw-2">&amp;</span>copy_table.table_name, query_ctx.clone())<span class="question-mark">?</span>;
-                    <span class="kw">let </span>req = CopyTableFromRequest {
-                        catalog_name,
-                        schema_name,
-                        table_name,
-                        connection: copy_table.connection,
-                        pattern: copy_table.pattern,
-                        from: copy_table.from,
-                    };
-                    <span class="self">self</span>.sql_handler
-                        .execute(SqlRequest::CopyTableFrom(req), query_ctx)
-                        .<span class="kw">await
-                </span>}
-            },
+                <span class="self">self</span>.sql_handler
+                    .execute(SqlRequest::CopyTable(req), query_ctx)
+                    .<span class="kw">await
+            </span>}
             QueryStatement::Sql(Statement::Query(<span class="kw">_</span>))
             | QueryStatement::Sql(Statement::Explain(<span class="kw">_</span>))
             | QueryStatement::Sql(Statement::Use(<span class="kw">_</span>))

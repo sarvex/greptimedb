@@ -5,6 +5,7 @@ var sourcesIndex = JSON.parse('{\
 "cmd":["",[["cli",[],["cmd.rs","helper.rs","repl.rs"]]],["cli.rs","datanode.rs","error.rs","frontend.rs","lib.rs","metasrv.rs","standalone.rs","toml_loader.rs"]],\
 "common_base":["",[],["bit_vec.rs","buffer.rs","bytes.rs","lib.rs","readable_size.rs"]],\
 "common_catalog":["",[],["consts.rs","error.rs","lib.rs"]],\
+"common_datasource":["",[["object_store",[],["fs.rs","s3.rs"]]],["error.rs","lib.rs","lister.rs","object_store.rs","util.rs"]],\
 "common_error":["",[],["ext.rs","format.rs","lib.rs","mock.rs","status_code.rs"]],\
 "common_function":["",[["scalars",[["aggregate",[],["argmax.rs","argmin.rs","diff.rs","mean.rs","percentile.rs","polyval.rs","scipy_stats_norm_cdf.rs","scipy_stats_norm_pdf.rs"]],["expression",[],["binary.rs","ctx.rs","unary.rs"]],["math",[],["pow.rs","rate.rs"]],["numpy",[],["clip.rs","interp.rs"]]],["aggregate.rs","expression.rs","function.rs","function_registry.rs","math.rs","numpy.rs","timestamp.rs","udf.rs"]]],["lib.rs","scalars.rs"]],\
 "common_function_macro":["",[],["lib.rs","range_fn.rs"]],\
@@ -18,7 +19,7 @@ var sourcesIndex = JSON.parse('{\
 "common_telemetry":["",[],["lib.rs","logging.rs","macros.rs","metric.rs","panic_hook.rs"]],\
 "common_test_util":["",[],["lib.rs","temp_dir.rs"]],\
 "common_time":["",[],["date.rs","datetime.rs","error.rs","lib.rs","range.rs","timestamp.rs","timestamp_millis.rs","util.rs"]],\
-"datanode":["",[["instance",[],["grpc.rs","script.rs","sql.rs"]],["server",[],["grpc.rs"]],["sql",[],["alter.rs","copy_table.rs","copy_table_from.rs","create.rs","delete.rs","drop_table.rs","flush_table.rs","insert.rs"]]],["datanode.rs","error.rs","heartbeat.rs","instance.rs","lib.rs","metric.rs","mock.rs","script.rs","server.rs","sql.rs"]],\
+"datanode":["",[["instance",[],["grpc.rs","script.rs","sql.rs"]],["server",[],["grpc.rs"]],["sql",[],["alter.rs","copy_table_from.rs","copy_table_to.rs","create.rs","delete.rs","drop_table.rs","flush_table.rs","insert.rs"]]],["datanode.rs","error.rs","heartbeat.rs","instance.rs","lib.rs","metric.rs","mock.rs","script.rs","server.rs","sql.rs"]],\
 "datatypes":["",[["schema",[],["column_schema.rs","constraint.rs","raw.rs"]],["types",[],["binary_type.rs","boolean_type.rs","date_type.rs","datetime_type.rs","dictionary_type.rs","list_type.rs","null_type.rs","primitive_type.rs","string_type.rs","timestamp_type.rs"]],["vectors",[["operations",[],["cast.rs","filter.rs","find_unique.rs","replicate.rs","take.rs"]]],["binary.rs","boolean.rs","constant.rs","date.rs","datetime.rs","eq.rs","helper.rs","list.rs","null.rs","operations.rs","primitive.rs","string.rs","timestamp.rs","validity.rs"]]],["arrow_array.rs","data_type.rs","error.rs","lib.rs","macros.rs","prelude.rs","scalars.rs","schema.rs","serialize.rs","timestamp.rs","type_id.rs","types.rs","value.rs","vectors.rs"]],\
 "frontend":["",[["instance",[["distributed",[],["grpc.rs"]]],["distributed.rs","grpc.rs","influxdb.rs","opentsdb.rs","prometheus.rs","standalone.rs"]],["table",[],["insert.rs","scan.rs"]]],["catalog.rs","datanode.rs","error.rs","expr_factory.rs","frontend.rs","grpc.rs","influxdb.rs","instance.rs","lib.rs","mysql.rs","opentsdb.rs","postgres.rs","prom.rs","prometheus.rs","server.rs","sql.rs","table.rs"]],\
 "greptime":["",[],["greptime.rs"]],\

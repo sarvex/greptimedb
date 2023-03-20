@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"constant":["ACCESS_KEY_ID","ENABLE_VIRTUAL_HOST_STYLE","ENDPOINT_URL","REGION","S3_SCHEMA","SECRET_ACCESS_KEY","SESSION_TOKEN"],"enum":["Source"],"fn":["build_fs_backend","build_s3_backend"],"opaque":[""],"struct":["DataSource"]};
+window.SIDEBAR_ITEMS = {"opaque":[""]};

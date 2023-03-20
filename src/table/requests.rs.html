@@ -264,8 +264,6 @@
 <a href="#264" id="264">264</a>
 <a href="#265" id="265">265</a>
 <a href="#266" id="266">266</a>
-<a href="#267" id="267">267</a>
-<a href="#268" id="268">268</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -458,24 +456,22 @@
     </span><span class="kw">pub </span>key_column_values: HashMap&lt;String, VectorRef&gt;,
 }
 
+<span class="attr">#[derive(Debug)]
+</span><span class="kw">pub enum </span>CopyDirection {
+    Export,
+    Import,
+}
+
 <span class="doccomment">/// Copy table request
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>CopyTableRequest {
     <span class="kw">pub </span>catalog_name: String,
     <span class="kw">pub </span>schema_name: String,
     <span class="kw">pub </span>table_name: String,
-    <span class="kw">pub </span>file_name: String,
-    <span class="kw">pub </span>connection: HashMap&lt;String, String&gt;,
-}
-
-<span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>CopyTableFromRequest {
-    <span class="kw">pub </span>catalog_name: String,
-    <span class="kw">pub </span>schema_name: String,
-    <span class="kw">pub </span>table_name: String,
+    <span class="kw">pub </span>location: String,
     <span class="kw">pub </span>connection: HashMap&lt;String, String&gt;,
     <span class="kw">pub </span>pattern: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    <span class="kw">pub </span>from: String,
+    <span class="kw">pub </span>direction: CopyDirection,
 }
 
 <span class="attr">#[derive(Debug, Clone, Default)]

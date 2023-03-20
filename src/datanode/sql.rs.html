@@ -385,6 +385,7 @@
 <a href="#385" id="385">385</a>
 <a href="#386" id="386">386</a>
 <a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -421,8 +422,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::instance::sql::table_idents_to_full_name;
 
 <span class="kw">mod </span>alter;
-<span class="kw">mod </span>copy_table;
 <span class="kw">mod </span>copy_table_from;
+<span class="kw">mod </span>copy_table_to;
 <span class="kw">mod </span>create;
 <span class="kw">mod </span>delete;
 <span class="kw">mod </span>drop_table;
@@ -442,7 +443,6 @@
     DescribeTable(DescribeTable),
     Delete(Delete),
     CopyTable(CopyTableRequest),
-    CopyTableFrom(CopyTableFromRequest),
 }
 
 <span class="comment">// Handler to execute SQL except query
@@ -483,8 +483,10 @@
             SqlRequest::Alter(req) =&gt; <span class="self">self</span>.alter(req).<span class="kw">await</span>,
             SqlRequest::DropTable(req) =&gt; <span class="self">self</span>.drop_table(req).<span class="kw">await</span>,
             SqlRequest::Delete(req) =&gt; <span class="self">self</span>.delete(query_ctx.clone(), req).<span class="kw">await</span>,
-            SqlRequest::CopyTable(req) =&gt; <span class="self">self</span>.copy_table(req).<span class="kw">await</span>,
-            SqlRequest::CopyTableFrom(req) =&gt; <span class="self">self</span>.copy_table_from(req).<span class="kw">await</span>,
+            SqlRequest::CopyTable(req) =&gt; <span class="kw">match </span>req.direction {
+                CopyDirection::Export =&gt; <span class="self">self</span>.copy_table_to(req).<span class="kw">await</span>,
+                CopyDirection::Import =&gt; <span class="self">self</span>.copy_table_from(req).<span class="kw">await</span>,
+            },
             SqlRequest::ShowDatabases(req) =&gt; {
                 show_databases(req, <span class="self">self</span>.catalog_manager.clone()).context(ExecuteSqlSnafu)
             }
