@@ -255,6 +255,7 @@
 <a href="#255" id="255">255</a>
 <a href="#256" id="256">256</a>
 <a href="#257" id="257">257</a>
+<a href="#258" id="258">258</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -352,6 +353,7 @@
             schema_name: expr.schema_name,
             table_name,
             region_number: expr.region_id,
+            wait: <span class="prelude-val">None</span>,
         };
         <span class="self">self</span>.sql_handler()
             .execute(SqlRequest::FlushTable(req), QueryContext::arc())

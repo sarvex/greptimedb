@@ -703,7 +703,6 @@
 <a href="#703" id="703">703</a>
 <a href="#704" id="704">704</a>
 <a href="#705" id="705">705</a>
-<a href="#706" id="706">706</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -728,7 +727,7 @@
 <span class="kw">use </span>snafu::{ensure, ResultExt};
 <span class="kw">use </span>store_api::logstore::LogStore;
 <span class="kw">use </span>store_api::manifest::{Manifest, ManifestVersion, MetaAction};
-<span class="kw">use </span>store_api::storage::{AlterRequest, SequenceNumber, WriteContext, WriteResponse};
+<span class="kw">use </span>store_api::storage::{AlterRequest, FlushContext, SequenceNumber, WriteContext, WriteResponse};
 <span class="kw">use </span>tokio::sync::Mutex;
 
 <span class="kw">use </span><span class="kw">crate</span>::background::JobHandle;
@@ -967,13 +966,25 @@
     }
 
     <span class="doccomment">/// Flush task manually  
-    </span><span class="kw">pub async fn </span>flush&lt;S: LogStore&gt;(<span class="kw-2">&amp;</span><span class="self">self</span>, writer_ctx: WriterContext&lt;<span class="lifetime">&#39;_</span>, S&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    </span><span class="kw">pub async fn </span>flush&lt;S: LogStore&gt;(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        writer_ctx: WriterContext&lt;<span class="lifetime">&#39;_</span>, S&gt;,
+        ctx: <span class="kw-2">&amp;</span>FlushContext,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>inner = <span class="self">self</span>.inner.lock().<span class="kw">await</span>;
 
         <span class="macro">ensure!</span>(!inner.is_closed(), error::ClosedRegionSnafu);
 
-        inner.manual_flush(writer_ctx).<span class="kw">await
-    </span>}
+        inner.manual_flush(writer_ctx).<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">if </span>ctx.wait {
+            <span class="kw">if let </span><span class="prelude-val">Some</span>(handle) = inner.flush_handle.take() {
+                handle.join().<span class="kw">await</span><span class="question-mark">?</span>;
+            }
+        }
+
+        <span class="prelude-val">Ok</span>(())
+    }
 
     <span class="doccomment">/// Cancel flush task if any
     </span><span class="kw">async fn </span>cancel_flush(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
@@ -984,19 +995,6 @@
                 .<span class="kw">await
                 </span>.map_err(BoxedError::new)
                 .context(error::CancelFlushSnafu)<span class="question-mark">?</span>;
-        }
-
-        <span class="prelude-val">Ok</span>(())
-    }
-}
-
-<span class="comment">// Private methods for tests.
-</span><span class="attr">#[cfg(test)]
-</span><span class="kw">impl </span>RegionWriter {
-    <span class="kw">pub async fn </span>wait_flush_done(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>inner = <span class="self">self</span>.inner.lock().<span class="kw">await</span>;
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(handle) = inner.flush_handle.take() {
-            handle.join().<span class="kw">await</span><span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())

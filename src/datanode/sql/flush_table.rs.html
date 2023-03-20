@@ -76,6 +76,12 @@
 <a href="#76" id="76">76</a>
 <a href="#77" id="77">77</a>
 <a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
+<a href="#84" id="84">84</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -106,6 +112,7 @@
                 <span class="kw-2">&amp;</span>req.schema_name,
                 table,
                 req.region_number,
+                req.wait,
             )
             .<span class="kw">await</span><span class="question-mark">?</span>;
         } <span class="kw">else </span>{
@@ -125,6 +132,7 @@
                     <span class="kw-2">&amp;</span>req.schema_name,
                     table,
                     req.region_number,
+                    req.wait,
                 )
             }))
             .<span class="kw">await
@@ -140,6 +148,7 @@
         schema: <span class="kw-2">&amp;</span>str,
         table: <span class="kw-2">&amp;</span>str,
         region: <span class="prelude-ty">Option</span>&lt;u32&gt;,
+        wait: <span class="prelude-ty">Option</span>&lt;bool&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>table_ref = TableReference {
             catalog,
@@ -149,9 +158,12 @@
 
         <span class="kw">let </span>full_table_name = table_ref.to_string();
         <span class="kw">let </span>table = <span class="self">self</span>.get_table(<span class="kw-2">&amp;</span>table_ref)<span class="question-mark">?</span>;
-        table.flush(region).<span class="kw">await</span>.context(error::FlushTableSnafu {
-            table_name: full_table_name,
-        })
+        table
+            .flush(region, wait)
+            .<span class="kw">await
+            </span>.context(error::FlushTableSnafu {
+                table_name: full_table_name,
+            })
     }
 }
 </code></pre></div>
