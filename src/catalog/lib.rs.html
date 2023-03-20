@@ -280,6 +280,11 @@
 <a href="#280" id="280">280</a>
 <a href="#281" id="281">281</a>
 <a href="#282" id="282">282</a>
+<a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -301,7 +306,7 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>api::v1::meta::{RegionStat, TableName};
-<span class="kw">use </span>common_telemetry::info;
+<span class="kw">use </span>common_telemetry::{info, warn};
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>table::engine::{EngineContext, TableEngineRef};
 <span class="kw">use </span>table::metadata::TableId;
@@ -510,8 +515,10 @@
 
 <span class="doccomment">/// The stat of regions in the datanode node.
 /// The number of regions can be got from len of vec.
-</span><span class="kw">pub async fn </span>region_stats(catalog_manager: <span class="kw-2">&amp;</span>CatalogManagerRef) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;RegionStat&gt;&gt; {
+</span><span class="kw">pub async fn </span>datanode_stat(catalog_manager: <span class="kw-2">&amp;</span>CatalogManagerRef) -&gt; <span class="prelude-ty">Result</span>&lt;(u64, Vec&lt;RegionStat&gt;)&gt; {
+    <span class="kw">let </span><span class="kw-2">mut </span>region_number: u64 = <span class="number">0</span>;
     <span class="kw">let </span><span class="kw-2">mut </span>region_stats = Vec::new();
+
     <span class="kw">for </span>catalog_name <span class="kw">in </span>catalog_manager.catalog_names()<span class="question-mark">? </span>{
         <span class="kw">let </span>catalog =
             catalog_manager
@@ -537,16 +544,12 @@
                             table_info: <span class="kw-2">&amp;</span>table_name,
                         })<span class="question-mark">?</span>;
 
-                region_stats.extend(
-                    table
-                        .region_stats()
-                        .context(error::RegionStatsSnafu {
-                            catalog: <span class="kw-2">&amp;</span>catalog_name,
-                            schema: <span class="kw-2">&amp;</span>schema_name,
-                            table: <span class="kw-2">&amp;</span>table_name,
-                        })<span class="question-mark">?
-                        </span>.into_iter()
-                        .map(|stat| RegionStat {
+                <span class="kw">let </span>region_numbers = <span class="kw-2">&amp;</span>table.table_info().meta.region_numbers;
+                region_number += region_numbers.len() <span class="kw">as </span>u64;
+
+                <span class="kw">match </span>table.region_stats() {
+                    <span class="prelude-val">Ok</span>(stats) =&gt; {
+                        <span class="kw">let </span>stats = stats.into_iter().map(|stat| RegionStat {
                             region_id: stat.region_id,
                             table_name: <span class="prelude-val">Some</span>(TableName {
                                 catalog_name: catalog_name.clone(),
@@ -555,12 +558,19 @@
                             }),
                             approximate_bytes: stat.disk_usage_bytes <span class="kw">as </span>i64,
                             ..Default::default()
-                        }),
-                );
+                        });
+
+                        region_stats.extend(stats);
+                    }
+                    <span class="prelude-val">Err</span>(e) =&gt; {
+                        <span class="macro">warn!</span>(<span class="string">&quot;Failed to get region status, err: {:?}&quot;</span>, e);
+                    }
+                };
             }
         }
     }
-    <span class="prelude-val">Ok</span>(region_stats)
+
+    <span class="prelude-val">Ok</span>((region_number, region_stats))
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="catalog" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
