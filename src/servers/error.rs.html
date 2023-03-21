@@ -395,6 +395,13 @@
 <a href="#395" id="395">395</a>
 <a href="#396" id="396">396</a>
 <a href="#397" id="397">397</a>
+<a href="#398" id="398">398</a>
+<a href="#399" id="399">399</a>
+<a href="#400" id="400">400</a>
+<a href="#401" id="401">401</a>
+<a href="#402" id="402">402</a>
+<a href="#403" id="403">403</a>
+<a href="#404" id="404">404</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -666,6 +673,12 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid flush argument: {}&quot;</span>, err_msg))]
     </span>InvalidFlushArgument { err_msg: String },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build gRPC reflection service, source: {}&quot;</span>, source))]
+    </span>GrpcReflectionService {
+        source: tonic_reflection::server::Error,
+        backtrace: Backtrace,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -684,6 +697,7 @@
             | InvalidPromRemoteReadQueryResult { .. }
             | TcpBind { .. }
             | CatalogError { .. }
+            | GrpcReflectionService { .. }
             | BuildingContext { .. } =&gt; StatusCode::Internal,
 
             InsertScript { source, .. }

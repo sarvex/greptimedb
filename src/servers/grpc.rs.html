@@ -124,6 +124,15 @@
 <a href="#124" id="124">124</a>
 <a href="#125" id="125">125</a>
 <a href="#126" id="126">126</a>
+<a href="#127" id="127">127</a>
+<a href="#128" id="128">128</a>
+<a href="#129" id="129">129</a>
+<a href="#130" id="130">130</a>
+<a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
+<a href="#133" id="133">133</a>
+<a href="#134" id="134">134</a>
+<a href="#135" id="135">135</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -159,7 +168,9 @@
 <span class="kw">use </span>tonic::Status;
 
 <span class="kw">use </span><span class="kw">crate</span>::auth::UserProviderRef;
-<span class="kw">use </span><span class="kw">crate</span>::error::{AlreadyStartedSnafu, <span class="prelude-ty">Result</span>, StartGrpcSnafu, TcpBindSnafu};
+<span class="kw">use </span><span class="kw">crate</span>::error::{
+    AlreadyStartedSnafu, GrpcReflectionServiceSnafu, <span class="prelude-ty">Result</span>, StartGrpcSnafu, TcpBindSnafu,
+};
 <span class="kw">use </span><span class="kw">crate</span>::grpc::database::DatabaseService;
 <span class="kw">use </span><span class="kw">crate</span>::grpc::flight::FlightHandler;
 <span class="kw">use </span><span class="kw">crate</span>::grpc::handler::GreptimeRequestHandler;
@@ -235,10 +246,17 @@
             (listener, addr)
         };
 
+        <span class="kw">let </span>reflection_service = tonic_reflection::server::Builder::configure()
+            .register_encoded_file_descriptor_set(api::v1::GREPTIME_GRPC_DESC)
+            .with_service_name(<span class="string">&quot;greptime.v1.GreptimeDatabase&quot;</span>)
+            .build()
+            .context(GrpcReflectionServiceSnafu)<span class="question-mark">?</span>;
+
         <span class="comment">// Would block to serve requests.
         </span>tonic::transport::Server::builder()
             .add_service(<span class="self">self</span>.create_flight_service())
             .add_service(<span class="self">self</span>.create_database_service())
+            .add_service(reflection_service)
             .serve_with_incoming_shutdown(TcpListenerStream::new(listener), rx.map(drop))
             .<span class="kw">await
             </span>.context(StartGrpcSnafu)<span class="question-mark">?</span>;
