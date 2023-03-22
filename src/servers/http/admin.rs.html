@@ -65,8 +65,6 @@
 <a href="#65" id="65">65</a>
 <a href="#66" id="66">66</a>
 <a href="#67" id="67">67</a>
-<a href="#68" id="68">68</a>
-<a href="#69" id="69">69</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -87,8 +85,7 @@
 <span class="kw">use </span>api::v1::greptime_request::Request;
 <span class="kw">use </span>api::v1::{DdlRequest, FlushTableExpr};
 <span class="kw">use </span>axum::extract::{Query, RawBody, State};
-<span class="kw">use </span>axum::http::StatusCode <span class="kw">as </span>HttpStatusCode;
-<span class="kw">use </span>axum::Json;
+<span class="kw">use </span>axum::http::StatusCode;
 <span class="kw">use </span>session::context::QueryContext;
 <span class="kw">use </span>snafu::OptionExt;
 
@@ -101,21 +98,20 @@
     State(grpc_handler): State&lt;ServerGrpcQueryHandlerRef&gt;,
     Query(params): Query&lt;HashMap&lt;String, String&gt;&gt;,
     RawBody(<span class="kw">_</span>): RawBody,
-) -&gt; <span class="prelude-ty">Result</span>&lt;(HttpStatusCode, Json&lt;String&gt;)&gt; {
+) -&gt; <span class="prelude-ty">Result</span>&lt;(StatusCode, ())&gt; {
     <span class="kw">let </span>catalog_name = params
-        .get(<span class="string">&quot;catalog_name&quot;</span>)
+        .get(<span class="string">&quot;catalog&quot;</span>)
         .cloned()
         .unwrap_or(<span class="string">&quot;greptime&quot;</span>.to_string());
-    <span class="kw">let </span>schema_name =
-        params
-            .get(<span class="string">&quot;schema_name&quot;</span>)
-            .cloned()
-            .context(error::InvalidFlushArgumentSnafu {
-                err_msg: <span class="string">&quot;schema_name is not present&quot;</span>,
-            })<span class="question-mark">?</span>;
+    <span class="kw">let </span>schema_name = params
+        .get(<span class="string">&quot;db&quot;</span>)
+        .cloned()
+        .context(error::InvalidFlushArgumentSnafu {
+            err_msg: <span class="string">&quot;db is not present&quot;</span>,
+        })<span class="question-mark">?</span>;
 
     <span class="comment">// if table name is not present, flush all tables inside schema
-    </span><span class="kw">let </span>table_name = params.get(<span class="string">&quot;table_name&quot;</span>).cloned().unwrap_or_default();
+    </span><span class="kw">let </span>table_name = params.get(<span class="string">&quot;table&quot;</span>).cloned().unwrap_or_default();
 
     <span class="kw">let </span>region_id: <span class="prelude-ty">Option</span>&lt;u32&gt; = params
         .get(<span class="string">&quot;region&quot;</span>)
@@ -134,7 +130,7 @@
     });
 
     grpc_handler.do_query(request, QueryContext::arc()).<span class="kw">await</span><span class="question-mark">?</span>;
-    <span class="prelude-val">Ok</span>((HttpStatusCode::OK, Json::from(<span class="string">&quot;hello, world&quot;</span>.to_string())))
+    <span class="prelude-val">Ok</span>((StatusCode::NO_CONTENT, ()))
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="servers" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>
