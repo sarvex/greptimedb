@@ -666,6 +666,25 @@
 <a href="#666" id="666">666</a>
 <a href="#667" id="667">667</a>
 <a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
+<a href="#680" id="680">680</a>
+<a href="#681" id="681">681</a>
+<a href="#682" id="682">682</a>
+<a href="#683" id="683">683</a>
+<a href="#684" id="684">684</a>
+<a href="#685" id="685">685</a>
+<a href="#686" id="686">686</a>
+<a href="#687" id="687">687</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -872,6 +891,13 @@
     }
 
     <span class="attr">#[inline]
+    </span><span class="kw">pub fn </span>file_path(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="self">self</span>.inner
+            .sst_layer
+            .sst_file_path(<span class="kw-2">&amp;</span><span class="self">self</span>.inner.meta.file_id.as_parquet())
+    }
+
+    <span class="attr">#[inline]
     </span><span class="kw">pub fn </span>file_id(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; FileId {
         <span class="self">self</span>.inner.meta.file_id
     }
@@ -1060,7 +1086,10 @@
 <span class="doccomment">/// SST access layer.
 </span><span class="attr">#[async_trait]
 </span><span class="kw">pub trait </span>AccessLayer: Send + Sync + std::fmt::Debug {
-    <span class="doccomment">/// Writes SST file with given `file_name`.
+    <span class="doccomment">/// Returns the sst file path.
+    </span><span class="kw">fn </span>sst_file_path(<span class="kw-2">&amp;</span><span class="self">self</span>, file_name: <span class="kw-2">&amp;</span>str) -&gt; String;
+
+    <span class="doccomment">/// Writes SST file with given `file_id`.
     </span><span class="kw">async fn </span>write_sst(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         file_id: FileId,
@@ -1068,8 +1097,12 @@
         opts: <span class="kw-2">&amp;</span>WriteOptions,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SstInfo&gt;;
 
-    <span class="doccomment">/// Read SST file with given `file_name` and schema.
-    </span><span class="kw">async fn </span>read_sst(<span class="kw-2">&amp;</span><span class="self">self</span>, file_id: FileId, opts: <span class="kw-2">&amp;</span>ReadOptions) -&gt; <span class="prelude-ty">Result</span>&lt;BoxedBatchReader&gt;;
+    <span class="doccomment">/// Read SST file with given `file_handle` and schema.
+    </span><span class="kw">async fn </span>read_sst(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        file_handle: FileHandle,
+        opts: <span class="kw-2">&amp;</span>ReadOptions,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;BoxedBatchReader&gt;;
 
     <span class="doccomment">/// Deletes a SST file with given name.
     </span><span class="kw">async fn </span>delete_sst(<span class="kw-2">&amp;</span><span class="self">self</span>, file_id: FileId) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt;;
@@ -1104,7 +1137,7 @@
     }
 }
 
-<span class="doccomment">/// Sst access layer based on local file system.
+<span class="doccomment">/// Sst access layer.
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>FsAccessLayer {
     sst_dir: String,
@@ -1118,16 +1151,16 @@
             object_store,
         }
     }
-
-    <span class="attr">#[inline]
-    </span><span class="kw">fn </span>sst_file_path(<span class="kw-2">&amp;</span><span class="self">self</span>, file_name: <span class="kw-2">&amp;</span>str) -&gt; String {
-        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.sst_dir, file_name)
-    }
 }
 
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>AccessLayer <span class="kw">for </span>FsAccessLayer {
-    <span class="kw">async fn </span>write_sst(
+    <span class="kw">fn </span>sst_file_path(<span class="kw-2">&amp;</span><span class="self">self</span>, file_name: <span class="kw-2">&amp;</span>str) -&gt; String {
+        <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.sst_dir, file_name)
+    }
+
+    <span class="doccomment">/// Writes SST file with given `file_id`.
+    </span><span class="kw">async fn </span>write_sst(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         file_id: FileId,
         source: Source,
@@ -1140,10 +1173,14 @@
         writer.write_sst(opts).<span class="kw">await
     </span>}
 
-    <span class="kw">async fn </span>read_sst(<span class="kw-2">&amp;</span><span class="self">self</span>, file_id: FileId, opts: <span class="kw-2">&amp;</span>ReadOptions) -&gt; <span class="prelude-ty">Result</span>&lt;BoxedBatchReader&gt; {
-        <span class="kw">let </span>file_path = <span class="self">self</span>.sst_file_path(<span class="kw-2">&amp;</span>file_id.as_parquet());
+    <span class="doccomment">/// Read SST file with given `file_handle` and schema.
+    </span><span class="kw">async fn </span>read_sst(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        file_handle: FileHandle,
+        opts: <span class="kw-2">&amp;</span>ReadOptions,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;BoxedBatchReader&gt; {
         <span class="kw">let </span>reader = ParquetReader::new(
-            <span class="kw-2">&amp;</span>file_path,
+            file_handle,
             <span class="self">self</span>.object_store.clone(),
             opts.projected_schema.clone(),
             opts.predicate.clone(),
@@ -1154,7 +1191,8 @@
         <span class="prelude-val">Ok</span>(Box::new(stream))
     }
 
-    <span class="kw">async fn </span>delete_sst(<span class="kw-2">&amp;</span><span class="self">self</span>, file_id: FileId) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="doccomment">/// Deletes a SST file with given file id.
+    </span><span class="kw">async fn </span>delete_sst(<span class="kw-2">&amp;</span><span class="self">self</span>, file_id: FileId) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>path = <span class="self">self</span>.sst_file_path(<span class="kw-2">&amp;</span>file_id.as_parquet());
         <span class="kw">let </span>object = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span>path);
         object.delete().<span class="kw">await</span>.context(DeleteSstSnafu)
