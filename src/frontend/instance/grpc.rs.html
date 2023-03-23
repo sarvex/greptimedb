@@ -1377,7 +1377,7 @@ CREATE TABLE {table_name} (
                 .plan(stmt, QueryContext::arc())
                 .<span class="kw">await
                 </span>.unwrap();
-            <span class="kw">let </span>output = engine.execute(<span class="kw-2">&amp;</span>plan).<span class="kw">await</span>.unwrap();
+            <span class="kw">let </span>output = engine.execute(plan, QueryContext::arc()).<span class="kw">await</span>.unwrap();
             <span class="kw">let </span>Output::Stream(stream) = output <span class="kw">else </span>{ <span class="macro">unreachable!</span>() };
             <span class="kw">let </span>recordbatches = RecordBatches::try_collect(stream).<span class="kw">await</span>.unwrap();
             <span class="kw">let </span>actual = recordbatches.pretty_print().unwrap();

@@ -860,6 +860,9 @@
 <a href="#860" id="860">860</a>
 <a href="#861" id="861">861</a>
 <a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -895,6 +898,7 @@
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_telemetry::{debug, info};
 <span class="kw">use </span>datanode::instance::sql::table_idents_to_full_name;
+<span class="kw">use </span>datanode::sql::SqlHandler;
 <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
 <span class="kw">use </span>datatypes::schema::RawSchema;
 <span class="kw">use </span>meta_client::client::MetaClient;
@@ -922,13 +926,12 @@
 <span class="kw">use </span><span class="kw">crate</span>::datanode::DatanodeClients;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     <span class="self">self</span>, AlterExprToRequestSnafu, CatalogEntrySerdeSnafu, CatalogSnafu, ColumnDataTypeSnafu,
-    DeserializePartitionSnafu, NotSupportedSnafu, ParseSqlSnafu, PrimaryKeyNotFoundSnafu,
-    RequestDatanodeSnafu, RequestMetaSnafu, <span class="prelude-ty">Result</span>, SchemaExistsSnafu, StartMetaClientSnafu,
-    TableAlreadyExistSnafu, TableNotFoundSnafu, TableSnafu, ToTableInsertRequestSnafu,
-    UnrecognizedTableOptionSnafu,
+    DeserializePartitionSnafu, InvokeDatanodeSnafu, NotSupportedSnafu, ParseSqlSnafu,
+    PrimaryKeyNotFoundSnafu, RequestDatanodeSnafu, RequestMetaSnafu, <span class="prelude-ty">Result</span>, SchemaExistsSnafu,
+    StartMetaClientSnafu, TableAlreadyExistSnafu, TableNotFoundSnafu, TableSnafu,
+    ToTableInsertRequestSnafu, UnrecognizedTableOptionSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::expr_factory;
-<span class="kw">use </span><span class="kw">crate</span>::sql::insert_to_request;
 <span class="kw">use </span><span class="kw">crate</span>::table::DistTable;
 
 <span class="attr">#[derive(Clone)]
@@ -1236,7 +1239,10 @@
                     </span>.context(CatalogSnafu)<span class="question-mark">?
                     </span>.context(TableNotFoundSnafu { table_name: table })<span class="question-mark">?</span>;
 
-                <span class="kw">let </span>insert_request = insert_to_request(<span class="kw-2">&amp;</span>table, <span class="kw-2">*</span>insert, query_ctx)<span class="question-mark">?</span>;
+                <span class="kw">let </span>insert_request =
+                    SqlHandler::insert_to_request(<span class="self">self</span>.catalog_manager.clone(), <span class="kw-2">*</span>insert, query_ctx)
+                        .<span class="kw">await
+                        </span>.context(InvokeDatanodeSnafu)<span class="question-mark">?</span>;
 
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(Output::AffectedRows(
                     table.insert(insert_request).<span class="kw">await</span>.context(TableSnafu)<span class="question-mark">?</span>,

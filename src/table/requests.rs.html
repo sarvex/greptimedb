@@ -257,13 +257,6 @@
 <a href="#257" id="257">257</a>
 <a href="#258" id="258">258</a>
 <a href="#259" id="259">259</a>
-<a href="#260" id="260">260</a>
-<a href="#261" id="261">261</a>
-<a href="#262" id="262">262</a>
-<a href="#263" id="263">263</a>
-<a href="#264" id="264">264</a>
-<a href="#265" id="265">265</a>
-<a href="#266" id="266">266</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -279,29 +272,22 @@
 // limitations under the License.
 
 </span><span class="doccomment">//! Table and TableEngine requests
-</span><span class="kw">use </span>std::collections::HashMap;
+</span><span class="kw">mod </span>insert;
+
+<span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::str::FromStr;
 <span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>common_base::readable_size::ReadableSize;
 <span class="kw">use </span>datatypes::prelude::VectorRef;
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, RawSchema};
+<span class="kw">pub use </span>insert::InsertRequest;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>store_api::storage::RegionNumber;
 
 <span class="kw">use </span><span class="kw">crate</span>::error;
 <span class="kw">use </span><span class="kw">crate</span>::error::ParseTableOptionSnafu;
 <span class="kw">use </span><span class="kw">crate</span>::metadata::TableId;
-
-<span class="doccomment">/// Insert request
-</span><span class="attr">#[derive(Debug)]
-</span><span class="kw">pub struct </span>InsertRequest {
-    <span class="kw">pub </span>catalog_name: String,
-    <span class="kw">pub </span>schema_name: String,
-    <span class="kw">pub </span>table_name: String,
-    <span class="kw">pub </span>columns_values: HashMap&lt;String, VectorRef&gt;,
-    <span class="kw">pub </span>region_number: RegionNumber,
-}
 
 <span class="attr">#[derive(Debug, Clone)]
 </span><span class="kw">pub struct </span>CreateDatabaseRequest {

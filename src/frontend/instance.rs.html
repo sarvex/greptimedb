@@ -1280,6 +1280,16 @@
 <a href="#1280" id="1280">1280</a>
 <a href="#1281" id="1281">1281</a>
 <a href="#1282" id="1282">1282</a>
+<a href="#1283" id="1283">1283</a>
+<a href="#1284" id="1284">1284</a>
+<a href="#1285" id="1285">1285</a>
+<a href="#1286" id="1286">1286</a>
+<a href="#1287" id="1287">1287</a>
+<a href="#1288" id="1288">1288</a>
+<a href="#1289" id="1289">1289</a>
+<a href="#1290" id="1290">1290</a>
+<a href="#1291" id="1291">1291</a>
+<a href="#1292" id="1292">1292</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1710,45 +1720,55 @@
 }
 
 <span class="kw">impl </span>Instance {
+    <span class="kw">async fn </span>plan_exec(<span class="kw-2">&amp;</span><span class="self">self</span>, stmt: Statement, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+        <span class="kw">let </span>planner = <span class="self">self</span>.query_engine.planner();
+        <span class="kw">let </span>plan = planner
+            .plan(QueryStatement::Sql(stmt), query_ctx.clone())
+            .<span class="kw">await
+            </span>.context(PlanStatementSnafu)<span class="question-mark">?</span>;
+        <span class="self">self</span>.query_engine
+            .execute(plan, query_ctx)
+            .<span class="kw">await
+            </span>.context(ExecLogicalPlanSnafu)
+    }
+
+    <span class="kw">async fn </span>execute_tql(<span class="kw-2">&amp;</span><span class="self">self</span>, tql: Tql, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+        <span class="kw">let </span>plan = <span class="kw">match </span>tql {
+            Tql::Eval(eval) =&gt; {
+                <span class="kw">let </span>promql = PromQuery {
+                    start: eval.start,
+                    end: eval.end,
+                    step: eval.step,
+                    query: eval.query,
+                };
+                <span class="kw">let </span>stmt = QueryLanguageParser::parse_promql(<span class="kw-2">&amp;</span>promql).context(ParseQuerySnafu)<span class="question-mark">?</span>;
+                <span class="self">self</span>.query_engine
+                    .planner()
+                    .plan(stmt, query_ctx.clone())
+                    .<span class="kw">await
+                    </span>.context(PlanStatementSnafu)<span class="question-mark">?
+            </span>}
+            Tql::Explain(<span class="kw">_</span>) =&gt; <span class="macro">unimplemented!</span>(),
+        };
+        <span class="self">self</span>.query_engine
+            .execute(plan, query_ctx)
+            .<span class="kw">await
+            </span>.context(ExecLogicalPlanSnafu)
+    }
+
     <span class="kw">async fn </span>query_statement(<span class="kw-2">&amp;</span><span class="self">self</span>, stmt: Statement, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         check_permission(<span class="self">self</span>.plugins.clone(), <span class="kw-2">&amp;</span>stmt, <span class="kw-2">&amp;</span>query_ctx)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>planner = <span class="self">self</span>.query_engine.planner();
-
         <span class="kw">match </span>stmt {
-            Statement::Query(<span class="kw">_</span>) | Statement::Explain(<span class="kw">_</span>) =&gt; {
-                <span class="kw">let </span>plan = planner
-                    .plan(QueryStatement::Sql(stmt), query_ctx)
-                    .<span class="kw">await
-                    </span>.context(PlanStatementSnafu)<span class="question-mark">?</span>;
-                <span class="self">self</span>.query_engine
-                    .execute(<span class="kw-2">&amp;</span>plan)
-                    .<span class="kw">await
-                    </span>.context(ExecLogicalPlanSnafu)
-            }
-            Statement::Tql(tql) =&gt; {
-                <span class="kw">let </span>plan = <span class="kw">match </span>tql {
-                    Tql::Eval(eval) =&gt; {
-                        <span class="kw">let </span>promql = PromQuery {
-                            start: eval.start,
-                            end: eval.end,
-                            step: eval.step,
-                            query: eval.query,
-                        };
-                        <span class="kw">let </span>stmt =
-                            QueryLanguageParser::parse_promql(<span class="kw-2">&amp;</span>promql).context(ParseQuerySnafu)<span class="question-mark">?</span>;
-                        planner
-                            .plan(stmt, query_ctx)
-                            .<span class="kw">await
-                            </span>.context(PlanStatementSnafu)<span class="question-mark">?
-                    </span>}
-                    Tql::Explain(<span class="kw">_</span>) =&gt; <span class="macro">unimplemented!</span>(),
-                };
-                <span class="self">self</span>.query_engine
-                    .execute(<span class="kw-2">&amp;</span>plan)
-                    .<span class="kw">await
-                    </span>.context(ExecLogicalPlanSnafu)
-            }
+            Statement::Query(<span class="kw">_</span>) | Statement::Explain(<span class="kw">_</span>) =&gt; <span class="self">self</span>.plan_exec(stmt, query_ctx).<span class="kw">await</span>,
+
+            <span class="comment">// For performance consideration, only &quot;insert with select&quot; is executed by query engine.
+            // Plain insert (&quot;insert with values&quot;) is still executed directly in statement.
+            </span>Statement::Insert(<span class="kw-2">ref </span>insert) <span class="kw">if </span>insert.is_insert_select() =&gt; {
+                <span class="self">self</span>.plan_exec(stmt, query_ctx).<span class="kw">await
+            </span>}
+
+            Statement::Tql(tql) =&gt; <span class="self">self</span>.execute_tql(tql, query_ctx).<span class="kw">await</span>,
             Statement::CreateDatabase(<span class="kw">_</span>)
             | Statement::ShowDatabases(<span class="kw">_</span>)
             | Statement::CreateTable(<span class="kw">_</span>)
@@ -2368,7 +2388,7 @@
                 .plan(stmt.clone(), QueryContext::arc())
                 .<span class="kw">await
                 </span>.unwrap();
-            <span class="kw">let </span>output = engine.execute(<span class="kw-2">&amp;</span>plan).<span class="kw">await</span>.unwrap();
+            <span class="kw">let </span>output = engine.execute(plan, QueryContext::arc()).<span class="kw">await</span>.unwrap();
             <span class="kw">let </span>Output::Stream(stream) = output <span class="kw">else </span>{ <span class="macro">unreachable!</span>() };
             <span class="kw">let </span>recordbatches = RecordBatches::try_collect(stream).<span class="kw">await</span>.unwrap();
             <span class="kw">let </span>actual = recordbatches.pretty_print().unwrap();

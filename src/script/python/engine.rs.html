@@ -827,7 +827,7 @@
                 .planner()
                 .plan(stmt, QueryContext::arc())
                 .<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="kw">let </span>res = <span class="self">self</span>.query_engine.execute(<span class="kw-2">&amp;</span>plan).<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="kw">let </span>res = <span class="self">self</span>.query_engine.execute(plan, QueryContext::arc()).<span class="kw">await</span><span class="question-mark">?</span>;
             <span class="kw">let </span>copr = <span class="self">self</span>.copr.clone();
             <span class="kw">match </span>res {
                 Output::Stream(stream) =&gt; <span class="prelude-val">Ok</span>(Output::Stream(Box::pin(CoprStream::try_new(

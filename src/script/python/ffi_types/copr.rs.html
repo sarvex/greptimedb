@@ -501,6 +501,7 @@
 <a href="#501" id="501">501</a>
 <a href="#502" id="502">502</a>
 <a href="#503" id="503">503</a>
+<a href="#504" id="504">504</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -538,6 +539,7 @@
 <span class="kw">use </span>rustpython_vm <span class="kw">as </span>vm;
 <span class="attr">#[cfg(test)]
 </span><span class="kw">use </span>serde::Deserialize;
+<span class="kw">use </span>session::context::QueryContext;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
 <span class="kw">use </span>vm::builtins::{PyList, PyListRef};
 <span class="kw">use </span>vm::convert::ToPyObject;
@@ -876,7 +878,7 @@
                         </span>.map_err(|e| e.to_string())<span class="question-mark">?</span>;
                     <span class="kw">let </span>res = engine
                         .clone()
-                        .execute(<span class="kw-2">&amp;</span>plan)
+                        .execute(plan, QueryContext::arc())
                         .<span class="kw">await
                         </span>.map_err(|e| e.to_string());
                     <span class="kw">match </span>res {
