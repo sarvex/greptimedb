@@ -544,35 +544,6 @@
 <a href="#544" id="544">544</a>
 <a href="#545" id="545">545</a>
 <a href="#546" id="546">546</a>
-<a href="#547" id="547">547</a>
-<a href="#548" id="548">548</a>
-<a href="#549" id="549">549</a>
-<a href="#550" id="550">550</a>
-<a href="#551" id="551">551</a>
-<a href="#552" id="552">552</a>
-<a href="#553" id="553">553</a>
-<a href="#554" id="554">554</a>
-<a href="#555" id="555">555</a>
-<a href="#556" id="556">556</a>
-<a href="#557" id="557">557</a>
-<a href="#558" id="558">558</a>
-<a href="#559" id="559">559</a>
-<a href="#560" id="560">560</a>
-<a href="#561" id="561">561</a>
-<a href="#562" id="562">562</a>
-<a href="#563" id="563">563</a>
-<a href="#564" id="564">564</a>
-<a href="#565" id="565">565</a>
-<a href="#566" id="566">566</a>
-<a href="#567" id="567">567</a>
-<a href="#568" id="568">568</a>
-<a href="#569" id="569">569</a>
-<a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
-<a href="#572" id="572">572</a>
-<a href="#573" id="573">573</a>
-<a href="#574" id="574">574</a>
-<a href="#575" id="575">575</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -607,30 +578,27 @@
 ///
 /// where F is the cumulative distribution function of a normal distribution with mean
 /// and standard deviation estimated from historical heartbeat inter-arrival times.
+</span><span class="attr">#[cfg_attr(test, derive(Clone))]
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">struct </span>PhiAccrualFailureDetector {
     <span class="doccomment">/// A low threshold is prone to generate many wrong suspicions but ensures a quick detection
     /// in the event of a real crash. Conversely, a high threshold generates fewer mistakes but
     /// needs more time to detect actual crashes.
-    </span>threshold: f64,
-
-    <span class="doccomment">/// Number of samples to use for calculation of mean and standard deviation of inter-arrival
-    /// times.
-    </span>max_sample_size: u32,
+    </span>threshold: f32,
 
     <span class="doccomment">/// Minimum standard deviation to use for the normal distribution used when calculating phi.
     /// Too low standard deviation might result in too much sensitivity for sudden, but normal,
     /// deviations in heartbeat inter arrival times.
-    </span>min_std_deviation_millis: f64,
+    </span>min_std_deviation_millis: f32,
 
     <span class="doccomment">/// Duration corresponding to number of potentially lost/delayed heartbeats that will be
     /// accepted before considering it to be an anomaly.
     /// This margin is important to be able to survive sudden, occasional, pauses in heartbeat
     /// arrivals, due to for example network drop.
-    </span>acceptable_heartbeat_pause_millis: i64,
+    </span>acceptable_heartbeat_pause_millis: u32,
 
     <span class="doccomment">/// Bootstrap the stats with heartbeats that corresponds to this duration, with a rather high
     /// standard deviation (since environment is unknown in the beginning).
-    </span>first_heartbeat_estimate_millis: i64,
+    </span>first_heartbeat_estimate_millis: u32,
 
     heartbeat_history: HeartbeatHistory,
     last_heartbeat_millis: <span class="prelude-ty">Option</span>&lt;i64&gt;,
@@ -640,14 +608,12 @@
     <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
         <span class="comment">// default configuration is the same as of Akka:
         // https://github.com/akka/akka/blob/main/akka-cluster/src/main/resources/reference.conf#L181
-        </span><span class="kw">let </span>max_sample_size = <span class="number">1000</span>;
-        <span class="self">Self </span>{
-            threshold: <span class="number">8_f64</span>,
-            max_sample_size,
-            min_std_deviation_millis: <span class="number">100_f64</span>,
+        </span><span class="self">Self </span>{
+            threshold: <span class="number">8_f32</span>,
+            min_std_deviation_millis: <span class="number">100_f32</span>,
             acceptable_heartbeat_pause_millis: <span class="number">3000</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
-            heartbeat_history: HeartbeatHistory::new(max_sample_size),
+            heartbeat_history: HeartbeatHistory::new(<span class="number">1000</span>),
             last_heartbeat_millis: <span class="prelude-val">None</span>,
         }
     }
@@ -670,28 +636,28 @@
             // bootstrap with 2 entries with rather high standard deviation
             </span><span class="kw">let </span>std_deviation = <span class="self">self</span>.first_heartbeat_estimate_millis / <span class="number">4</span>;
             <span class="self">self</span>.heartbeat_history
-                .add(<span class="self">self</span>.first_heartbeat_estimate_millis - std_deviation);
+                .add((<span class="self">self</span>.first_heartbeat_estimate_millis - std_deviation) <span class="kw">as _</span>);
             <span class="self">self</span>.heartbeat_history
-                .add(<span class="self">self</span>.first_heartbeat_estimate_millis + std_deviation);
+                .add((<span class="self">self</span>.first_heartbeat_estimate_millis + std_deviation) <span class="kw">as _</span>);
         }
         <span class="kw">let _ </span>= <span class="self">self</span>.last_heartbeat_millis.insert(ts_millis);
     }
 
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>is_available(<span class="kw-2">&amp;</span><span class="self">self</span>, ts_millis: i64) -&gt; bool {
-        <span class="self">self</span>.phi(ts_millis) &lt; <span class="self">self</span>.threshold
-    }
+        <span class="self">self</span>.phi(ts_millis) &lt; <span class="self">self</span>.threshold <span class="kw">as _
+    </span>}
 
     <span class="doccomment">/// The suspicion level of the accrual failure detector.
     ///
     /// If a connection does not have any records in failure detector then it is considered healthy.
-    </span><span class="kw">fn </span>phi(<span class="kw-2">&amp;</span><span class="self">self</span>, ts_millis: i64) -&gt; f64 {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>phi(<span class="kw-2">&amp;</span><span class="self">self</span>, ts_millis: i64) -&gt; f64 {
         <span class="kw">if let </span><span class="prelude-val">Some</span>(last_heartbeat_millis) = <span class="self">self</span>.last_heartbeat_millis {
             <span class="kw">let </span>time_diff = ts_millis - last_heartbeat_millis;
             <span class="kw">let </span>mean = <span class="self">self</span>.heartbeat_history.mean();
             <span class="kw">let </span>std_deviation = <span class="self">self
                 </span>.heartbeat_history
                 .std_deviation()
-                .max(<span class="self">self</span>.min_std_deviation_millis);
+                .max(<span class="self">self</span>.min_std_deviation_millis <span class="kw">as _</span>);
 
             phi(
                 time_diff,
@@ -702,6 +668,16 @@
             <span class="comment">// treat unmanaged connections, e.g. with zero heartbeats, as healthy connections
             </span><span class="number">0.0
         </span>}
+    }
+
+    <span class="attr">#[cfg(test)]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>threshold(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; f32 {
+        <span class="self">self</span>.threshold
+    }
+
+    <span class="attr">#[cfg(test)]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>acceptable_heartbeat_pause_millis(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; u32 {
+        <span class="self">self</span>.acceptable_heartbeat_pause_millis
     }
 }
 
@@ -716,6 +692,8 @@
 /// Usually phi = 1 means likeliness that we will make a mistake is about 10%.
 /// The likeliness is about 1% with phi = 2, 0.1% with phi = 3 and so on.
 </span><span class="kw">fn </span>phi(time_diff: i64, mean: f64, std_deviation: f64) -&gt; f64 {
+    <span class="macro">assert_ne!</span>(std_deviation, <span class="number">0.0</span>);
+
     <span class="kw">let </span>time_diff = time_diff <span class="kw">as </span>f64;
     <span class="kw">let </span>y = (time_diff - mean) / std_deviation;
     <span class="kw">let </span>e = (-y * (<span class="number">1.5976 </span>+ <span class="number">0.070566 </span>* y * y)).exp();
@@ -730,8 +708,12 @@
 /// It is capped by the number of samples specified in `max_sample_size`.
 ///
 /// The stats (mean, variance, std_deviation) are not defined for empty HeartbeatHistory.
+</span><span class="attr">#[derive(Clone)]
 </span><span class="kw">struct </span>HeartbeatHistory {
-    max_sample_size: u32,
+    <span class="doccomment">/// Number of samples to use for calculation of mean and standard deviation of inter-arrival
+    /// times.
+    </span>max_sample_size: u32,
+
     intervals: VecDeque&lt;i64&gt;,
     interval_sum: i64,
     squared_interval_sum: i64,
@@ -773,7 +755,7 @@
         <span class="kw">let </span>oldest = <span class="self">self
             </span>.intervals
             .pop_front()
-            .expect(<span class="string">&quot;intervals must not empty here&quot;</span>);
+            .expect(<span class="string">&quot;intervals must not be empty here&quot;</span>);
         <span class="self">self</span>.interval_sum -= oldest;
         <span class="self">self</span>.squared_interval_sum -= oldest * oldest;
     }
@@ -782,41 +764,8 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>common_time::util::current_time_millis;
-    <span class="kw">use </span>rand::Rng;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
-
-    <span class="attr">#[test]
-    </span><span class="kw">fn </span>test_heartbeat() {
-        <span class="comment">// Generate 2000 heartbeats start from now. Heartbeat interval is one second, plus some
-        // random millis.
-        </span><span class="kw">fn </span>generate_heartbeats() -&gt; Vec&lt;i64&gt; {
-            <span class="kw">let </span><span class="kw-2">mut </span>rng = rand::thread_rng();
-            <span class="kw">let </span>start = current_time_millis();
-            (<span class="number">0</span>..<span class="number">2000</span>)
-                .map(|i| start + i * <span class="number">1000 </span>+ rng.gen_range(<span class="number">0</span>..<span class="number">100</span>))
-                .collect::&lt;Vec&lt;i64&gt;&gt;()
-        }
-        <span class="kw">let </span>heartbeats = generate_heartbeats();
-
-        <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector::default();
-        <span class="comment">// feed the failure detector with these heartbeats
-        </span>heartbeats.iter().for_each(|x| fd.heartbeat(<span class="kw-2">*</span>x));
-
-        <span class="kw">let </span>start = <span class="kw-2">*</span>heartbeats.last().unwrap();
-        <span class="comment">// Within the &quot;acceptable_heartbeat_pause_millis&quot; period, phi is zero ...
-        </span><span class="kw">for </span>i <span class="kw">in </span><span class="number">1</span>..=fd.acceptable_heartbeat_pause_millis / <span class="number">1000 </span>{
-            <span class="kw">let </span>now = start + i * <span class="number">1000</span>;
-            <span class="macro">assert_eq!</span>(fd.phi(now), <span class="number">0.0</span>);
-        }
-
-        <span class="comment">// ... then in less than two seconds, phi is above the threshold.
-        // The same effect can be seen in the diagrams in Akka&#39;s document.
-        </span><span class="kw">let </span>now = start + fd.acceptable_heartbeat_pause_millis + <span class="number">1000</span>;
-        <span class="macro">assert!</span>(fd.phi(now) &lt; fd.threshold);
-        <span class="kw">let </span>now = start + fd.acceptable_heartbeat_pause_millis + <span class="number">2000</span>;
-        <span class="macro">assert!</span>(fd.phi(now) &gt; fd.threshold);
-    }
 
     <span class="attr">#[test]
     </span><span class="kw">fn </span>test_is_available() {
@@ -829,12 +778,13 @@
 
         fd.heartbeat(ts_millis);
 
+        <span class="kw">let </span>acceptable_heartbeat_pause_millis = fd.acceptable_heartbeat_pause_millis <span class="kw">as </span>i64;
         <span class="comment">// is available when heartbeat
         </span><span class="macro">assert!</span>(fd.is_available(ts_millis));
         <span class="comment">// is available before heartbeat timeout
-        </span><span class="macro">assert!</span>(fd.is_available(ts_millis + fd.acceptable_heartbeat_pause_millis / <span class="number">2</span>));
+        </span><span class="macro">assert!</span>(fd.is_available(ts_millis + acceptable_heartbeat_pause_millis / <span class="number">2</span>));
         <span class="comment">// is not available after heartbeat timeout
-        </span><span class="macro">assert!</span>(!fd.is_available(ts_millis + fd.acceptable_heartbeat_pause_millis * <span class="number">2</span>));
+        </span><span class="macro">assert!</span>(!fd.is_available(ts_millis + acceptable_heartbeat_pause_millis * <span class="number">2</span>));
     }
 
     <span class="attr">#[test]
@@ -861,14 +811,15 @@
 
         fd.heartbeat(ts_millis);
 
+        <span class="kw">let </span>acceptable_heartbeat_pause_millis = fd.acceptable_heartbeat_pause_millis <span class="kw">as </span>i64;
         <span class="comment">// phi == 0 when heartbeat
         </span><span class="macro">assert_eq!</span>(fd.phi(ts_millis), <span class="number">0.0</span>);
         <span class="comment">// phi &lt; threshold before heartbeat timeout
-        </span><span class="kw">let </span>now = ts_millis + fd.acceptable_heartbeat_pause_millis / <span class="number">2</span>;
-        <span class="macro">assert!</span>(fd.phi(now) &lt; fd.threshold);
+        </span><span class="kw">let </span>now = ts_millis + acceptable_heartbeat_pause_millis / <span class="number">2</span>;
+        <span class="macro">assert!</span>(fd.phi(now) &lt; fd.threshold <span class="kw">as _</span>);
         <span class="comment">// phi &gt;= threshold after heartbeat timeout
-        </span><span class="kw">let </span>now = ts_millis + fd.acceptable_heartbeat_pause_millis * <span class="number">2</span>;
-        <span class="macro">assert!</span>(fd.phi(now) &gt;= fd.threshold);
+        </span><span class="kw">let </span>now = ts_millis + acceptable_heartbeat_pause_millis * <span class="number">2</span>;
+        <span class="macro">assert!</span>(fd.phi(now) &gt;= fd.threshold <span class="kw">as _</span>);
     }
 
     <span class="comment">// The following test cases are port from Akka&#39;s test:
@@ -924,7 +875,6 @@
     </span><span class="kw">fn </span>test_return_phi_of_0_on_startup_when_no_heartbeats() {
         <span class="kw">let </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">0</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -939,7 +889,6 @@
     </span><span class="kw">fn </span>test_return_phi_based_on_guess_when_only_one_heartbeat() {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">0</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -956,7 +905,6 @@
     </span><span class="kw">fn </span>test_return_phi_using_first_interval_after_second_heartbeat() {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">0</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -973,7 +921,6 @@
     </span><span class="kw">fn </span>test_is_available_after_a_series_of_successful_heartbeats() {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">0</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -992,7 +939,6 @@
     </span><span class="kw">fn </span>test_is_not_available_if_heartbeat_are_missed() {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">3.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">0</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -1011,7 +957,6 @@
     ) {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">3000</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -1051,7 +996,6 @@
     </span><span class="kw">fn </span>test_accept_some_configured_missing_heartbeats() {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">3000</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -1071,7 +1015,6 @@
     </span><span class="kw">fn </span>test_fail_after_configured_acceptable_missing_heartbeats() {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">1000</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">3000</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
@@ -1093,7 +1036,6 @@
     </span><span class="kw">fn </span>test_use_max_sample_size_heartbeats() {
         <span class="kw">let </span><span class="kw-2">mut </span>fd = PhiAccrualFailureDetector {
             threshold: <span class="number">8.0</span>,
-            max_sample_size: <span class="number">3</span>,
             min_std_deviation_millis: <span class="number">100.0</span>,
             acceptable_heartbeat_pause_millis: <span class="number">0</span>,
             first_heartbeat_estimate_millis: <span class="number">1000</span>,
