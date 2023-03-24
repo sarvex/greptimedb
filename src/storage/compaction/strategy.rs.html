@@ -314,6 +314,8 @@
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
 <a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -459,12 +461,14 @@
 </span>}
 
 <span class="doccomment">/// A set of predefined time buckets.
-</span><span class="kw">const </span>TIME_BUCKETS: [i64; <span class="number">5</span>] = [
-    <span class="number">60 </span>* <span class="number">60</span>,          <span class="comment">// one hour
-    </span><span class="number">2 </span>* <span class="number">60 </span>* <span class="number">60</span>,      <span class="comment">// two hours
-    </span><span class="number">12 </span>* <span class="number">60 </span>* <span class="number">60</span>,     <span class="comment">// twelve hours
-    </span><span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,     <span class="comment">// one day
-    </span><span class="number">7 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>, <span class="comment">// one week
+</span><span class="kw">const </span>TIME_BUCKETS: [i64; <span class="number">7</span>] = [
+    <span class="number">60 </span>* <span class="number">60</span>,                 <span class="comment">// one hour
+    </span><span class="number">2 </span>* <span class="number">60 </span>* <span class="number">60</span>,             <span class="comment">// two hours
+    </span><span class="number">12 </span>* <span class="number">60 </span>* <span class="number">60</span>,            <span class="comment">// twelve hours
+    </span><span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,            <span class="comment">// one day
+    </span><span class="number">7 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,        <span class="comment">// one week
+    </span><span class="number">365 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>,      <span class="comment">// one year
+    </span><span class="number">10 </span>* <span class="number">365 </span>* <span class="number">24 </span>* <span class="number">60 </span>* <span class="number">60</span>, <span class="comment">// ten years
 </span>];
 
 <span class="doccomment">/// Fits a given time span into time bucket by find the minimum bucket that can cover the span.
@@ -529,7 +533,7 @@
         <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">2</span>], fit_time_bucket(TIME_BUCKETS[<span class="number">2</span>] - <span class="number">1</span>));
         <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">2</span>], fit_time_bucket(TIME_BUCKETS[<span class="number">2</span>]));
         <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">3</span>], fit_time_bucket(TIME_BUCKETS[<span class="number">3</span>] - <span class="number">1</span>));
-        <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">4</span>], fit_time_bucket(i64::MAX));
+        <span class="macro">assert_eq!</span>(TIME_BUCKETS[<span class="number">6</span>], fit_time_bucket(i64::MAX));
     }
 
     <span class="attr">#[test]
