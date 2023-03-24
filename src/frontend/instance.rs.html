@@ -1288,8 +1288,6 @@
 <a href="#1288" id="1288">1288</a>
 <a href="#1289" id="1289">1289</a>
 <a href="#1290" id="1290">1290</a>
-<a href="#1291" id="1291">1291</a>
-<a href="#1292" id="1292">1292</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1760,7 +1758,9 @@
         check_permission(<span class="self">self</span>.plugins.clone(), <span class="kw-2">&amp;</span>stmt, <span class="kw-2">&amp;</span>query_ctx)<span class="question-mark">?</span>;
 
         <span class="kw">match </span>stmt {
-            Statement::Query(<span class="kw">_</span>) | Statement::Explain(<span class="kw">_</span>) =&gt; <span class="self">self</span>.plan_exec(stmt, query_ctx).<span class="kw">await</span>,
+            Statement::Query(<span class="kw">_</span>) | Statement::Explain(<span class="kw">_</span>) | Statement::Delete(<span class="kw">_</span>) =&gt; {
+                <span class="self">self</span>.plan_exec(stmt, query_ctx).<span class="kw">await
+            </span>}
 
             <span class="comment">// For performance consideration, only &quot;insert with select&quot; is executed by query engine.
             // Plain insert (&quot;insert with values&quot;) is still executed directly in statement.
@@ -1775,7 +1775,6 @@
             | Statement::ShowTables(<span class="kw">_</span>)
             | Statement::DescribeTable(<span class="kw">_</span>)
             | Statement::Insert(<span class="kw">_</span>)
-            | Statement::Delete(<span class="kw">_</span>)
             | Statement::Alter(<span class="kw">_</span>)
             | Statement::DropTable(<span class="kw">_</span>)
             | Statement::Copy(<span class="kw">_</span>) =&gt; <span class="self">self
@@ -1949,8 +1948,8 @@
     }
 
     <span class="kw">match </span>stmt {
-        <span class="comment">// query,explain and tql will be checked in QueryEngineState
-        </span>Statement::Query(<span class="kw">_</span>) | Statement::Explain(<span class="kw">_</span>) | Statement::Tql(<span class="kw">_</span>) =&gt; {}
+        <span class="comment">// These are executed by query engine, and will be checked there.
+        </span>Statement::Query(<span class="kw">_</span>) | Statement::Explain(<span class="kw">_</span>) | Statement::Tql(<span class="kw">_</span>) | Statement::Delete(<span class="kw">_</span>) =&gt; {}
         <span class="comment">// database ops won&#39;t be checked
         </span>Statement::CreateDatabase(<span class="kw">_</span>) | Statement::ShowDatabases(<span class="kw">_</span>) | Statement::Use(<span class="kw">_</span>) =&gt; {}
         <span class="comment">// show create table and alter are not supported yet
@@ -1974,9 +1973,6 @@
         }
         Statement::DescribeTable(stmt) =&gt; {
             validate_param(stmt.name(), query_ctx)<span class="question-mark">?</span>;
-        }
-        Statement::Delete(delete) =&gt; {
-            validate_param(delete.table_name(), query_ctx)<span class="question-mark">?</span>;
         }
         Statement::Copy(stmd) =&gt; <span class="kw">match </span>stmd {
             CopyTable::To(copy_table_to) =&gt; validate_param(<span class="kw-2">&amp;</span>copy_table_to.table_name, query_ctx)<span class="question-mark">?</span>,

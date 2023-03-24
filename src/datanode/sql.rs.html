@@ -141,10 +141,6 @@
 <a href="#141" id="141">141</a>
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
-<a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
-<a href="#146" id="146">146</a>
-<a href="#147" id="147">147</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -167,7 +163,6 @@
 <span class="kw">use </span>query::sql::{describe_table, show_databases, show_tables};
 <span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
-<span class="kw">use </span>sql::statements::delete::Delete;
 <span class="kw">use </span>sql::statements::describe::DescribeTable;
 <span class="kw">use </span>sql::statements::show::{ShowDatabases, ShowTables};
 <span class="kw">use </span>table::engine::{EngineContext, TableEngineProcedureRef, TableEngineRef, TableReference};
@@ -183,7 +178,6 @@
 <span class="kw">mod </span>copy_table_from;
 <span class="kw">mod </span>copy_table_to;
 <span class="kw">mod </span>create;
-<span class="kw">mod </span>delete;
 <span class="kw">mod </span>drop_table;
 <span class="kw">mod </span>flush_table;
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>insert;
@@ -198,7 +192,6 @@
     ShowDatabases(ShowDatabases),
     ShowTables(ShowTables),
     DescribeTable(DescribeTable),
-    Delete(Delete),
     CopyTable(CopyTableRequest),
 }
 
@@ -236,7 +229,6 @@
             SqlRequest::CreateDatabase(req) =&gt; <span class="self">self</span>.create_database(req, query_ctx.clone()).<span class="kw">await</span>,
             SqlRequest::Alter(req) =&gt; <span class="self">self</span>.alter(req).<span class="kw">await</span>,
             SqlRequest::DropTable(req) =&gt; <span class="self">self</span>.drop_table(req).<span class="kw">await</span>,
-            SqlRequest::Delete(req) =&gt; <span class="self">self</span>.delete(query_ctx.clone(), req).<span class="kw">await</span>,
             SqlRequest::CopyTable(req) =&gt; <span class="kw">match </span>req.direction {
                 CopyDirection::Export =&gt; <span class="self">self</span>.copy_table_to(req).<span class="kw">await</span>,
                 CopyDirection::Import =&gt; <span class="self">self</span>.copy_table_from(req).<span class="kw">await</span>,

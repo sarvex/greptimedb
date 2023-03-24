@@ -153,6 +153,12 @@
 <a href="#153" id="153">153</a>
 <a href="#154" id="154">154</a>
 <a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
+<a href="#160" id="160">160</a>
+<a href="#161" id="161">161</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -265,6 +271,12 @@
         source: DataFusionError,
         backtrace: Backtrace,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Timestamp column for table &#39;{table_name}&#39; is missing!&quot;</span>))]
+    </span>MissingTimestampColumn {
+        table_name: String,
+        backtrace: Backtrace,
+    },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
@@ -286,7 +298,7 @@
             }
             CreateRecordBatch { source } =&gt; source.status_code(),
             QueryExecution { source } | QueryPlan { source } =&gt; source.status_code(),
-            DataFusion { .. } =&gt; StatusCode::Internal,
+            DataFusion { .. } | MissingTimestampColumn { .. } =&gt; StatusCode::Internal,
             Sql { source } =&gt; source.status_code(),
             PlanSql { .. } =&gt; StatusCode::PlanQuery,
         }
