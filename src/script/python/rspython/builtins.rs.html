@@ -1166,6 +1166,16 @@
 <a href="#1166" id="1166">1166</a>
 <a href="#1167" id="1167">1167</a>
 <a href="#1168" id="1168">1168</a>
+<a href="#1169" id="1169">1169</a>
+<a href="#1170" id="1170">1170</a>
+<a href="#1171" id="1171">1171</a>
+<a href="#1172" id="1172">1172</a>
+<a href="#1173" id="1173">1173</a>
+<a href="#1174" id="1174">1174</a>
+<a href="#1175" id="1175">1175</a>
+<a href="#1176" id="1176">1176</a>
+<a href="#1177" id="1177">1177</a>
+<a href="#1178" id="1178">1178</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1458,6 +1468,7 @@
     <span class="kw">use </span>common_function::scalars::math::PowFunction;
     <span class="kw">use </span>common_function::scalars::{Function, FunctionRef, FUNCTION_REGISTRY};
     <span class="kw">use </span>datafusion::arrow::datatypes::DataType <span class="kw">as </span>ArrowDataType;
+    <span class="kw">use </span>datafusion::dataframe::DataFrame <span class="kw">as </span>DfDataFrame;
     <span class="kw">use </span>datafusion::physical_plan::expressions;
     <span class="kw">use </span>datafusion_expr::{ColumnarValue <span class="kw">as </span>DFColValue, Expr <span class="kw">as </span>DfExpr};
     <span class="kw">use </span>datafusion_physical_expr::math_expressions;
@@ -1468,19 +1479,28 @@
     <span class="kw">use </span>paste::paste;
     <span class="kw">use </span>rustpython_vm::builtins::{PyFloat, PyFunction, PyInt, PyStr};
     <span class="kw">use </span>rustpython_vm::function::{FuncArgs, KwArgs, OptionalArg};
-    <span class="kw">use </span>rustpython_vm::{AsObject, PyObjectRef, PyPayload, PyRef, PyResult, VirtualMachine};
-
-    <span class="kw">use super</span>::{
-        all_to_f64, eval_aggr_fn, from_df_err, try_into_columnar_value, try_into_py_obj,
-        type_cast_error,
+    <span class="kw">use </span>rustpython_vm::{
+        pyclass, AsObject, PyObjectRef, PyPayload, PyRef, PyResult, VirtualMachine,
     };
+
     <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::copr::PyQueryEngine;
     <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::vector::val_to_pyobj;
     <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::PyVector;
-    <span class="kw">use </span><span class="kw">crate</span>::python::rspython::dataframe_impl::data_frame::{PyDataFrame, PyExpr, PyExprRef};
+    <span class="kw">use </span><span class="kw">crate</span>::python::rspython::builtins::{
+        all_to_f64, eval_aggr_fn, from_df_err, try_into_columnar_value, try_into_py_obj,
+        type_cast_error,
+    };
+    <span class="kw">use </span><span class="kw">crate</span>::python::rspython::dataframe_impl::data_frame::{PyExpr, PyExprRef};
     <span class="kw">use </span><span class="kw">crate</span>::python::rspython::utils::{
         is_instance, py_obj_to_value, py_obj_to_vec, PyVectorRef,
     };
+
+    <span class="attr">#[pyattr]
+    #[pyclass(module = <span class="string">&quot;greptime_builtin&quot;</span>, name = <span class="string">&quot;PyDataFrame&quot;</span>)]
+    #[derive(PyPayload, Debug, Clone)]
+    </span><span class="kw">pub struct </span>PyDataFrame {
+        <span class="kw">pub </span>inner: DfDataFrame,
+    }
 
     <span class="doccomment">/// get `__dataframe__` from globals and return it
     /// TODO(discord9): this is a terrible hack, we should find a better way to get `__dataframe__`
@@ -1495,9 +1515,9 @@
     }
 
     <span class="doccomment">/// get `__query__` from globals and return it
-    /// TODO(discord9): this is a terrible hack, we should find a better way to get `__dataframe__`
+    /// TODO(discord9): this is a terrible hack, we should find a better way to get `__query__`
     </span><span class="attr">#[pyfunction]
-    </span><span class="kw">fn </span>query(vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; PyResult&lt;PyQueryEngine&gt; {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>query(vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; PyResult&lt;PyQueryEngine&gt; {
         <span class="kw">let </span>query_engine = vm.current_globals().get_item(<span class="string">&quot;__query__&quot;</span>, vm)<span class="question-mark">?</span>;
         <span class="kw">let </span>query_engine = query_engine.payload::&lt;PyQueryEngine&gt;().ok_or_else(|| {
             vm.new_type_error(<span class="macro">format!</span>(<span class="string">&quot;object {:?} is not a QueryEngine&quot;</span>, query_engine))

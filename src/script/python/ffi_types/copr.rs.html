@@ -502,6 +502,21 @@
 <a href="#502" id="502">502</a>
 <a href="#503" id="503">503</a>
 <a href="#504" id="504">504</a>
+<a href="#505" id="505">505</a>
+<a href="#506" id="506">506</a>
+<a href="#507" id="507">507</a>
+<a href="#508" id="508">508</a>
+<a href="#509" id="509">509</a>
+<a href="#510" id="510">510</a>
+<a href="#511" id="511">511</a>
+<a href="#512" id="512">512</a>
+<a href="#513" id="513">513</a>
+<a href="#514" id="514">514</a>
+<a href="#515" id="515">515</a>
+<a href="#516" id="516">516</a>
+<a href="#517" id="517">517</a>
+<a href="#518" id="518">518</a>
+<a href="#519" id="519">519</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -765,11 +780,12 @@
                 .unwrap_or(<span class="bool-val">true</span>),
             OtherSnafu {
                 reason: <span class="macro">format!</span>(
-                    <span class="string">&quot;column {}&#39;s Type annotation is {:?}, but actual type is {:?}&quot;</span>,
+                    <span class="string">&quot;column {}&#39;s Type annotation is {:?}, but actual type is {:?} with nullable=={}&quot;</span>,
                     <span class="comment">// It&#39;s safe to unwrap here, we already ensure the args and types number is the same when parsing
                     </span>copr.deco_args.arg_names.as_ref().unwrap()[idx],
                     anno_ty,
-                    real_ty
+                    real_ty,
+                    is_nullable
                 )
             }
         )
@@ -848,20 +864,35 @@
     Rb(RecordBatches),
     AffectedRows(usize),
 }
+
+<span class="kw">impl </span>PyQueryEngine {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>sql_to_rb(<span class="kw-2">&amp;</span><span class="self">self</span>, sql: String) -&gt; StdResult&lt;RecordBatch, String&gt; {
+        <span class="kw">let </span>res = <span class="self">self</span>.query_with_new_thread(sql.clone())<span class="question-mark">?</span>;
+        <span class="kw">match </span>res {
+            Either::Rb(rbs) =&gt; {
+                <span class="kw">let </span>rb = compute::concat_batches(
+                    rbs.schema().arrow_schema(),
+                    rbs.iter().map(|r| r.df_record_batch()),
+                )
+                .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Concat batches failed for query {sql}: {e}&quot;</span>))<span class="question-mark">?</span>;
+                RecordBatch::try_from_df_record_batch(rbs.schema(), rb).map_err(|e|
+                    <span class="macro">format!</span>(
+                        <span class="string">&quot;Convert datafusion record batch to record batch failed for query {sql}: {e}&quot;
+                    </span>)
+                )
+            }
+            Either::AffectedRows(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Expect actual results from query {sql}&quot;</span>)),
+        }
+    }
+}
+
 <span class="attr">#[rspyclass]
 </span><span class="kw">impl </span>PyQueryEngine {
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>from_weakref(inner: QueryEngineWeakRef) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{ inner }
     }
-    <span class="attr">#[cfg(feature = <span class="string">&quot;pyo3_backend&quot;</span>)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>get_ref(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>QueryEngine&gt;&gt; {
-        <span class="self">self</span>.inner.<span class="number">0</span>.upgrade()
-    }
-    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>query_with_new_thread(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        query: <span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>QueryEngine&gt;&gt;,
-        s: String,
-    ) -&gt; StdResult&lt;Either, String&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>query_with_new_thread(<span class="kw-2">&amp;</span><span class="self">self</span>, s: String) -&gt; StdResult&lt;Either, String&gt; {
+        <span class="kw">let </span>query = <span class="self">self</span>.inner.<span class="number">0</span>.upgrade();
         <span class="kw">let </span>thread_handle = std::thread::spawn(<span class="kw">move </span>|| -&gt; std::result::Result&lt;<span class="kw">_</span>, String&gt; {
             <span class="kw">if let </span><span class="prelude-val">Some</span>(engine) = query {
                 <span class="kw">let </span>stmt = QueryLanguageParser::parse_sql(<span class="kw-2">&amp;</span>s).map_err(|e| e.to_string())<span class="question-mark">?</span>;
@@ -905,8 +936,7 @@
     </span><span class="doccomment">/// return sql query results in List[List[PyVector]], or List[usize] for AffectedRows number if no recordbatches is returned
     </span><span class="attr">#[pymethod]
     </span><span class="kw">fn </span>sql(<span class="kw-2">&amp;</span><span class="self">self</span>, s: String, vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; PyResult&lt;PyListRef&gt; {
-        <span class="kw">let </span>query = <span class="self">self</span>.inner.<span class="number">0</span>.upgrade();
-        <span class="self">self</span>.query_with_new_thread(query, s)
+        <span class="self">self</span>.query_with_new_thread(s)
             .map_err(|e| vm.new_system_error(e))
             .map(|rbs| <span class="kw">match </span>rbs {
                 Either::Rb(rbs) =&gt; {
