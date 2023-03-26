@@ -480,28 +480,28 @@
             <span class="kw">let </span>sst_layer = <span class="self">self</span>.sst_layer.clone();
 
             futures.push(<span class="kw">async move </span>{
-                <span class="kw">let </span>SstInfo {
-                    time_range,
-                    file_size,
-                } = sst_layer
+                <span class="prelude-val">Ok</span>(sst_layer
                     .write_sst(file_id, Source::Iter(iter), <span class="kw-2">&amp;</span>WriteOptions::default())
-                    .<span class="kw">await</span><span class="question-mark">?</span>;
-
-                <span class="prelude-val">Ok</span>(FileMeta {
-                    region_id,
-                    file_id,
-                    time_range,
-                    level: <span class="number">0</span>,
-                    file_size,
-                })
+                    .<span class="kw">await</span><span class="question-mark">?
+                    </span>.map(
+                        |SstInfo {
+                             time_range,
+                             file_size,
+                         }| FileMeta {
+                            region_id,
+                            file_id,
+                            time_range,
+                            level: <span class="number">0</span>,
+                            file_size,
+                        },
+                    ))
             });
         }
 
-        <span class="kw">let </span>metas = futures_util::future::join_all(futures)
-            .<span class="kw">await
+        <span class="kw">let </span>metas = futures_util::future::try_join_all(futures)
+            .<span class="kw">await</span><span class="question-mark">?
             </span>.into_iter()
-            .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?
-            </span>.into_iter()
+            .flatten()
             .collect();
 
         <span class="macro">logging::info!</span>(<span class="string">&quot;Successfully flush memtables to files: {:?}&quot;</span>, metas);

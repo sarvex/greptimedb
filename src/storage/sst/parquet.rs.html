@@ -995,6 +995,47 @@
 <a href="#995" id="995">995</a>
 <a href="#996" id="996">996</a>
 <a href="#997" id="997">997</a>
+<a href="#998" id="998">998</a>
+<a href="#999" id="999">999</a>
+<a href="#1000" id="1000">1000</a>
+<a href="#1001" id="1001">1001</a>
+<a href="#1002" id="1002">1002</a>
+<a href="#1003" id="1003">1003</a>
+<a href="#1004" id="1004">1004</a>
+<a href="#1005" id="1005">1005</a>
+<a href="#1006" id="1006">1006</a>
+<a href="#1007" id="1007">1007</a>
+<a href="#1008" id="1008">1008</a>
+<a href="#1009" id="1009">1009</a>
+<a href="#1010" id="1010">1010</a>
+<a href="#1011" id="1011">1011</a>
+<a href="#1012" id="1012">1012</a>
+<a href="#1013" id="1013">1013</a>
+<a href="#1014" id="1014">1014</a>
+<a href="#1015" id="1015">1015</a>
+<a href="#1016" id="1016">1016</a>
+<a href="#1017" id="1017">1017</a>
+<a href="#1018" id="1018">1018</a>
+<a href="#1019" id="1019">1019</a>
+<a href="#1020" id="1020">1020</a>
+<a href="#1021" id="1021">1021</a>
+<a href="#1022" id="1022">1022</a>
+<a href="#1023" id="1023">1023</a>
+<a href="#1024" id="1024">1024</a>
+<a href="#1025" id="1025">1025</a>
+<a href="#1026" id="1026">1026</a>
+<a href="#1027" id="1027">1027</a>
+<a href="#1028" id="1028">1028</a>
+<a href="#1029" id="1029">1029</a>
+<a href="#1030" id="1030">1030</a>
+<a href="#1031" id="1031">1031</a>
+<a href="#1032" id="1032">1032</a>
+<a href="#1033" id="1033">1033</a>
+<a href="#1034" id="1034">1034</a>
+<a href="#1035" id="1035">1035</a>
+<a href="#1036" id="1036">1036</a>
+<a href="#1037" id="1037">1037</a>
+<a href="#1038" id="1038">1038</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1072,14 +1113,17 @@
         </span>}
     }
 
-    <span class="kw">pub async fn </span>write_sst(<span class="self">self</span>, _opts: <span class="kw-2">&amp;</span>sst::WriteOptions) -&gt; <span class="prelude-ty">Result</span>&lt;SstInfo&gt; {
+    <span class="kw">pub async fn </span>write_sst(<span class="self">self</span>, _opts: <span class="kw-2">&amp;</span>sst::WriteOptions) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SstInfo&gt;&gt; {
         <span class="self">self</span>.write_rows(<span class="prelude-val">None</span>).<span class="kw">await
     </span>}
 
     <span class="doccomment">/// Iterates memtable and writes rows to Parquet file.
     /// A chunk of records yielded from each iteration with a size given
     /// in config will be written to a single row group.
-    </span><span class="kw">async fn </span>write_rows(<span class="kw-2">mut </span><span class="self">self</span>, extra_meta: <span class="prelude-ty">Option</span>&lt;HashMap&lt;String, String&gt;&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;SstInfo&gt; {
+    </span><span class="kw">async fn </span>write_rows(
+        <span class="kw-2">mut </span><span class="self">self</span>,
+        extra_meta: <span class="prelude-ty">Option</span>&lt;HashMap&lt;String, String&gt;&gt;,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SstInfo&gt;&gt; {
         <span class="kw">let </span>projected_schema = <span class="self">self</span>.source.projected_schema();
         <span class="kw">let </span>store_schema = projected_schema.schema_to_read();
         <span class="kw">let </span>schema = store_schema.arrow_schema().clone();
@@ -1103,6 +1147,7 @@
         <span class="kw">let </span><span class="kw-2">mut </span>arrow_writer = ArrowWriter::try_new(<span class="kw-2">&amp;mut </span>buf, schema.clone(), <span class="prelude-val">Some</span>(writer_props))
             .context(WriteParquetSnafu)<span class="question-mark">?</span>;
 
+        <span class="kw">let </span><span class="kw-2">mut </span>batches_written = <span class="number">0</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(batch) = <span class="self">self</span>.source.next_batch().<span class="kw">await</span><span class="question-mark">? </span>{
             <span class="kw">let </span>arrow_batch = RecordBatch::try_new(
                 schema.clone(),
@@ -1116,8 +1161,13 @@
             arrow_writer
                 .write(<span class="kw-2">&amp;</span>arrow_batch)
                 .context(WriteParquetSnafu)<span class="question-mark">?</span>;
+            batches_written += <span class="number">1</span>;
         }
 
+        <span class="kw">if </span>batches_written == <span class="number">0 </span>{
+            <span class="comment">// if the source does not contain any batch, we skip writing an empty parquet file.
+            </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+        }
         <span class="kw">let </span>file_meta = arrow_writer.close().context(WriteParquetSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>time_range = decode_timestamp_range(<span class="kw-2">&amp;</span>file_meta, store_schema)
@@ -1134,10 +1184,10 @@
                 path: object.path(),
             })<span class="question-mark">?
             </span>.content_length();
-        <span class="prelude-val">Ok</span>(SstInfo {
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(SstInfo {
             time_range,
             file_size,
-        })
+        }))
     }
 }
 
@@ -1207,6 +1257,13 @@
         end = end.max(max);
     }
 
+    <span class="macro">assert!</span>(
+        start &lt;= end,
+        <span class="string">&quot;Illegal timestamp range decoded from SST file {:?}, start: {}, end: {}&quot;</span>,
+        file_meta,
+        start,
+        end
+    );
     <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((
         Timestamp::new(start, unit),
         Timestamp::new(end, unit),
@@ -1679,7 +1736,8 @@
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
-            </span>.unwrap();
+            </span>.unwrap()
+            .unwrap();
 
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((
@@ -1776,7 +1834,8 @@
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
-            </span>.unwrap();
+            </span>.unwrap()
+            .unwrap();
 
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((
@@ -1895,7 +1954,8 @@
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
-            </span>.unwrap();
+            </span>.unwrap()
+            .unwrap();
 
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((
@@ -1966,6 +2026,28 @@
                 col_unit
             )
         )
+    }
+
+    <span class="attr">#[tokio::test]
+    </span><span class="kw">async fn </span>test_write_empty_file() {
+        common_telemetry::init_default_ut_logging();
+        <span class="kw">let </span>schema = memtable_tests::schema_for_test();
+        <span class="kw">let </span>memtable = DefaultMemtableBuilder::default().build(schema.clone());
+
+        <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;read-parquet-by-range&quot;</span>);
+        <span class="kw">let </span>path = dir.path().to_str().unwrap();
+        <span class="kw">let </span>backend = Fs::default().root(path).build().unwrap();
+        <span class="kw">let </span>object_store = ObjectStore::new(backend).finish();
+        <span class="kw">let </span>sst_file_name = <span class="string">&quot;test-read.parquet&quot;</span>;
+        <span class="kw">let </span>iter = memtable.iter(<span class="kw-2">&amp;</span>IterContext::default()).unwrap();
+        <span class="kw">let </span>writer = ParquetWriter::new(sst_file_name, Source::Iter(iter), object_store.clone());
+
+        <span class="kw">let </span>sst_info_opt = writer
+            .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
+            .<span class="kw">await
+            </span>.unwrap();
+
+        <span class="macro">assert!</span>(sst_info_opt.is_none());
     }
 
     <span class="attr">#[test]

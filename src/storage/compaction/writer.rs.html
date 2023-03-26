@@ -481,6 +481,10 @@
 <a href="#481" id="481">481</a>
 <a href="#482" id="482">482</a>
 <a href="#483" id="483">483</a>
+<a href="#484" id="484">484</a>
+<a href="#485" id="485">485</a>
+<a href="#486" id="486">486</a>
+<a href="#487" id="487">487</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -710,7 +714,8 @@
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
-            </span>.unwrap();
+            </span>.unwrap()
+            .unwrap();
         <span class="kw">let </span>handle = FileHandle::new(
             FileMeta {
                 region_id: <span class="number">0</span>,
@@ -898,7 +903,8 @@
         )
         .write_sst(<span class="kw-2">&amp;</span>opts)
         .<span class="kw">await
-        </span>.unwrap();
+        </span>.unwrap()
+        .unwrap();
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((
                 Timestamp::new_millisecond(<span class="number">2000</span>),
@@ -914,7 +920,8 @@
         )
         .write_sst(<span class="kw-2">&amp;</span>opts)
         .<span class="kw">await
-        </span>.unwrap();
+        </span>.unwrap()
+        .unwrap();
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((
                 Timestamp::new_millisecond(<span class="number">3000</span>),
@@ -930,7 +937,8 @@
         )
         .write_sst(<span class="kw-2">&amp;</span>opts)
         .<span class="kw">await
-        </span>.unwrap();
+        </span>.unwrap()
+        .unwrap();
 
         <span class="macro">assert_eq!</span>(
             <span class="prelude-val">Some</span>((

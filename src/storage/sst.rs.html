@@ -685,6 +685,7 @@
 <a href="#685" id="685">685</a>
 <a href="#686" id="686">686</a>
 <a href="#687" id="687">687</a>
+<a href="#688" id="688">688</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -970,7 +971,7 @@
                     );
                 }
                 <span class="prelude-val">Err</span>(e) =&gt; {
-                    <span class="macro">error!</span>(e; <span class="string">&quot;Failed to schedule SST purge task, region: {}, name: {}&quot;</span>, 
+                    <span class="macro">error!</span>(e; <span class="string">&quot;Failed to schedule SST purge task, region: {}, name: {}&quot;</span>,
                     <span class="self">self</span>.meta.region_id, <span class="self">self</span>.meta.file_id.as_parquet());
                 }
             }
@@ -1089,13 +1090,14 @@
     <span class="doccomment">/// Returns the sst file path.
     </span><span class="kw">fn </span>sst_file_path(<span class="kw-2">&amp;</span><span class="self">self</span>, file_name: <span class="kw-2">&amp;</span>str) -&gt; String;
 
-    <span class="doccomment">/// Writes SST file with given `file_id`.
+    <span class="doccomment">/// Writes SST file with given `file_id` and returns the SST info.
+    /// If source does not contain any data, `write_sst` will return `Ok(None)`.
     </span><span class="kw">async fn </span>write_sst(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         file_id: FileId,
         source: Source,
         opts: <span class="kw-2">&amp;</span>WriteOptions,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;SstInfo&gt;;
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SstInfo&gt;&gt;;
 
     <span class="doccomment">/// Read SST file with given `file_handle` and schema.
     </span><span class="kw">async fn </span>read_sst(
@@ -1165,7 +1167,7 @@
         file_id: FileId,
         source: Source,
         opts: <span class="kw-2">&amp;</span>WriteOptions,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;SstInfo&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SstInfo&gt;&gt; {
         <span class="comment">// Now we only supports parquet format. We may allow caller to specific SST format in
         // WriteOptions in the future.
         </span><span class="kw">let </span>file_path = <span class="self">self</span>.sst_file_path(<span class="kw-2">&amp;</span>file_id.as_parquet());
