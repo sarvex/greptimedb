@@ -785,7 +785,7 @@
         <span class="kw">let </span>sst_dir = <span class="kw-2">&amp;</span>region_sst_dir(<span class="kw-2">&amp;</span>parent_dir, region_name);
         <span class="kw">let </span>sst_layer = Arc::new(FsAccessLayer::new(sst_dir, <span class="self">self</span>.object_store.clone()));
         <span class="kw">let </span>manifest_dir = region_manifest_dir(<span class="kw-2">&amp;</span>parent_dir, region_name);
-        <span class="kw">let </span>manifest = RegionManifest::new(<span class="kw-2">&amp;</span>manifest_dir, <span class="self">self</span>.object_store.clone());
+        <span class="kw">let </span>manifest = RegionManifest::with_checkpointer(<span class="kw-2">&amp;</span>manifest_dir, <span class="self">self</span>.object_store.clone());
 
         <span class="kw">let </span>flush_strategy = write_buffer_size
             .map(|size| Arc::new(SizeBasedStrategy::new(size)) <span class="kw">as </span>Arc&lt;<span class="kw">_</span>&gt;)

@@ -575,6 +575,55 @@
 <a href="#575" id="575">575</a>
 <a href="#576" id="576">576</a>
 <a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
+<a href="#593" id="593">593</a>
+<a href="#594" id="594">594</a>
+<a href="#595" id="595">595</a>
+<a href="#596" id="596">596</a>
+<a href="#597" id="597">597</a>
+<a href="#598" id="598">598</a>
+<a href="#599" id="599">599</a>
+<a href="#600" id="600">600</a>
+<a href="#601" id="601">601</a>
+<a href="#602" id="602">602</a>
+<a href="#603" id="603">603</a>
+<a href="#604" id="604">604</a>
+<a href="#605" id="605">605</a>
+<a href="#606" id="606">606</a>
+<a href="#607" id="607">607</a>
+<a href="#608" id="608">608</a>
+<a href="#609" id="609">609</a>
+<a href="#610" id="610">610</a>
+<a href="#611" id="611">611</a>
+<a href="#612" id="612">612</a>
+<a href="#613" id="613">613</a>
+<a href="#614" id="614">614</a>
+<a href="#615" id="615">615</a>
+<a href="#616" id="616">616</a>
+<a href="#617" id="617">617</a>
+<a href="#618" id="618">618</a>
+<a href="#619" id="619">619</a>
+<a href="#620" id="620">620</a>
+<a href="#621" id="621">621</a>
+<a href="#622" id="622">622</a>
+<a href="#623" id="623">623</a>
+<a href="#624" id="624">624</a>
+<a href="#625" id="625">625</a>
+<a href="#626" id="626">626</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -614,7 +663,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::file_purger::FilePurgerRef;
 <span class="kw">use </span><span class="kw">crate</span>::flush::{FlushSchedulerRef, FlushStrategyRef};
 <span class="kw">use </span><span class="kw">crate</span>::manifest::action::{
-    RawRegionMetadata, RegionChange, RegionMetaAction, RegionMetaActionList,
+    RawRegionMetadata, RegionChange, RegionCheckpoint, RegionMetaAction, RegionMetaActionList,
 };
 <span class="kw">use </span><span class="kw">crate</span>::manifest::region::RegionManifest;
 <span class="kw">use </span><span class="kw">crate</span>::memtable::MemtableBuilderRef;
@@ -907,16 +956,69 @@
         <span class="self">self</span>.inner.shared.id()
     }
 
+    <span class="kw">fn </span>create_version_with_checkpoint(
+        checkpoint: RegionCheckpoint,
+        memtable_builder: <span class="kw-2">&amp;</span>MemtableBuilderRef,
+        sst_layer: <span class="kw-2">&amp;</span>AccessLayerRef,
+        file_purger: <span class="kw-2">&amp;</span>FilePurgerRef,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;Version&gt;&gt; {
+        <span class="kw">if </span>checkpoint.checkpoint.is_none() {
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+        }
+        <span class="comment">// Safety: it&#39;s safe to unwrap here, checking it above.
+        </span><span class="kw">let </span>s = checkpoint.checkpoint.unwrap();
+
+        <span class="kw">let </span>region = s.metadata.name.clone();
+        <span class="kw">let </span>region_metadata: RegionMetadata = s
+            .metadata
+            .try_into()
+            .context(error::InvalidRawRegionSnafu { region })<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>memtable = memtable_builder.build(region_metadata.schema().clone());
+        <span class="kw">let </span><span class="kw-2">mut </span>version = Version::with_manifest_version(
+            Arc::new(region_metadata),
+            checkpoint.last_version,
+            memtable,
+            sst_layer.clone(),
+            file_purger.clone(),
+        );
+
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = s.version {
+            version.apply_checkpoint(
+                v.flushed_sequence,
+                v.manifest_version,
+                v.files.into_values(),
+            );
+        }
+
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(version))
+    }
+
     <span class="kw">async fn </span>recover_from_manifest(
         manifest: <span class="kw-2">&amp;</span>RegionManifest,
         memtable_builder: <span class="kw-2">&amp;</span>MemtableBuilderRef,
         sst_layer: <span class="kw-2">&amp;</span>AccessLayerRef,
         file_purger: <span class="kw-2">&amp;</span>FilePurgerRef,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;(<span class="prelude-ty">Option</span>&lt;Version&gt;, RecoveredMetadataMap)&gt; {
-        <span class="kw">let </span>(start, end) = <span class="self">Self</span>::manifest_scan_range();
+        <span class="kw">let </span>checkpoint = manifest.last_checkpoint().<span class="kw">await</span><span class="question-mark">?</span>;
+
+        <span class="kw">let </span>(start, end, <span class="kw-2">mut </span>version) = <span class="kw">if let </span><span class="prelude-val">Some</span>(checkpoint) = checkpoint {
+            (
+                checkpoint.last_version + <span class="number">1</span>,
+                manifest::MAX_VERSION,
+                <span class="self">Self</span>::create_version_with_checkpoint(
+                    checkpoint,
+                    memtable_builder,
+                    sst_layer,
+                    file_purger,
+                )<span class="question-mark">?</span>,
+            )
+        } <span class="kw">else </span>{
+            (manifest::MIN_VERSION, manifest::MAX_VERSION, <span class="prelude-val">None</span>)
+        };
+
         <span class="kw">let </span><span class="kw-2">mut </span>iter = manifest.scan(start, end).<span class="kw">await</span><span class="question-mark">?</span>;
 
-        <span class="kw">let </span><span class="kw-2">mut </span>version = <span class="prelude-val">None</span>;
         <span class="kw">let </span><span class="kw-2">mut </span>actions = Vec::new();
         <span class="kw">let </span><span class="kw-2">mut </span>last_manifest_version = manifest::MIN_VERSION;
         <span class="kw">let </span><span class="kw-2">mut </span>recovered_metadata = BTreeMap::new();
@@ -964,18 +1066,14 @@
 
         <span class="macro">assert!</span>(actions.is_empty() || version.is_none());
 
-        <span class="kw">if </span>version.is_some() {
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(version) = <span class="kw-2">&amp;</span>version {
             <span class="comment">// update manifest state after recovering
             </span><span class="kw">let </span>protocol = iter.last_protocol();
             manifest.update_state(last_manifest_version + <span class="number">1</span>, protocol.clone());
+            manifest.set_flushed_manifest_version(version.manifest_version());
         }
 
         <span class="prelude-val">Ok</span>((version, recovered_metadata))
-    }
-
-    <span class="kw">fn </span>manifest_scan_range() -&gt; (ManifestVersion, ManifestVersion) {
-        <span class="comment">// TODO(dennis): use manifest version in WAL
-        </span>(manifest::MIN_VERSION, manifest::MAX_VERSION)
     }
 
     <span class="kw">fn </span>replay_edit(

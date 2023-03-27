@@ -703,6 +703,11 @@
 <a href="#703" id="703">703</a>
 <a href="#704" id="704">704</a>
 <a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -837,6 +842,11 @@
         action_list.set_prev_version(prev_version);
         <span class="kw">let </span>manifest_version = manifest.update(action_list).<span class="kw">await</span><span class="question-mark">?</span>;
 
+        <span class="comment">// Notify checkpointer the flushed manifest version after flushing memtable
+        </span><span class="kw">if </span>flushed_sequence.is_some() {
+            manifest.set_flushed_manifest_version(manifest_version);
+        }
+
         <span class="kw">let </span>version_edit = VersionEdit {
             files_to_add,
             files_to_remove,
@@ -965,7 +975,7 @@
         </span><span class="prelude-val">Ok</span>(())
     }
 
-    <span class="doccomment">/// Flush task manually  
+    <span class="doccomment">/// Flush task manually
     </span><span class="kw">pub async fn </span>flush&lt;S: LogStore&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         writer_ctx: WriterContext&lt;<span class="lifetime">&#39;_</span>, S&gt;,
