@@ -1174,8 +1174,6 @@
 <a href="#1174" id="1174">1174</a>
 <a href="#1175" id="1175">1175</a>
 <a href="#1176" id="1176">1176</a>
-<a href="#1177" id="1177">1177</a>
-<a href="#1178" id="1178">1178</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1485,15 +1483,13 @@
 
     <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::copr::PyQueryEngine;
     <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::vector::val_to_pyobj;
-    <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::PyVector;
+    <span class="kw">use </span><span class="kw">crate</span>::python::ffi_types::{PyVector, PyVectorRef};
     <span class="kw">use </span><span class="kw">crate</span>::python::rspython::builtins::{
         all_to_f64, eval_aggr_fn, from_df_err, try_into_columnar_value, try_into_py_obj,
         type_cast_error,
     };
     <span class="kw">use </span><span class="kw">crate</span>::python::rspython::dataframe_impl::data_frame::{PyExpr, PyExprRef};
-    <span class="kw">use </span><span class="kw">crate</span>::python::rspython::utils::{
-        is_instance, py_obj_to_value, py_obj_to_vec, PyVectorRef,
-    };
+    <span class="kw">use </span><span class="kw">crate</span>::python::rspython::utils::{is_instance, py_obj_to_value, py_obj_to_vec};
 
     <span class="attr">#[pyattr]
     #[pyclass(module = <span class="string">&quot;greptime_builtin&quot;</span>, name = <span class="string">&quot;PyDataFrame&quot;</span>)]

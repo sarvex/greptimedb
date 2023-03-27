@@ -517,6 +517,10 @@
 <a href="#517" id="517">517</a>
 <a href="#518" id="518">518</a>
 <a href="#519" id="519">519</a>
+<a href="#520" id="520">520</a>
+<a href="#521" id="521">521</a>
+<a href="#522" id="522">522</a>
+<a href="#523" id="523">523</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -875,11 +879,9 @@
                     rbs.iter().map(|r| r.df_record_batch()),
                 )
                 .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Concat batches failed for query {sql}: {e}&quot;</span>))<span class="question-mark">?</span>;
-                RecordBatch::try_from_df_record_batch(rbs.schema(), rb).map_err(|e|
-                    <span class="macro">format!</span>(
-                        <span class="string">&quot;Convert datafusion record batch to record batch failed for query {sql}: {e}&quot;
-                    </span>)
-                )
+
+                RecordBatch::try_from_df_record_batch(rbs.schema(), rb)
+                    .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Convert datafusion record batch to record batch failed for query {sql}: {e}&quot;</span>))
             }
             Either::AffectedRows(<span class="kw">_</span>) =&gt; <span class="prelude-val">Err</span>(<span class="macro">format!</span>(<span class="string">&quot;Expect actual results from query {sql}&quot;</span>)),
         }
@@ -933,31 +935,37 @@
             .map_err(|e| <span class="macro">format!</span>(<span class="string">&quot;Dedicated thread for sql query panic: {e:?}&quot;</span>))<span class="question-mark">?
     </span>}
     <span class="comment">// TODO(discord9): find a better way to call sql query api, now we don&#39;t if we are in async context or not
-    </span><span class="doccomment">/// return sql query results in List[List[PyVector]], or List[usize] for AffectedRows number if no recordbatches is returned
+    </span><span class="doccomment">/// return sql query results in List[PyVector], or List[usize] for AffectedRows number if no recordbatches is returned
     </span><span class="attr">#[pymethod]
     </span><span class="kw">fn </span>sql(<span class="kw-2">&amp;</span><span class="self">self</span>, s: String, vm: <span class="kw-2">&amp;</span>VirtualMachine) -&gt; PyResult&lt;PyListRef&gt; {
         <span class="self">self</span>.query_with_new_thread(s)
             .map_err(|e| vm.new_system_error(e))
             .map(|rbs| <span class="kw">match </span>rbs {
                 Either::Rb(rbs) =&gt; {
-                    <span class="kw">let </span><span class="kw-2">mut </span>top_vec = Vec::with_capacity(rbs.iter().count());
-                    <span class="kw">for </span>rb <span class="kw">in </span>rbs.iter() {
-                        <span class="kw">let </span><span class="kw-2">mut </span>vec_of_vec = Vec::with_capacity(rb.columns().len());
-                        <span class="kw">for </span>v <span class="kw">in </span>rb.columns() {
-                            <span class="kw">let </span>v = PyVector::from(v.clone());
-                            vec_of_vec.push(v.to_pyobject(vm));
-                        }
-                        <span class="kw">let </span>vec_of_vec = PyList::new_ref(vec_of_vec, vm.as_ref()).to_pyobject(vm);
-                        top_vec.push(vec_of_vec);
-                    }
-                    <span class="kw">let </span>top_vec = PyList::new_ref(top_vec, vm.as_ref());
-                    top_vec
+                    <span class="kw">let </span>rb = compute::concat_batches(
+                        rbs.schema().arrow_schema(),
+                        rbs.iter().map(|rb| rb.df_record_batch()),
+                    )
+                    .map_err(|e| {
+                        vm.new_runtime_error(<span class="macro">format!</span>(<span class="string">&quot;Failed to concat batches: {e:#?}&quot;</span>))
+                    })<span class="question-mark">?</span>;
+                    <span class="kw">let </span>rb =
+                        RecordBatch::try_from_df_record_batch(rbs.schema(), rb).map_err(|e| {
+                            vm.new_runtime_error(<span class="macro">format!</span>(<span class="string">&quot;Failed to cast recordbatch: {e:#?}&quot;</span>))
+                        })<span class="question-mark">?</span>;
+                    <span class="kw">let </span>columns_vectors = rb
+                        .columns()
+                        .iter()
+                        .map(|v| PyVector::from(v.clone()).to_pyobject(vm))
+                        .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;();
+                    <span class="prelude-val">Ok</span>(PyList::new_ref(columns_vectors, vm.as_ref()))
                 }
-                Either::AffectedRows(cnt) =&gt; {
-                    PyList::new_ref(<span class="macro">vec!</span>[vm.ctx.new_int(cnt).into()], vm.as_ref())
-                }
-            })
-    }
+                Either::AffectedRows(cnt) =&gt; <span class="prelude-val">Ok</span>(PyList::new_ref(
+                    <span class="macro">vec!</span>[vm.ctx.new_int(cnt).into()],
+                    vm.as_ref(),
+                )),
+            })<span class="question-mark">?
+    </span>}
 }
 
 <span class="doccomment">/// using a parsed `Coprocessor` struct as input to execute python code

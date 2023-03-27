@@ -537,6 +537,8 @@
 <a href="#537" id="537">537</a>
 <a href="#538" id="538">538</a>
 <a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -587,6 +589,8 @@
 </span><span class="kw">pub struct </span>PyVector {
     <span class="kw">pub</span>(<span class="kw">crate</span>) vector: VectorRef,
 }
+
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">type </span>PyVectorRef = PyRef&lt;PyVector&gt;;
 
 <span class="kw">impl </span>From&lt;VectorRef&gt; <span class="kw">for </span>PyVector {
     <span class="kw">fn </span>from(vector: VectorRef) -&gt; <span class="self">Self </span>{
