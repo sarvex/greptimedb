@@ -739,6 +739,13 @@
 <a href="#739" id="739">739</a>
 <a href="#740" id="740">740</a>
 <a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -761,6 +768,8 @@
 <span class="kw">pub mod </span>script;
 
 <span class="kw">mod </span>admin;
+<span class="attr">#[cfg(feature = <span class="string">&quot;dashboard&quot;</span>)]
+</span><span class="kw">mod </span>dashboard;
 <span class="attr">#[cfg(feature = <span class="string">&quot;mem-prof&quot;</span>)]
 </span><span class="kw">pub mod </span>mem_prof;
 
@@ -1217,6 +1226,11 @@
             <span class="string">&quot;/health&quot;</span>,
             routing::get(handler::health).post(handler::health),
         );
+
+        <span class="attr">#[cfg(feature = <span class="string">&quot;dashboard&quot;</span>)]
+        </span>{
+            router = router.nest(<span class="string">&quot;/dashboard&quot;</span>, dashboard::dashboard());
+        }
 
         router
             <span class="comment">// middlewares

@@ -402,6 +402,13 @@
 <a href="#402" id="402">402</a>
 <a href="#403" id="403">403</a>
 <a href="#404" id="404">404</a>
+<a href="#405" id="405">405</a>
+<a href="#406" id="406">406</a>
+<a href="#407" id="407">407</a>
+<a href="#408" id="408">408</a>
+<a href="#409" id="409">409</a>
+<a href="#410" id="410">410</a>
+<a href="#411" id="411">411</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -422,7 +429,7 @@
 
 <span class="kw">use </span>axum::http::StatusCode <span class="kw">as </span>HttpStatusCode;
 <span class="kw">use </span>axum::response::{IntoResponse, Response};
-<span class="kw">use </span>axum::Json;
+<span class="kw">use </span>axum::{http, Json};
 <span class="kw">use </span>base64::DecodeError;
 <span class="kw">use </span>catalog;
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
@@ -679,6 +686,12 @@
         source: tonic_reflection::server::Error,
         backtrace: Backtrace,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build HTTP response, source: {source}&quot;</span>))]
+    </span>BuildHttpResponse {
+        source: http::Error,
+        backtrace: Backtrace,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -698,7 +711,8 @@
             | TcpBind { .. }
             | CatalogError { .. }
             | GrpcReflectionService { .. }
-            | BuildingContext { .. } =&gt; StatusCode::Internal,
+            | BuildingContext { .. }
+            | BuildHttpResponse { .. } =&gt; StatusCode::Internal,
 
             InsertScript { source, .. }
             | ExecuteScript { source, .. }
