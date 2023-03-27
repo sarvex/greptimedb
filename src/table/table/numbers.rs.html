@@ -146,6 +146,11 @@
 <a href="#146" id="146">146</a>
 <a href="#147" id="147">147</a>
 <a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -174,6 +179,7 @@
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, SchemaBuilder, SchemaRef};
 <span class="kw">use </span>futures::task::{Context, Poll};
 <span class="kw">use </span>futures::Stream;
+<span class="kw">use </span>store_api::storage::RegionNumber;
 
 <span class="kw">use </span><span class="kw">crate</span>::error::Result;
 <span class="kw">use </span><span class="kw">crate</span>::metadata::{TableId, TableInfoBuilder, TableInfoRef, TableMetaBuilder, TableType};
@@ -257,6 +263,10 @@
             already_run: <span class="bool-val">false</span>,
         });
         <span class="prelude-val">Ok</span>(Arc::new(SimpleTableScan::new(stream)))
+    }
+
+    <span class="kw">async fn </span>flush(<span class="kw-2">&amp;</span><span class="self">self</span>, _region_number: <span class="prelude-ty">Option</span>&lt;RegionNumber&gt;, _wait: <span class="prelude-ty">Option</span>&lt;bool&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="prelude-val">Ok</span>(())
     }
 }
 
