@@ -366,8 +366,6 @@
 <a href="#366" id="366">366</a>
 <a href="#367" id="367">367</a>
 <a href="#368" id="368">368</a>
-<a href="#369" id="369">369</a>
-<a href="#370" id="370">370</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -404,7 +402,7 @@
 <span class="kw">use </span>frontend::instance::Instance <span class="kw">as </span>FeInstance;
 <span class="kw">use </span>object_store::services::{Oss, S3};
 <span class="kw">use </span>object_store::test_util::TempFolder;
-<span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
+<span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>once_cell::sync::OnceCell;
 <span class="kw">use </span>rand::Rng;
 <span class="kw">use </span>servers::grpc::GrpcServer;
@@ -474,18 +472,17 @@
                 cache_capacity: <span class="prelude-val">None</span>,
             };
 
-            <span class="kw">let </span>accessor = Oss::default()
+            <span class="kw">let </span><span class="kw-2">mut </span>builder = Oss::default();
+            builder
                 .root(<span class="kw-2">&amp;</span>oss_config.root)
                 .endpoint(<span class="kw-2">&amp;</span>oss_config.endpoint)
                 .access_key_id(<span class="kw-2">&amp;</span>oss_config.access_key_id)
                 .access_key_secret(<span class="kw-2">&amp;</span>oss_config.access_key_secret)
-                .bucket(<span class="kw-2">&amp;</span>oss_config.bucket)
-                .build()
-                .unwrap();
+                .bucket(<span class="kw-2">&amp;</span>oss_config.bucket);
 
             <span class="kw">let </span>config = ObjectStoreConfig::Oss(oss_config);
 
-            <span class="kw">let </span>store = ObjectStore::new(accessor).finish();
+            <span class="kw">let </span>store = ObjectStore::new(builder).unwrap().finish();
 
             (
                 config,
@@ -504,17 +501,16 @@
                 cache_capacity: <span class="prelude-val">None</span>,
             };
 
-            <span class="kw">let </span>accessor = S3::default()
+            <span class="kw">let </span><span class="kw-2">mut </span>builder = S3::default();
+            builder
                 .root(<span class="kw-2">&amp;</span>s3_config.root)
                 .access_key_id(<span class="kw-2">&amp;</span>s3_config.access_key_id)
                 .secret_access_key(<span class="kw-2">&amp;</span>s3_config.secret_access_key)
-                .bucket(<span class="kw-2">&amp;</span>s3_config.bucket)
-                .build()
-                .unwrap();
+                .bucket(<span class="kw-2">&amp;</span>s3_config.bucket);
 
             <span class="kw">let </span>config = ObjectStoreConfig::S3(s3_config);
 
-            <span class="kw">let </span>store = ObjectStore::new(accessor).finish();
+            <span class="kw">let </span>store = ObjectStore::new(builder).unwrap().finish();
 
             (config, <span class="prelude-val">Some</span>(TempDirGuard::S3(TempFolder::new(<span class="kw-2">&amp;</span>store, <span class="string">&quot;/&quot;</span>))))
         }

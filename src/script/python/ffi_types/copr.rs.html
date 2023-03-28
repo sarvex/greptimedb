@@ -519,8 +519,6 @@
 <a href="#519" id="519">519</a>
 <a href="#520" id="520">520</a>
 <a href="#521" id="521">521</a>
-<a href="#522" id="522">522</a>
-<a href="#523" id="523">523</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -543,7 +541,6 @@
 <span class="kw">use </span>std::sync::{Arc, Weak};
 
 <span class="kw">use </span>common_recordbatch::{RecordBatch, RecordBatches};
-<span class="kw">use </span>datatypes::arrow::array::Array;
 <span class="kw">use </span>datatypes::arrow::compute;
 <span class="kw">use </span>datatypes::data_type::{ConcreteDataType, DataType};
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, Schema, SchemaRef};
@@ -766,15 +763,14 @@
     );
     <span class="kw">for </span>(idx, arg) <span class="kw">in </span>args.iter().enumerate() {
         <span class="kw">let </span>anno_ty = copr.arg_types[idx].clone();
-        <span class="kw">let </span>real_ty = arg.to_arrow_array().data_type().clone();
-        <span class="kw">let </span>real_ty = ConcreteDataType::from_arrow_type(<span class="kw-2">&amp;</span>real_ty);
+        <span class="kw">let </span>real_ty = arg.data_type();
         <span class="kw">let </span>arg_name = arg_names[idx].clone();
-        <span class="kw">let </span>col_idx = rb.schema.column_index_by_name(<span class="kw-2">&amp;</span>arg_name).ok_or(
+        <span class="kw">let </span>col_idx = rb.schema.column_index_by_name(<span class="kw-2">&amp;</span>arg_name).ok_or_else(|| {
             OtherSnafu {
                 reason: <span class="macro">format!</span>(<span class="string">&quot;Can&#39;t find column by name {arg_name}&quot;</span>),
             }
-            .build(),
-        )<span class="question-mark">?</span>;
+            .build()
+        })<span class="question-mark">?</span>;
         <span class="kw">let </span>is_nullable: bool = rb.schema.column_schemas()[col_idx].is_nullable();
         <span class="macro">ensure!</span>(
             anno_ty

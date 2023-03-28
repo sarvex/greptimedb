@@ -508,6 +508,10 @@
 <a href="#508" id="508">508</a>
 <a href="#509" id="509">509</a>
 <a href="#510" id="510">510</a>
+<a href="#511" id="511">511</a>
+<a href="#512" id="512">512</a>
+<a href="#513" id="513">513</a>
+<a href="#514" id="514">514</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -840,18 +844,20 @@
     );
 
     <span class="kw">let </span><span class="kw-2">mut </span>builder = OSSBuilder::default();
-    <span class="kw">let </span>builder = builder
+    builder
         .root(<span class="kw-2">&amp;</span>root)
         .bucket(<span class="kw-2">&amp;</span>oss_config.bucket)
         .endpoint(<span class="kw-2">&amp;</span>oss_config.endpoint)
         .access_key_id(<span class="kw-2">&amp;</span>oss_config.access_key_id)
         .access_key_secret(<span class="kw-2">&amp;</span>oss_config.access_key_secret);
 
-    <span class="kw">let </span>accessor = builder.build().with_context(|<span class="kw">_</span>| error::InitBackendSnafu {
-        config: store_config.clone(),
-    })<span class="question-mark">?</span>;
+    <span class="kw">let </span>object_store = ObjectStore::new(builder)
+        .with_context(|<span class="kw">_</span>| error::InitBackendSnafu {
+            config: store_config.clone(),
+        })<span class="question-mark">?
+        </span>.finish();
 
-    create_object_store_with_cache(ObjectStore::new(accessor).finish(), store_config)
+    create_object_store_with_cache(object_store, store_config)
 }
 
 <span class="kw">fn </span>create_object_store_with_cache(
@@ -904,24 +910,27 @@
     );
 
     <span class="kw">let </span><span class="kw-2">mut </span>builder = S3Builder::default();
-    <span class="kw">let </span><span class="kw-2">mut </span>builder = builder
+    builder
         .root(<span class="kw-2">&amp;</span>root)
         .bucket(<span class="kw-2">&amp;</span>s3_config.bucket)
         .access_key_id(<span class="kw-2">&amp;</span>s3_config.access_key_id)
         .secret_access_key(<span class="kw-2">&amp;</span>s3_config.secret_access_key);
 
     <span class="kw">if </span>s3_config.endpoint.is_some() {
-        builder = builder.endpoint(s3_config.endpoint.as_ref().unwrap());
+        builder.endpoint(s3_config.endpoint.as_ref().unwrap());
     }
     <span class="kw">if </span>s3_config.region.is_some() {
-        builder = builder.region(s3_config.region.as_ref().unwrap());
+        builder.region(s3_config.region.as_ref().unwrap());
     }
 
-    <span class="kw">let </span>accessor = builder.build().with_context(|<span class="kw">_</span>| error::InitBackendSnafu {
-        config: store_config.clone(),
-    })<span class="question-mark">?</span>;
-
-    create_object_store_with_cache(ObjectStore::new(accessor).finish(), store_config)
+    create_object_store_with_cache(
+        ObjectStore::new(builder)
+            .with_context(|<span class="kw">_</span>| error::InitBackendSnafu {
+                config: store_config.clone(),
+            })<span class="question-mark">?
+            </span>.finish(),
+        store_config,
+    )
 }
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>new_fs_object_store(store_config: <span class="kw-2">&amp;</span>ObjectStoreConfig) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStore&gt; {
@@ -936,15 +945,14 @@
 
     <span class="kw">let </span>atomic_write_dir = <span class="macro">format!</span>(<span class="string">&quot;{data_dir}/.tmp/&quot;</span>);
 
-    <span class="kw">let </span>accessor = FsBuilder::default()
-        .root(<span class="kw-2">&amp;</span>data_dir)
-        .atomic_write_dir(<span class="kw-2">&amp;</span>atomic_write_dir)
-        .build()
+    <span class="kw">let </span><span class="kw-2">mut </span>builder = FsBuilder::default();
+    builder.root(<span class="kw-2">&amp;</span>data_dir).atomic_write_dir(<span class="kw-2">&amp;</span>atomic_write_dir);
+
+    <span class="prelude-val">Ok</span>(ObjectStore::new(builder)
         .context(error::InitBackendSnafu {
             config: store_config.clone(),
-        })<span class="question-mark">?</span>;
-
-    <span class="prelude-val">Ok</span>(ObjectStore::new(accessor).finish())
+        })<span class="question-mark">?
+        </span>.finish())
 }
 
 <span class="doccomment">/// Create metasrv client instance and spawn heartbeat loop.

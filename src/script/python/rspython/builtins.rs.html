@@ -1786,7 +1786,7 @@
             ApproxDistinct,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1797,7 +1797,7 @@
             Median,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1811,7 +1811,7 @@
         ApproxMedian,
         vm,
         &amp;[values.to_arrow_array()],
-        values.to_arrow_array().data_type(),
+        values.arrow_data_type(),
         expr0
     );
     }
@@ -1832,7 +1832,7 @@
                     Arc::new(percent) <span class="kw">as _</span>,
                 ],
                 <span class="string">&quot;ApproxPercentileCont&quot;</span>,
-                (values.to_arrow_array().data_type()).clone(),
+                values.arrow_data_type(),
             )
             .map_err(|err| from_df_err(err, vm))<span class="question-mark">?</span>,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
@@ -1847,7 +1847,7 @@
             ArrayAgg,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1859,7 +1859,7 @@
             Avg,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1874,7 +1874,7 @@
             Correlation,
             vm,
             <span class="kw-2">&amp;</span>[arg0.to_arrow_array(), arg1.to_arrow_array()],
-            arg0.to_arrow_array().data_type(),
+            arg0.arrow_data_type(),
             expr0,
             expr1
         );
@@ -1886,7 +1886,7 @@
             Count,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1901,7 +1901,7 @@
             Covariance,
             vm,
             <span class="kw-2">&amp;</span>[arg0.to_arrow_array(), arg1.to_arrow_array()],
-            arg0.to_arrow_array().data_type(),
+            arg0.arrow_data_type(),
             expr0,
             expr1
         );
@@ -1917,7 +1917,7 @@
             CovariancePop,
             vm,
             <span class="kw-2">&amp;</span>[arg0.to_arrow_array(), arg1.to_arrow_array()],
-            arg0.to_arrow_array().data_type(),
+            arg0.arrow_data_type(),
             expr0,
             expr1
         );
@@ -1929,7 +1929,7 @@
             Max,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1940,7 +1940,7 @@
             Min,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1951,7 +1951,7 @@
             Stddev,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1962,7 +1962,7 @@
             StddevPop,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1973,7 +1973,7 @@
             Sum,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1984,7 +1984,7 @@
             Variance,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }
@@ -1995,7 +1995,7 @@
             VariancePop,
             vm,
             <span class="kw-2">&amp;</span>[values.to_arrow_array()],
-            values.to_arrow_array().data_type(),
+            values.arrow_data_type(),
             expr0
         );
     }

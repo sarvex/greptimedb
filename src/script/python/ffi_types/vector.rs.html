@@ -539,6 +539,16 @@
 <a href="#539" id="539">539</a>
 <a href="#540" id="540">540</a>
 <a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
+<a href="#549" id="549">549</a>
+<a href="#550" id="550">550</a>
+<a href="#551" id="551">551</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -566,7 +576,7 @@
 <span class="kw">use </span>datatypes::arrow::datatypes::DataType <span class="kw">as </span>ArrowDataType;
 <span class="kw">use </span>datatypes::arrow::error::Result <span class="kw">as </span>ArrowResult;
 <span class="kw">use </span>datatypes::data_type::DataType;
-<span class="kw">use </span>datatypes::prelude::Value;
+<span class="kw">use </span>datatypes::prelude::{ConcreteDataType, Value};
 <span class="kw">use </span>datatypes::value::{<span class="self">self</span>, OrderedFloat};
 <span class="kw">use </span>datatypes::vectors::{Helper, NullVector, VectorRef};
 <span class="attr">#[cfg(feature = <span class="string">&quot;pyo3_backend&quot;</span>)]
@@ -677,6 +687,16 @@
 }
 
 <span class="kw">impl </span>PyVector {
+    <span class="attr">#[inline]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>data_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ConcreteDataType {
+        <span class="self">self</span>.vector.data_type()
+    }
+
+    <span class="attr">#[inline]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>arrow_data_type(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ArrowDataType {
+        <span class="self">self</span>.vector.data_type().as_arrow_type()
+    }
+
     <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>vector_and(left: <span class="kw-2">&amp;</span><span class="self">Self</span>, right: <span class="kw-2">&amp;</span><span class="self">Self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>, String&gt; {
         <span class="kw">let </span>left = left.to_arrow_array();
         <span class="kw">let </span>right = right.to_arrow_array();

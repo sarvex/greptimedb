@@ -79,6 +79,8 @@
 <a href="#79" id="79">79</a>
 <a href="#80" id="80">80</a>
 <a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
+<a href="#83" id="83">83</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -94,7 +96,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>futures::{future, TryStreamExt};
-<span class="kw">use </span>object_store::{Object, ObjectStore};
+<span class="kw">use </span>object_store::{Entry, ObjectStore};
 <span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>snafu::ResultExt;
 
@@ -127,13 +129,12 @@
         }
     }
 
-    <span class="kw">pub async fn </span>list(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Object&gt;&gt; {
+    <span class="kw">pub async fn </span>list(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;Entry&gt;&gt; {
         <span class="kw">match </span><span class="kw-2">&amp;</span><span class="self">self</span>.source {
             Source::Dir =&gt; {
                 <span class="kw">let </span>streamer = <span class="self">self
                     </span>.object_store
-                    .object(<span class="kw-2">&amp;</span><span class="self">self</span>.path)
-                    .list()
+                    .list(<span class="kw-2">&amp;</span><span class="self">self</span>.path)
                     .<span class="kw">await
                     </span>.context(error::ListObjectsSnafu { path: <span class="kw-2">&amp;</span><span class="self">self</span>.path })<span class="question-mark">?</span>;
 
@@ -151,11 +152,14 @@
                     </span>.context(error::ListObjectsSnafu { path: <span class="kw-2">&amp;</span><span class="self">self</span>.path })
             }
             Source::Filename(filename) =&gt; {
-                <span class="kw">let </span>obj = <span class="self">self
-                    </span>.object_store
-                    .object(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.path, filename));
-
-                <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[obj])
+                <span class="comment">// make sure this file exists
+                </span><span class="kw">let </span>file_full_path = <span class="macro">format!</span>(<span class="string">&quot;{}{}&quot;</span>, <span class="self">self</span>.path, filename);
+                <span class="kw">let _ </span>= <span class="self">self</span>.object_store.stat(<span class="kw-2">&amp;</span>file_full_path).<span class="kw">await</span>.context(
+                    error::ListObjectsSnafu {
+                        path: <span class="kw-2">&amp;</span>file_full_path,
+                    },
+                )<span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(<span class="macro">vec!</span>[Entry::new(<span class="kw-2">&amp;</span>file_full_path)])
             }
         }
     }
