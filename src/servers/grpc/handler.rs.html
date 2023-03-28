@@ -135,6 +135,15 @@
 <a href="#135" id="135">135</a>
 <a href="#136" id="136">136</a>
 <a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -263,11 +272,20 @@
 <span class="kw">fn </span>create_query_context(header: <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>RequestHeader&gt;) -&gt; QueryContextRef {
     <span class="kw">let </span>ctx = QueryContext::arc();
     <span class="kw">if let </span><span class="prelude-val">Some</span>(header) = header {
-        <span class="kw">if </span>!header.catalog.is_empty() {
-            ctx.set_current_catalog(<span class="kw-2">&amp;</span>header.catalog);
-        }
-        <span class="kw">if </span>!header.schema.is_empty() {
-            ctx.set_current_schema(<span class="kw-2">&amp;</span>header.schema);
+        <span class="comment">// We provide dbname field in newer versions of protos/sdks
+        // parse dbname from header in priority
+        </span><span class="kw">if </span>!header.dbname.is_empty() {
+            <span class="kw">let </span>(catalog, schema) =
+                <span class="kw">crate</span>::parse_catalog_and_schema_from_client_database_name(<span class="kw-2">&amp;</span>header.dbname);
+            ctx.set_current_catalog(catalog);
+            ctx.set_current_schema(schema);
+        } <span class="kw">else </span>{
+            <span class="kw">if </span>!header.catalog.is_empty() {
+                ctx.set_current_catalog(<span class="kw-2">&amp;</span>header.catalog);
+            }
+            <span class="kw">if </span>!header.schema.is_empty() {
+                ctx.set_current_schema(<span class="kw-2">&amp;</span>header.schema);
+            }
         }
     };
     ctx

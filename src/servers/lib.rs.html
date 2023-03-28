@@ -89,6 +89,8 @@
 <a href="#89" id="89">89</a>
 <a href="#90" id="90">90</a>
 <a href="#91" id="91">91</a>
+<a href="#92" id="92">92</a>
+<a href="#93" id="93">93</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -141,6 +143,8 @@
 /// and switch database using `USE` command
 /// - Postgres `database` parameter in Postgres wire protocol, required
 /// - HTTP RESTful API: the database parameter, optional
+/// - gRPC: the dbname field in header, optional but has a higher priority than
+/// original catalog/schema
 ///
 /// When database name is provided, we attempt to parse catalog and schema from
 /// it. We assume the format `[&lt;catalog&gt;-]&lt;schema&gt;`:

@@ -133,6 +133,26 @@
 <a href="#133" id="133">133</a>
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
+<a href="#136" id="136">136</a>
+<a href="#137" id="137">137</a>
+<a href="#138" id="138">138</a>
+<a href="#139" id="139">139</a>
+<a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
+<a href="#142" id="142">142</a>
+<a href="#143" id="143">143</a>
+<a href="#144" id="144">144</a>
+<a href="#145" id="145">145</a>
+<a href="#146" id="146">146</a>
+<a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -155,6 +175,8 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>api::v1::greptime_database_server::{GreptimeDatabase, GreptimeDatabaseServer};
+<span class="kw">use </span>api::v1::health_check_server::{HealthCheck, HealthCheckServer};
+<span class="kw">use </span>api::v1::{HealthCheckRequest, HealthCheckResponse};
 <span class="kw">use </span>arrow_flight::flight_service_server::{FlightService, FlightServiceServer};
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>common_runtime::Runtime;
@@ -165,7 +187,7 @@
 <span class="kw">use </span>tokio::sync::oneshot::{<span class="self">self</span>, Sender};
 <span class="kw">use </span>tokio::sync::Mutex;
 <span class="kw">use </span>tokio_stream::wrappers::TcpListenerStream;
-<span class="kw">use </span>tonic::Status;
+<span class="kw">use </span>tonic::{Request, Response, Status};
 
 <span class="kw">use </span><span class="kw">crate</span>::auth::UserProviderRef;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
@@ -208,6 +230,22 @@
     <span class="kw">pub fn </span>create_database_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; GreptimeDatabaseServer&lt;<span class="kw">impl </span>GreptimeDatabase&gt; {
         GreptimeDatabaseServer::new(DatabaseService::new(<span class="self">self</span>.request_handler.clone()))
     }
+
+    <span class="kw">pub fn </span>create_healthcheck_service(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; HealthCheckServer&lt;<span class="kw">impl </span>HealthCheck&gt; {
+        HealthCheckServer::new(HealthCheckHandler)
+    }
+}
+
+<span class="kw">pub struct </span>HealthCheckHandler;
+
+<span class="attr">#[async_trait]
+</span><span class="kw">impl </span>HealthCheck <span class="kw">for </span>HealthCheckHandler {
+    <span class="kw">async fn </span>health_check(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        _req: Request&lt;HealthCheckRequest&gt;,
+    ) -&gt; TonicResult&lt;Response&lt;HealthCheckResponse&gt;&gt; {
+        <span class="prelude-val">Ok</span>(Response::new(HealthCheckResponse {}))
+    }
 }
 
 <span class="kw">pub const </span>GRPC_SERVER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;GRPC_SERVER&quot;</span>;
@@ -249,6 +287,7 @@
         <span class="kw">let </span>reflection_service = tonic_reflection::server::Builder::configure()
             .register_encoded_file_descriptor_set(api::v1::GREPTIME_GRPC_DESC)
             .with_service_name(<span class="string">&quot;greptime.v1.GreptimeDatabase&quot;</span>)
+            .with_service_name(<span class="string">&quot;greptime.v1.HealthCheck&quot;</span>)
             .build()
             .context(GrpcReflectionServiceSnafu)<span class="question-mark">?</span>;
 
@@ -256,6 +295,7 @@
         </span>tonic::transport::Server::builder()
             .add_service(<span class="self">self</span>.create_flight_service())
             .add_service(<span class="self">self</span>.create_database_service())
+            .add_service(<span class="self">self</span>.create_healthcheck_service())
             .add_service(reflection_service)
             .serve_with_incoming_shutdown(TcpListenerStream::new(listener), rx.map(drop))
             .<span class="kw">await

@@ -905,7 +905,6 @@
 <a href="#905" id="905">905</a>
 <a href="#906" id="906">906</a>
 <a href="#907" id="907">907</a>
-<a href="#908" id="908">908</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1381,8 +1380,7 @@
 
     <span class="kw">async fn </span>check_files(object_store: <span class="kw-2">&amp;</span>ObjectStore, procedure_id: ProcedureId, files: <span class="kw-2">&amp;</span>[<span class="kw-2">&amp;</span>str]) {
         <span class="kw">let </span>dir = <span class="macro">format!</span>(<span class="string">&quot;{procedure_id}/&quot;</span>);
-        <span class="kw">let </span>object = object_store.object(<span class="kw-2">&amp;</span>dir);
-        <span class="kw">let </span>lister = object.list().<span class="kw">await</span>.unwrap();
+        <span class="kw">let </span>lister = object_store.list(<span class="kw-2">&amp;</span>dir).<span class="kw">await</span>.unwrap();
         <span class="kw">let </span><span class="kw-2">mut </span>files_in_dir: Vec&lt;<span class="kw">_</span>&gt; = lister
             .map_ok(|de| de.name().to_string())
             .try_collect()

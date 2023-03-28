@@ -358,6 +358,35 @@
 <a href="#358" id="358">358</a>
 <a href="#359" id="359">359</a>
 <a href="#360" id="360">360</a>
+<a href="#361" id="361">361</a>
+<a href="#362" id="362">362</a>
+<a href="#363" id="363">363</a>
+<a href="#364" id="364">364</a>
+<a href="#365" id="365">365</a>
+<a href="#366" id="366">366</a>
+<a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
+<a href="#382" id="382">382</a>
+<a href="#383" id="383">383</a>
+<a href="#384" id="384">384</a>
+<a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -395,25 +424,44 @@
 };
 <span class="kw">use crate</span>::{error, Client, <span class="prelude-ty">Result</span>};
 
-<span class="attr">#[derive(Clone, Debug)]
+<span class="attr">#[derive(Clone, Debug, Default)]
 </span><span class="kw">pub struct </span>Database {
     <span class="comment">// The &quot;catalog&quot; and &quot;schema&quot; to be used in processing the requests at the server side.
     // They are the &quot;hint&quot; or &quot;context&quot;, just like how the &quot;database&quot; in &quot;USE&quot; statement is treated in MySQL.
     // They will be carried in the request header.
     </span>catalog: String,
     schema: String,
+    <span class="comment">// The dbname follows naming rule as out mysql, postgres and http
+    // protocol. The server treat dbname in priority of catalog/schema.
+    </span>dbname: String,
 
     client: Client,
     ctx: FlightContext,
 }
 
 <span class="kw">impl </span>Database {
-    <span class="kw">pub fn </span>new(catalog: <span class="kw">impl </span>Into&lt;String&gt;, schema: <span class="kw">impl </span>Into&lt;String&gt;, client: Client) -&gt; <span class="self">Self </span>{
+    <span class="doccomment">/// Create database service client using catalog and schema
+    </span><span class="kw">pub fn </span>new(catalog: <span class="kw">impl </span>Into&lt;String&gt;, schema: <span class="kw">impl </span>Into&lt;String&gt;, client: Client) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             catalog: catalog.into(),
             schema: schema.into(),
             client,
-            ctx: FlightContext::default(),
+            ..Default::default()
+        }
+    }
+
+    <span class="doccomment">/// Create database service client using dbname.
+    ///
+    /// This API is designed for external usage. `dbname` is:
+    ///
+    /// - the name of database when using GreptimeDB standalone or cluster
+    /// - the name provided by GreptimeCloud or other multi-tenant GreptimeDB
+    /// environment
+    </span><span class="kw">pub fn </span>new_with_dbname(dbname: <span class="kw">impl </span>Into&lt;String&gt;, client: Client) -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            dbname: dbname.into(),
+            client,
+            ..Default::default()
         }
     }
 
@@ -433,6 +481,14 @@
         <span class="self">self</span>.schema = schema.into();
     }
 
+    <span class="kw">pub fn </span>dbname(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>String {
+        <span class="kw-2">&amp;</span><span class="self">self</span>.dbname
+    }
+
+    <span class="kw">pub fn </span>set_dbname(<span class="kw-2">&amp;mut </span><span class="self">self</span>, dbname: <span class="kw">impl </span>Into&lt;String&gt;) {
+        <span class="self">self</span>.dbname = dbname.into();
+    }
+
     <span class="kw">pub fn </span>set_auth(<span class="kw-2">&amp;mut </span><span class="self">self</span>, auth: AuthScheme) {
         <span class="self">self</span>.ctx.auth_header = <span class="prelude-val">Some</span>(AuthHeader {
             auth_scheme: <span class="prelude-val">Some</span>(auth),
@@ -446,6 +502,7 @@
                 catalog: <span class="self">self</span>.catalog.clone(),
                 schema: <span class="self">self</span>.schema.clone(),
                 authorization: <span class="self">self</span>.ctx.auth_header.clone(),
+                dbname: <span class="self">self</span>.dbname.clone(),
             }),
             request: <span class="prelude-val">Some</span>(Request::Insert(request)),
         };
@@ -527,6 +584,7 @@
                 catalog: <span class="self">self</span>.catalog.clone(),
                 schema: <span class="self">self</span>.schema.clone(),
                 authorization: <span class="self">self</span>.ctx.auth_header.clone(),
+                dbname: <span class="self">self</span>.dbname.clone(),
             }),
             request: <span class="prelude-val">Some</span>(request),
         };

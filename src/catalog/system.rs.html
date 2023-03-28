@@ -567,8 +567,6 @@
 <a href="#567" id="567">567</a>
 <a href="#568" id="568">568</a>
 <a href="#569" id="569">569</a>
-<a href="#570" id="570">570</a>
-<a href="#571" id="571">571</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -971,7 +969,7 @@
     <span class="kw">use </span>log_store::NoopLogStore;
     <span class="kw">use </span>mito::config::EngineConfig;
     <span class="kw">use </span>mito::engine::MitoEngine;
-    <span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
+    <span class="kw">use </span>object_store::ObjectStore;
     <span class="kw">use </span>storage::compaction::noop::NoopCompactionScheduler;
     <span class="kw">use </span>storage::config::EngineConfig <span class="kw">as </span>StorageEngineConfig;
     <span class="kw">use </span>storage::EngineImpl;
@@ -1053,11 +1051,9 @@
     <span class="kw">pub async fn </span>prepare_table_engine() -&gt; (TempDir, TableEngineRef) {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;system-table-test&quot;</span>);
         <span class="kw">let </span>store_dir = dir.path().to_string_lossy();
-        <span class="kw">let </span>accessor = object_store::services::Fs::default()
-            .root(<span class="kw-2">&amp;</span>store_dir)
-            .build()
-            .unwrap();
-        <span class="kw">let </span>object_store = ObjectStore::new(accessor).finish();
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = object_store::services::Fs::default();
+        builder.root(<span class="kw-2">&amp;</span>store_dir);
+        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
         <span class="kw">let </span>noop_compaction_scheduler = Arc::new(NoopCompactionScheduler::default());
         <span class="kw">let </span>table_engine = Arc::new(MitoEngine::new(
             EngineConfig::default(),

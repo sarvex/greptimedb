@@ -353,22 +353,6 @@
 <a href="#353" id="353">353</a>
 <a href="#354" id="354">354</a>
 <a href="#355" id="355">355</a>
-<a href="#356" id="356">356</a>
-<a href="#357" id="357">357</a>
-<a href="#358" id="358">358</a>
-<a href="#359" id="359">359</a>
-<a href="#360" id="360">360</a>
-<a href="#361" id="361">361</a>
-<a href="#362" id="362">362</a>
-<a href="#363" id="363">363</a>
-<a href="#364" id="364">364</a>
-<a href="#365" id="365">365</a>
-<a href="#366" id="366">366</a>
-<a href="#367" id="367">367</a>
-<a href="#368" id="368">368</a>
-<a href="#369" id="369">369</a>
-<a href="#370" id="370">370</a>
-<a href="#371" id="371">371</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -390,7 +374,7 @@
 <span class="kw">use </span>common_telemetry::logging;
 <span class="kw">use </span>futures::TryStreamExt;
 <span class="kw">use </span>lazy_static::lazy_static;
-<span class="kw">use </span>object_store::{util, Object, ObjectStore};
+<span class="kw">use </span>object_store::{util, Entry, ErrorKind, ObjectStore};
 <span class="kw">use </span>regex::Regex;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>snafu::{ensure, ResultExt};
@@ -434,7 +418,8 @@
 }
 
 <span class="kw">pub struct </span>ObjectStoreLogIterator {
-    iter: Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = (ManifestVersion, Object)&gt; + Send + Sync&gt;,
+    object_store: ObjectStore,
+    iter: Box&lt;<span class="kw">dyn </span>Iterator&lt;Item = (ManifestVersion, Entry)&gt; + Send + Sync&gt;,
 }
 
 <span class="attr">#[async_trait]
@@ -443,11 +428,12 @@
 
     <span class="kw">async fn </span>next_log(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(ManifestVersion, Vec&lt;u8&gt;)&gt;&gt; {
         <span class="kw">match </span><span class="self">self</span>.iter.next() {
-            <span class="prelude-val">Some</span>((v, object)) =&gt; {
-                <span class="kw">let </span>bytes = object.read().<span class="kw">await</span>.context(ReadObjectSnafu {
-                    path: object.path(),
-                })<span class="question-mark">?</span>;
-
+            <span class="prelude-val">Some</span>((v, entry)) =&gt; {
+                <span class="kw">let </span>bytes = <span class="self">self
+                    </span>.object_store
+                    .read(entry.path())
+                    .<span class="kw">await
+                    </span>.context(ReadObjectSnafu { path: entry.path() })<span class="question-mark">?</span>;
                 <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((v, bytes)))
             }
             <span class="prelude-val">None </span>=&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
@@ -521,23 +507,13 @@
     ) -&gt; <span class="prelude-ty">Result</span>&lt;ObjectStoreLogIterator&gt; {
         <span class="macro">ensure!</span>(start &lt;= end, InvalidScanIndexSnafu { start, end });
 
-        <span class="kw">let </span>dir = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span><span class="self">self</span>.path);
-        <span class="kw">let </span>dir_exists = dir
-            .is_exist()
-            .<span class="kw">await
-            </span>.context(ReadObjectSnafu { path: <span class="kw-2">&amp;</span><span class="self">self</span>.path })<span class="question-mark">?</span>;
-        <span class="kw">if </span>!dir_exists {
-            <span class="kw">return </span><span class="prelude-val">Ok</span>(ObjectStoreLogIterator {
-                iter: Box::new(Vec::default().into_iter()),
-            });
-        }
-
-        <span class="kw">let </span>streamer = dir
-            .list()
+        <span class="kw">let </span>streamer = <span class="self">self
+            </span>.object_store
+            .list(<span class="kw-2">&amp;</span><span class="self">self</span>.path)
             .<span class="kw">await
             </span>.context(ListObjectsSnafu { path: <span class="kw-2">&amp;</span><span class="self">self</span>.path })<span class="question-mark">?</span>;
 
-        <span class="kw">let </span><span class="kw-2">mut </span>entries: Vec&lt;(ManifestVersion, Object)&gt; = streamer
+        <span class="kw">let </span><span class="kw-2">mut </span>entries: Vec&lt;(ManifestVersion, Entry)&gt; = streamer
             .try_filter_map(|e| <span class="kw">async move </span>{
                 <span class="kw">let </span>file_name = e.name();
                 <span class="kw">if </span>is_delta_file(file_name) {
@@ -558,40 +534,39 @@
         entries.sort_unstable_by(|(v1, <span class="kw">_</span>), (v2, <span class="kw">_</span>)| v1.cmp(v2));
 
         <span class="prelude-val">Ok</span>(ObjectStoreLogIterator {
+            object_store: <span class="self">self</span>.object_store.clone(),
             iter: Box::new(entries.into_iter()),
         })
     }
 
     <span class="kw">async fn </span>save(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>object = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span><span class="self">self</span>.delta_file_path(version));
-        object.write(bytes).<span class="kw">await</span>.context(WriteObjectSnafu {
-            path: object.path(),
-        })<span class="question-mark">?</span>;
-
-        <span class="prelude-val">Ok</span>(())
+        <span class="kw">let </span>path = <span class="self">self</span>.delta_file_path(version);
+        <span class="self">self</span>.object_store
+            .write(<span class="kw-2">&amp;</span>path, bytes.to_vec())
+            .<span class="kw">await
+            </span>.context(WriteObjectSnafu { path })
     }
 
     <span class="kw">async fn </span>delete(<span class="kw-2">&amp;</span><span class="self">self</span>, start: ManifestVersion, end: ManifestVersion) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="comment">//TODO(dennis): delete in batch or concurrently?
         </span><span class="kw">for </span>v <span class="kw">in </span>start..end {
-            <span class="kw">let </span>object = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span><span class="self">self</span>.delta_file_path(v));
-            object.delete().<span class="kw">await</span>.context(DeleteObjectSnafu {
-                path: object.path(),
-            })<span class="question-mark">?</span>;
+            <span class="kw">let </span>path = <span class="self">self</span>.delta_file_path(v);
+            <span class="self">self</span>.object_store
+                .delete(<span class="kw-2">&amp;</span>path)
+                .<span class="kw">await
+                </span>.context(DeleteObjectSnafu { path })<span class="question-mark">?</span>;
         }
-
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">async fn </span>save_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>object = <span class="self">self
-            </span>.object_store
-            .object(<span class="kw-2">&amp;</span><span class="self">self</span>.checkpoint_file_path(version));
-        object.write(bytes).<span class="kw">await</span>.context(WriteObjectSnafu {
-            path: object.path(),
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>path = <span class="self">self</span>.checkpoint_file_path(version);
+        <span class="self">self</span>.object_store
+            .write(<span class="kw-2">&amp;</span>path, bytes.to_vec())
+            .<span class="kw">await
+            </span>.context(WriteObjectSnafu { path })<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>last_checkpoint = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span><span class="self">self</span>.last_checkpoint_path());
+        <span class="kw">let </span>last_checkpoint_path = <span class="self">self</span>.last_checkpoint_path();
 
         <span class="kw">let </span>checkpoint_metadata = CheckpointMetadata {
             size: bytes.len(),
@@ -602,16 +577,17 @@
 
         <span class="macro">logging::debug!</span>(
             <span class="string">&quot;Save checkpoint in path: {},  metadata: {:?}&quot;</span>,
-            last_checkpoint.path(),
+            last_checkpoint_path,
             checkpoint_metadata
         );
 
         <span class="kw">let </span>bs = checkpoint_metadata.encode()<span class="question-mark">?</span>;
-        last_checkpoint
-            .write(bs.as_ref())
+
+        <span class="self">self</span>.object_store
+            .write(<span class="kw-2">&amp;</span>last_checkpoint_path, bs.as_ref().to_vec())
             .<span class="kw">await
             </span>.context(WriteObjectSnafu {
-                path: last_checkpoint.path(),
+                path: last_checkpoint_path,
             })<span class="question-mark">?</span>;
 
         <span class="prelude-val">Ok</span>(())
@@ -621,61 +597,57 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         version: ManifestVersion,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(ManifestVersion, Vec&lt;u8&gt;)&gt;&gt; {
+        <span class="kw">let </span>path = <span class="self">self</span>.checkpoint_file_path(version);
         <span class="kw">let </span>checkpoint = <span class="self">self
             </span>.object_store
-            .object(<span class="kw-2">&amp;</span><span class="self">self</span>.checkpoint_file_path(version));
+            .read(<span class="kw-2">&amp;</span>path)
+            .<span class="kw">await
+            </span>.context(ReadObjectSnafu { path })<span class="question-mark">?</span>;
 
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((
-            version,
-            checkpoint.read().<span class="kw">await</span>.context(ReadObjectSnafu {
-                path: checkpoint.path(),
-            })<span class="question-mark">?</span>,
-        )))
+        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>((version, checkpoint)))
     }
 
     <span class="kw">async fn </span>delete_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="kw">let </span>checkpoint = <span class="self">self
-            </span>.object_store
-            .object(<span class="kw-2">&amp;</span><span class="self">self</span>.checkpoint_file_path(version));
-        checkpoint.delete().<span class="kw">await</span>.context(DeleteObjectSnafu {
-            path: checkpoint.path(),
-        })<span class="question-mark">?</span>;
-
+        <span class="kw">let </span>path = <span class="self">self</span>.checkpoint_file_path(version);
+        <span class="self">self</span>.object_store
+            .delete(<span class="kw-2">&amp;</span>path)
+            .<span class="kw">await
+            </span>.context(DeleteObjectSnafu { path })<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(())
     }
 
     <span class="kw">async fn </span>load_last_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(ManifestVersion, Vec&lt;u8&gt;)&gt;&gt; {
-        <span class="kw">let </span>last_checkpoint = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span><span class="self">self</span>.last_checkpoint_path());
+        <span class="kw">let </span>last_checkpoint_path = <span class="self">self</span>.last_checkpoint_path();
 
-        <span class="kw">let </span>checkpoint_exists = last_checkpoint.is_exist().<span class="kw">await</span>.context(ReadObjectSnafu {
-            path: last_checkpoint.path(),
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>last_checkpoint_data = <span class="kw">match </span><span class="self">self</span>.object_store.read(<span class="kw-2">&amp;</span>last_checkpoint_path).<span class="kw">await </span>{
+            <span class="prelude-val">Ok</span>(last_checkpoint_data) =&gt; last_checkpoint_data,
+            <span class="prelude-val">Err</span>(e) <span class="kw">if </span>e.kind() == ErrorKind::NotFound =&gt; {
+                <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+            }
+            <span class="prelude-val">Err</span>(e) =&gt; {
+                <span class="kw">return </span><span class="prelude-val">Err</span>(e).context(ReadObjectSnafu {
+                    path: last_checkpoint_path,
+                });
+            }
+        };
 
-        <span class="kw">if </span>checkpoint_exists {
-            <span class="kw">let </span>bytes = last_checkpoint.read().<span class="kw">await</span>.context(ReadObjectSnafu {
-                path: last_checkpoint.path(),
-            })<span class="question-mark">?</span>;
+        <span class="kw">let </span>checkpoint_metadata = CheckpointMetadata::decode(<span class="kw-2">&amp;</span>last_checkpoint_data)<span class="question-mark">?</span>;
 
-            <span class="kw">let </span>checkpoint_metadata = CheckpointMetadata::decode(<span class="kw-2">&amp;</span>bytes)<span class="question-mark">?</span>;
+        <span class="macro">logging::debug!</span>(
+            <span class="string">&quot;Load checkpoint in path: {}, metadata: {:?}&quot;</span>,
+            last_checkpoint_path,
+            checkpoint_metadata
+        );
 
-            <span class="macro">logging::debug!</span>(
-                <span class="string">&quot;Load checkpoint in path: {},  metadata: {:?}&quot;</span>,
-                last_checkpoint.path(),
-                checkpoint_metadata
-            );
-
-            <span class="self">self</span>.load_checkpoint(checkpoint_metadata.version).<span class="kw">await
-        </span>} <span class="kw">else </span>{
-            <span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>)
-        }
-    }
+        <span class="self">self</span>.load_checkpoint(checkpoint_metadata.version).<span class="kw">await
+    </span>}
 }
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
     <span class="kw">use </span>object_store::services::Fs;
-    <span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
+    <span class="kw">use </span>object_store::ObjectStore;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -683,13 +655,9 @@
     </span><span class="kw">async fn </span>test_manifest_log_store() {
         common_telemetry::init_default_ut_logging();
         <span class="kw">let </span>tmp_dir = create_temp_dir(<span class="string">&quot;test_manifest_log_store&quot;</span>);
-        <span class="kw">let </span>object_store = ObjectStore::new(
-            Fs::default()
-                .root(<span class="kw-2">&amp;</span>tmp_dir.path().to_string_lossy())
-                .build()
-                .unwrap(),
-        )
-        .finish();
+        <span class="kw">let </span><span class="kw-2">mut </span>builder = Fs::default();
+        builder.root(<span class="kw-2">&amp;</span>tmp_dir.path().to_string_lossy());
+        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
 
         <span class="kw">let </span>log_store = ManifestObjectStore::new(<span class="string">&quot;/&quot;</span>, object_store);
 
