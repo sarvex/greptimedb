@@ -581,6 +581,15 @@
 <a href="#581" id="581">581</a>
 <a href="#582" id="582">582</a>
 <a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
+<a href="#589" id="589">589</a>
+<a href="#590" id="590">590</a>
+<a href="#591" id="591">591</a>
+<a href="#592" id="592">592</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -625,6 +634,11 @@
 ///
 /// This plan will &quot;fold&quot; time index and value columns into [RangeArray]s, and truncate
 /// other columns to the same length with the &quot;folded&quot; [RangeArray] column.
+///
+/// To pass runtime information to the execution plan (or the range function), This plan
+/// will add those extra columns:
+/// - timestamp range with type [RangeArray], which is the folded timestamp column.
+/// - end of current range with the same type as the timestamp column. (todo)
 </span><span class="attr">#[derive(Debug, PartialEq, Eq, Hash)]
 </span><span class="kw">pub struct </span>RangeManipulate {
     start: Millisecond,
@@ -662,12 +676,16 @@
         })
     }
 
-    <span class="kw">pub fn </span>range_timestamp_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
-        <span class="self">Self</span>::build_timestamp_range_name(<span class="kw-2">&amp;</span><span class="self">self</span>.time_index)
-    }
-
     <span class="kw">pub fn </span>build_timestamp_range_name(time_index: <span class="kw-2">&amp;</span>str) -&gt; String {
         <span class="macro">format!</span>(<span class="string">&quot;{time_index}_range&quot;</span>)
+    }
+
+    <span class="kw">pub fn </span>internal_range_end_col_name() -&gt; String {
+        <span class="string">&quot;__internal_range_end&quot;</span>.to_string()
+    }
+
+    <span class="kw">fn </span>range_timestamp_name(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; String {
+        <span class="self">Self</span>::build_timestamp_range_name(<span class="kw-2">&amp;</span><span class="self">self</span>.time_index)
     }
 
     <span class="kw">fn </span>calculate_output_schema(
@@ -679,10 +697,10 @@
 
         <span class="comment">// process time index column
         // the raw timestamp field is preserved. And a new timestamp_range field is appended to the last.
-        </span><span class="kw">let </span><span class="prelude-val">Some</span>(index) = input_schema.index_of_column_by_name(<span class="prelude-val">None</span>, time_index)<span class="question-mark">? </span><span class="kw">else </span>{
+        </span><span class="kw">let </span><span class="prelude-val">Some</span>(ts_col_index) = input_schema.index_of_column_by_name(<span class="prelude-val">None</span>, time_index)<span class="question-mark">? </span><span class="kw">else </span>{
             <span class="kw">return </span><span class="prelude-val">Err</span>(datafusion::common::field_not_found(<span class="prelude-val">None</span>, time_index, input_schema.as_ref()))
         };
-        <span class="kw">let </span>timestamp_range_field = columns[index]
+        <span class="kw">let </span>timestamp_range_field = columns[ts_col_index]
             .field()
             .clone()
             .with_name(<span class="self">Self</span>::build_timestamp_range_name(time_index));

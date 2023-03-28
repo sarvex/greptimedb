@@ -57,8 +57,8 @@
 </span><span class="kw">mod </span>aggr_over_time;
 <span class="kw">mod </span>changes;
 <span class="kw">mod </span>deriv;
+<span class="kw">mod </span>extrapolate_rate;
 <span class="kw">mod </span>idelta;
-<span class="kw">mod </span>increase;
 <span class="kw">mod </span>resets;
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>test_util;
@@ -70,8 +70,8 @@
 <span class="kw">use </span>datafusion::arrow::array::ArrayRef;
 <span class="kw">use </span>datafusion::error::DataFusionError;
 <span class="kw">use </span>datafusion::physical_plan::ColumnarValue;
+<span class="kw">pub use </span>extrapolate_rate::{Delta, Increase, Rate};
 <span class="kw">pub use </span>idelta::IDelta;
-<span class="kw">pub use </span>increase::Increase;
 
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>extract_array(columnar_value: <span class="kw-2">&amp;</span>ColumnarValue) -&gt; <span class="prelude-ty">Result</span>&lt;ArrayRef, DataFusionError&gt; {
     <span class="kw">if let </span>ColumnarValue::Array(array) = columnar_value {

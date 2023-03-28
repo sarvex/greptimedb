@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"fn":["extract_array"],"mod":["aggr_over_time","changes","deriv","idelta","increase","resets"],"struct":["AbsentOverTime","AvgOverTime","CountOverTime","IDelta","Increase","LastOverTime","MaxOverTime","MinOverTime","PresentOverTime","SumOverTime"]};
+window.SIDEBAR_ITEMS = {"fn":["extract_array"],"mod":["aggr_over_time","changes","deriv","extrapolate_rate","idelta","resets"],"struct":["AbsentOverTime","AvgOverTime","CountOverTime","IDelta","LastOverTime","MaxOverTime","MinOverTime","PresentOverTime","SumOverTime"],"type":["Delta","Increase","Rate"]};

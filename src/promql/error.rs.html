@@ -145,6 +145,14 @@
 <a href="#145" id="145">145</a>
 <a href="#146" id="146">146</a>
 <a href="#147" id="147">147</a>
+<a href="#148" id="148">148</a>
+<a href="#149" id="149">149</a>
+<a href="#150" id="150">150</a>
+<a href="#151" id="151">151</a>
+<a href="#152" id="152">152</a>
+<a href="#153" id="153">153</a>
+<a href="#154" id="154">154</a>
+<a href="#155" id="155">155</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -241,6 +249,12 @@
         <span class="attr">#[snafu(backtrace)]
         </span>source: catalog::error::Error,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Expect a range selector, but not found&quot;</span>))]
+    </span>ExpectRangeSelector { backtrace: Backtrace },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Zero range in range selector&quot;</span>))]
+    </span>ZeroRangeSelector { backtrace: Backtrace },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
@@ -252,7 +266,9 @@
             | UnsupportedExpr { .. }
             | UnexpectedToken { .. }
             | MultipleVector { .. }
-            | ExpectExpr { .. } =&gt; StatusCode::InvalidArguments,
+            | ExpectExpr { .. }
+            | ExpectRangeSelector { .. }
+            | ZeroRangeSelector { .. } =&gt; StatusCode::InvalidArguments,
 
             UnknownTable { .. }
             | DataFusionPlanning { .. }
