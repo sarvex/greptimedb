@@ -229,6 +229,10 @@
 <a href="#229" id="229">229</a>
 <a href="#230" id="230">230</a>
 <a href="#231" id="231">231</a>
+<a href="#232" id="232">232</a>
+<a href="#233" id="233">233</a>
+<a href="#234" id="234">234</a>
+<a href="#235" id="235">235</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -249,6 +253,7 @@
 <span class="kw">use </span>store_api::storage::RegionId;
 <span class="kw">use </span>tokio::sync::Notify;
 
+<span class="kw">use </span><span class="kw">crate</span>::error::Result;
 <span class="kw">use </span><span class="kw">crate</span>::scheduler::rate_limit::{BoxedRateLimitToken, RateLimitToken};
 <span class="kw">use </span><span class="kw">crate</span>::scheduler::{Handler, LocalScheduler, Request};
 <span class="kw">use </span><span class="kw">crate</span>::sst::{AccessLayerRef, FileId};
@@ -265,6 +270,8 @@
     <span class="kw">fn </span>key(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="self">Self</span>::Key {
         <span class="macro">format!</span>(<span class="string">&quot;{}/{}&quot;</span>, <span class="self">self</span>.region_id, <span class="self">self</span>.file_id)
     }
+
+    <span class="kw">fn </span>complete(<span class="self">self</span>, _result: <span class="prelude-ty">Result</span>&lt;()&gt;) {}
 }
 
 <span class="kw">pub struct </span>FilePurgeHandler;
@@ -278,7 +285,7 @@
         req: <span class="self">Self</span>::Request,
         token: BoxedRateLimitToken,
         finish_notifier: Arc&lt;Notify&gt;,
-    ) -&gt; <span class="kw">crate</span>::error::Result&lt;()&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         req.sst_layer.delete_sst(req.file_id).<span class="kw">await</span>.map_err(|e| {
             <span class="macro">error!</span>(e; <span class="string">&quot;Failed to delete SST file, file: {}, region: {}&quot;</span>, 
                 req.file_id.as_parquet(), req.region_id);
@@ -303,6 +310,7 @@
 
     <span class="kw">use </span>tokio::sync::Notify;
 
+    <span class="kw">use </span><span class="kw">crate</span>::error::Result;
     <span class="kw">use </span><span class="kw">crate</span>::file_purger::{FilePurgeRequest, FilePurgerRef};
     <span class="kw">use </span><span class="kw">crate</span>::scheduler::rate_limit::{BoxedRateLimitToken, RateLimitToken};
     <span class="kw">use </span><span class="kw">crate</span>::scheduler::{Handler, LocalScheduler, SchedulerConfig};
@@ -326,7 +334,7 @@
             _req: <span class="self">Self</span>::Request,
             token: BoxedRateLimitToken,
             finish_notifier: Arc&lt;Notify&gt;,
-        ) -&gt; <span class="kw">crate</span>::error::Result&lt;()&gt; {
+        ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
             token.try_release();
             finish_notifier.notify_one();
             <span class="prelude-val">Ok</span>(())

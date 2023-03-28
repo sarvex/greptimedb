@@ -688,6 +688,22 @@
 <a href="#688" id="688">688</a>
 <a href="#689" id="689">689</a>
 <a href="#690" id="690">690</a>
+<a href="#691" id="691">691</a>
+<a href="#692" id="692">692</a>
+<a href="#693" id="693">693</a>
+<a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
+<a href="#703" id="703">703</a>
+<a href="#704" id="704">704</a>
+<a href="#705" id="705">705</a>
+<a href="#706" id="706">706</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -946,13 +962,22 @@
 <span class="doccomment">/// Actually data of [FileHandle].
 ///
 /// Contains meta of the file, and other mutable info like metrics.
-</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">struct </span>FileHandleInner {
     meta: FileMeta,
     compacting: AtomicBool,
     deleted: AtomicBool,
     sst_layer: AccessLayerRef,
     file_purger: FilePurgerRef,
+}
+
+<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>FileHandleInner {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+        f.debug_struct(<span class="string">&quot;FileHandleInner&quot;</span>)
+            .field(<span class="string">&quot;meta&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.meta)
+            .field(<span class="string">&quot;compacting&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.compacting)
+            .field(<span class="string">&quot;deleted&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.deleted)
+            .finish()
+    }
 }
 
 <span class="kw">impl </span>Drop <span class="kw">for </span>FileHandleInner {
@@ -1142,10 +1167,17 @@
 }
 
 <span class="doccomment">/// Sst access layer.
-</span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>FsAccessLayer {
     sst_dir: String,
     object_store: ObjectStore,
+}
+
+<span class="kw">impl </span>fmt::Debug <span class="kw">for </span>FsAccessLayer {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; fmt::Result {
+        f.debug_struct(<span class="string">&quot;FsAccessLayer&quot;</span>)
+            .field(<span class="string">&quot;sst_dir&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.sst_dir)
+            .finish()
+    }
 }
 
 <span class="kw">impl </span>FsAccessLayer {

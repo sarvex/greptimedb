@@ -570,6 +570,13 @@
 <a href="#570" id="570">570</a>
 <a href="#571" id="571">571</a>
 <a href="#572" id="572">572</a>
+<a href="#573" id="573">573</a>
+<a href="#574" id="574">574</a>
+<a href="#575" id="575">575</a>
+<a href="#576" id="576">576</a>
+<a href="#577" id="577">577</a>
+<a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1015,6 +1022,12 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create a checkpoint: {}&quot;</span>, msg))]
     </span>ManifestCheckpoint { msg: String, backtrace: Backtrace },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;The compaction task is cancelled, region_id: {}&quot;</span>, region_id))]
+    </span>CompactTaskCancel {
+        region_id: RegionId,
+        source: tokio::sync::oneshot::error::RecvError,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -1086,8 +1099,9 @@
             ConvertChunk { source, .. } =&gt; source.status_code(),
             MarkWalObsolete { source, .. } =&gt; source.status_code(),
             DecodeParquetTimeRange { .. } =&gt; StatusCode::Unexpected,
-            RateLimited { .. } =&gt; StatusCode::Internal,
-            StopScheduler { .. } =&gt; StatusCode::Internal,
+            RateLimited { .. } | StopScheduler { .. } | CompactTaskCancel { .. } =&gt; {
+                StatusCode::Internal
+            }
             DeleteSst { .. } =&gt; StatusCode::StorageUnavailable,
             IllegalSchedulerState { .. } =&gt; StatusCode::Unexpected,
             TtlCalculation { source, .. } =&gt; source.status_code(),
