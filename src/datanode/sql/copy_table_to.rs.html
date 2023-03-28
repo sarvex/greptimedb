@@ -285,10 +285,10 @@
             // &quot;file_name_1_1000000&quot;        (row num: 1 ~ 1000000),
             // &quot;file_name_1000001_xxx&quot;      (row num: 1000001 ~ xxx)
             </span><span class="kw">let </span>file_name = <span class="macro">format!</span>(<span class="string">&quot;{}_{}_{}&quot;</span>, <span class="self">self</span>.file_name, start_row_num, total_rows);
-            <span class="self">self</span>.object_store
-                .write(<span class="kw-2">&amp;</span>file_name, buf)
-                .<span class="kw">await
-                </span>.context(error::WriteObjectSnafu { path: file_name })<span class="question-mark">?</span>;
+            <span class="kw">let </span>object = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span>file_name);
+            object.write(buf).<span class="kw">await</span>.context(error::WriteObjectSnafu {
+                path: object.path(),
+            })<span class="question-mark">?</span>;
 
             <span class="kw">if </span>end_loop {
                 <span class="kw">return </span><span class="prelude-val">Ok</span>(total_rows);

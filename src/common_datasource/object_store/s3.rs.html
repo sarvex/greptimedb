@@ -94,7 +94,7 @@
 </span><span class="kw">use </span>std::collections::HashMap;
 
 <span class="kw">use </span>object_store::services::S3;
-<span class="kw">use </span>object_store::ObjectStore;
+<span class="kw">use </span>object_store::{ObjectStore, ObjectStoreBuilder};
 <span class="kw">use </span>snafu::ResultExt;
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
@@ -152,9 +152,9 @@
         }
     }
 
-    <span class="prelude-val">Ok</span>(ObjectStore::new(builder)
-        .context(error::BuildBackendSnafu)<span class="question-mark">?
-        </span>.finish())
+    <span class="kw">let </span>accessor = builder.build().context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
+
+    <span class="prelude-val">Ok</span>(ObjectStore::new(accessor).finish())
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../../" data-static-root-path="../../../static.files/" data-current-crate="common_datasource" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

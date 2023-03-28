@@ -686,8 +686,6 @@
 <a href="#686" id="686">686</a>
 <a href="#687" id="687">687</a>
 <a href="#688" id="688">688</a>
-<a href="#689" id="689">689</a>
-<a href="#690" id="690">690</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1198,10 +1196,8 @@
     <span class="doccomment">/// Deletes a SST file with given file id.
     </span><span class="kw">async fn </span>delete_sst(<span class="kw-2">&amp;</span><span class="self">self</span>, file_id: FileId) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>path = <span class="self">self</span>.sst_file_path(<span class="kw-2">&amp;</span>file_id.as_parquet());
-        <span class="self">self</span>.object_store
-            .delete(<span class="kw-2">&amp;</span>path)
-            .<span class="kw">await
-            </span>.context(DeleteSstSnafu)
+        <span class="kw">let </span>object = <span class="self">self</span>.object_store.object(<span class="kw-2">&amp;</span>path);
+        object.delete().<span class="kw">await</span>.context(DeleteSstSnafu)
     }
 }
 

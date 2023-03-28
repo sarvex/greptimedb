@@ -142,7 +142,6 @@
 <a href="#142" id="142">142</a>
 <a href="#143" id="143">143</a>
 <a href="#144" id="144">144</a>
-<a href="#145" id="145">145</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -193,6 +192,7 @@
             build_backend(<span class="kw-2">&amp;</span>req.location, req.connection).context(error::BuildBackendSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span>(dir, filename) = find_dir_and_filename(<span class="kw-2">&amp;</span>path);
+
         <span class="kw">let </span>regex = req
             .pattern
             .as_ref()
@@ -206,18 +206,16 @@
             Source::Dir
         };
 
-        <span class="kw">let </span>lister = Lister::new(object_store.clone(), source, dir, regex);
+        <span class="kw">let </span>lister = Lister::new(object_store, source, dir, regex);
 
-        <span class="kw">let </span>entries = lister.list().<span class="kw">await</span>.context(error::ListObjectsSnafu)<span class="question-mark">?</span>;
+        <span class="kw">let </span>objects = lister.list().<span class="kw">await</span>.context(error::ListObjectsSnafu)<span class="question-mark">?</span>;
 
         <span class="kw">let </span><span class="kw-2">mut </span>buf: Vec&lt;RecordBatch&gt; = Vec::new();
 
-        <span class="kw">for </span>entry <span class="kw">in </span>entries.iter() {
-            <span class="kw">let </span>path = entry.path();
-            <span class="kw">let </span>reader = object_store
-                .reader(path)
-                .<span class="kw">await
-                </span>.context(error::ReadObjectSnafu { path })<span class="question-mark">?</span>;
+        <span class="kw">for </span>obj <span class="kw">in </span>objects.iter() {
+            <span class="kw">let </span>reader = obj.reader().<span class="kw">await</span>.context(error::ReadObjectSnafu {
+                path: <span class="kw-2">&amp;</span>obj.path().to_string(),
+            })<span class="question-mark">?</span>;
 
             <span class="kw">let </span>buf_reader = BufReader::new(reader.compat());
 

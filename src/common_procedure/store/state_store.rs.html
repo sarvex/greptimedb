@@ -190,9 +190,6 @@
 <a href="#190" id="190">190</a>
 <a href="#191" id="191">191</a>
 <a href="#192" id="192">192</a>
-<a href="#193" id="193">193</a>
-<a href="#194" id="194">194</a>
-<a href="#195" id="195">195</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -210,13 +207,12 @@
 </span><span class="kw">use </span>std::pin::Pin;
 <span class="kw">use </span>std::sync::Arc;
 
-<span class="kw">use </span>async_stream::try_stream;
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>futures::{Stream, StreamExt};
-<span class="kw">use </span>object_store::{EntryMode, Metakey, ObjectStore};
+<span class="kw">use </span>futures::{Stream, TryStreamExt};
+<span class="kw">use </span>object_store::{ObjectMode, ObjectStore};
 <span class="kw">use </span>snafu::ResultExt;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{DeleteStateSnafu, Error, ListStateSnafu, PutStateSnafu, <span class="prelude-ty">Result</span>};
+<span class="kw">use </span><span class="kw">crate</span>::error::{DeleteStateSnafu, Error, PutStateSnafu, <span class="prelude-ty">Result</span>};
 
 <span class="doccomment">/// Key value from state store.
 </span><span class="kw">type </span>KeyValue = (String, Vec&lt;u8&gt;);
@@ -260,49 +256,49 @@
 <span class="attr">#[async_trait]
 </span><span class="kw">impl </span>StateStore <span class="kw">for </span>ObjectStateStore {
     <span class="kw">async fn </span>put(<span class="kw-2">&amp;</span><span class="self">self</span>, key: <span class="kw-2">&amp;</span>str, value: Vec&lt;u8&gt;) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="self">self</span>.store
-            .write(key, value)
-            .<span class="kw">await
-            </span>.context(PutStateSnafu { key })
+        <span class="kw">let </span>object = <span class="self">self</span>.store.object(key);
+        object.write(value).<span class="kw">await</span>.context(PutStateSnafu { key })
     }
 
     <span class="kw">async fn </span>walk_top_down(<span class="kw-2">&amp;</span><span class="self">self</span>, path: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;KeyValueStream&gt; {
         <span class="kw">let </span>path_string = path.to_string();
 
-        <span class="kw">let </span><span class="kw-2">mut </span>lister = <span class="self">self</span>.store.scan(path).<span class="kw">await</span>.map_err(|e| Error::ListState {
-            path: path_string.clone(),
-            source: e,
-        })<span class="question-mark">?</span>;
+        <span class="kw">let </span>lister = <span class="self">self
+            </span>.store
+            .object(path)
+            .scan()
+            .<span class="kw">await
+            </span>.map_err(|e| Error::ListState {
+                path: path_string.clone(),
+                source: e,
+            })<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>store = <span class="self">self</span>.store.clone();
-
-        <span class="kw">let </span>stream = <span class="macro">try_stream!</span>({
-            <span class="kw">while let </span><span class="prelude-val">Some</span>(res) = lister.next().<span class="kw">await </span>{
-                <span class="kw">let </span>entry = res.context(ListStateSnafu { path: <span class="kw-2">&amp;</span>path_string })<span class="question-mark">?</span>;
+        <span class="kw">let </span>stream = lister
+            .try_filter_map(|entry| <span class="kw">async move </span>{
                 <span class="kw">let </span>key = entry.path();
-                <span class="kw">let </span>metadata = store
-                    .metadata(<span class="kw-2">&amp;</span>entry, Metakey::Mode)
-                    .<span class="kw">await
-                    </span>.context(ListStateSnafu { path: key })<span class="question-mark">?</span>;
-                <span class="kw">if let </span>EntryMode::FILE = metadata.mode() {
-                    <span class="kw">let </span>value = store
-                        .read(key)
-                        .<span class="kw">await
-                        </span>.context(ListStateSnafu { path: key })<span class="question-mark">?</span>;
-                    <span class="kw">yield </span>(key.to_string(), value);
-                }
-            }
-        });
+                <span class="kw">let </span>key_value = <span class="kw">match </span>entry.mode().<span class="kw">await</span><span class="question-mark">? </span>{
+                    ObjectMode::FILE =&gt; {
+                        <span class="kw">let </span>value = entry.read().<span class="kw">await</span><span class="question-mark">?</span>;
+
+                        <span class="prelude-val">Some</span>((key.to_string(), value))
+                    }
+                    ObjectMode::DIR | ObjectMode::Unknown =&gt; <span class="prelude-val">None</span>,
+                };
+
+                <span class="prelude-val">Ok</span>(key_value)
+            })
+            .map_err(<span class="kw">move </span>|e| Error::ListState {
+                path: path_string.clone(),
+                source: e,
+            });
 
         <span class="prelude-val">Ok</span>(Box::pin(stream))
     }
 
     <span class="kw">async fn </span>delete(<span class="kw-2">&amp;</span><span class="self">self</span>, keys: <span class="kw-2">&amp;</span>[String]) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">for </span>key <span class="kw">in </span>keys {
-            <span class="self">self</span>.store
-                .delete(key)
-                .<span class="kw">await
-                </span>.context(DeleteStateSnafu { key })<span class="question-mark">?</span>;
+            <span class="kw">let </span>object = <span class="self">self</span>.store.object(key);
+            object.delete().<span class="kw">await</span>.context(DeleteStateSnafu { key })<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(())
@@ -312,8 +308,8 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>common_test_util::temp_dir::create_temp_dir;
-    <span class="kw">use </span>futures_util::TryStreamExt;
     <span class="kw">use </span>object_store::services::Fs <span class="kw">as </span>Builder;
+    <span class="kw">use </span>object_store::ObjectStoreBuilder;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -321,10 +317,8 @@
     </span><span class="kw">async fn </span>test_object_state_store() {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;state_store&quot;</span>);
         <span class="kw">let </span>store_dir = dir.path().to_str().unwrap();
-        <span class="kw">let </span><span class="kw-2">mut </span>builder = Builder::default();
-        builder.root(store_dir);
-
-        <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
+        <span class="kw">let </span>accessor = Builder::default().root(store_dir).build().unwrap();
+        <span class="kw">let </span>object_store = ObjectStore::new(accessor).finish();
         <span class="kw">let </span>state_store = ObjectStateStore::new(object_store);
 
         <span class="kw">let </span>data: Vec&lt;<span class="kw">_</span>&gt; = state_store
