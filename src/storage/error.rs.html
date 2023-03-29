@@ -997,7 +997,7 @@
     </span>DecodeParquetTimeRange { msg: String, backtrace: Backtrace },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Scheduler rate limited, msg: {}&quot;</span>, msg))]
-    </span>RateLimited { msg: String, backtrace: Backtrace },
+    </span>RateLimited { msg: String },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Cannot schedule request, scheduler&#39;s already stopped&quot;</span>))]
     </span>IllegalSchedulerState { backtrace: Backtrace },
