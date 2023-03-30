@@ -1071,7 +1071,7 @@
 <span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>parquet::arrow::arrow_reader::{ArrowPredicate, RowFilter};
 <span class="kw">use </span>parquet::arrow::{ArrowWriter, ParquetRecordBatchStreamBuilder, ProjectionMask};
-<span class="kw">use </span>parquet::basic::{Compression, Encoding};
+<span class="kw">use </span>parquet::basic::{Compression, Encoding, ZstdLevel};
 <span class="kw">use </span>parquet::file::metadata::KeyValue;
 <span class="kw">use </span>parquet::file::properties::WriterProperties;
 <span class="kw">use </span>parquet::format::FileMetaData;
@@ -1123,7 +1123,7 @@
         <span class="kw">let </span>schema = store_schema.arrow_schema().clone();
 
         <span class="kw">let </span>writer_props = WriterProperties::builder()
-            .set_compression(Compression::ZSTD)
+            .set_compression(Compression::ZSTD(ZstdLevel::default()))
             .set_encoding(Encoding::PLAIN)
             .set_max_row_group_size(<span class="self">self</span>.max_row_group_size)
             .set_key_value_metadata(extra_meta.map(|map| {

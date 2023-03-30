@@ -593,7 +593,7 @@
             values: <span class="prelude-val">Some</span>(values),
             null_mask: array
                 .data()
-                .null_bitmap()
+                .nulls()
                 .map(|bitmap| bitmap.buffer().as_slice().to_vec())
                 .unwrap_or_default(),
             datatype: datatype.into(),
