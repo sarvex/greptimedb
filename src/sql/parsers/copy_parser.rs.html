@@ -349,12 +349,6 @@
 <a href="#349" id="349">349</a>
 <a href="#350" id="350">350</a>
 <a href="#351" id="351">351</a>
-<a href="#352" id="352">352</a>
-<a href="#353" id="353">353</a>
-<a href="#354" id="354">354</a>
-<a href="#355" id="355">355</a>
-<a href="#356" id="356">356</a>
-<a href="#357" id="357">357</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -370,13 +364,14 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>snafu::ResultExt;
-<span class="kw">use </span>sqlparser::ast::{ObjectName, Value};
+<span class="kw">use </span>sqlparser::ast::ObjectName;
 <span class="kw">use </span>sqlparser::keywords::Keyword;
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::parser::ParserContext;
 <span class="kw">use </span><span class="kw">crate</span>::statements::copy::{CopyTable, CopyTableArgument, Format};
 <span class="kw">use </span><span class="kw">crate</span>::statements::statement::Statement;
+<span class="kw">use </span><span class="kw">crate</span>::util::parse_option_string;
 
 <span class="comment">// COPY tbl TO &#39;output.parquet&#39;;
 </span><span class="kw">impl</span>&lt;<span class="lifetime">&#39;a</span>&gt; ParserContext&lt;<span class="lifetime">&#39;a</span>&gt; {
@@ -427,12 +422,12 @@
         <span class="kw">for </span>option <span class="kw">in </span>options {
             <span class="kw">match </span>option.name.value.to_ascii_uppercase().as_str() {
                 <span class="string">&quot;FORMAT&quot; </span>=&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(fmt_str) = ParserContext::parse_option_string(option.value) {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(fmt_str) = parse_option_string(option.value) {
                         format = Format::try_from(fmt_str)<span class="question-mark">?</span>;
                     }
                 }
                 <span class="string">&quot;PATTERN&quot; </span>=&gt; {
-                    <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = ParserContext::parse_option_string(option.value) {
+                    <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = parse_option_string(option.value) {
                         pattern = <span class="prelude-val">Some</span>(v);
                     }
                 }
@@ -449,7 +444,7 @@
         <span class="kw">let </span>connection = connection_options
             .into_iter()
             .filter_map(|option| {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = ParserContext::parse_option_string(option.value) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = parse_option_string(option.value) {
                     <span class="prelude-val">Some</span>((option.name.value.to_uppercase(), v))
                 } <span class="kw">else </span>{
                     <span class="prelude-val">None
@@ -484,7 +479,7 @@
         </span><span class="kw">let </span><span class="kw-2">mut </span>format = Format::Parquet;
         <span class="kw">for </span>option <span class="kw">in </span>options {
             <span class="kw">if </span>option.name.value.eq_ignore_ascii_case(<span class="string">&quot;FORMAT&quot;</span>) {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(fmt_str) = ParserContext::parse_option_string(option.value) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(fmt_str) = parse_option_string(option.value) {
                     format = Format::try_from(fmt_str)<span class="question-mark">?</span>;
                 }
             }
@@ -498,7 +493,7 @@
         <span class="kw">let </span>connection = connection_options
             .into_iter()
             .filter_map(|option| {
-                <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = ParserContext::parse_option_string(option.value) {
+                <span class="kw">if let </span><span class="prelude-val">Some</span>(v) = parse_option_string(option.value) {
                     <span class="prelude-val">Some</span>((option.name.value.to_uppercase(), v))
                 } <span class="kw">else </span>{
                     <span class="prelude-val">None
@@ -513,13 +508,6 @@
             pattern: <span class="prelude-val">None</span>,
             location,
         })
-    }
-
-    <span class="kw">fn </span>parse_option_string(value: Value) -&gt; <span class="prelude-ty">Option</span>&lt;String&gt; {
-        <span class="kw">match </span>value {
-            Value::SingleQuotedString(v) | Value::DoubleQuotedString(v) =&gt; <span class="prelude-val">Some</span>(v),
-            <span class="kw">_ </span>=&gt; <span class="prelude-val">None</span>,
-        }
     }
 }
 

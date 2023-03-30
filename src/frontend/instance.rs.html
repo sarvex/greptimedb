@@ -1288,6 +1288,8 @@
 <a href="#1288" id="1288">1288</a>
 <a href="#1289" id="1289">1289</a>
 <a href="#1290" id="1290">1290</a>
+<a href="#1291" id="1291">1291</a>
+<a href="#1292" id="1292">1292</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1770,6 +1772,7 @@
 
             Statement::Tql(tql) =&gt; <span class="self">self</span>.execute_tql(tql, query_ctx).<span class="kw">await</span>,
             Statement::CreateDatabase(<span class="kw">_</span>)
+            | Statement::CreateExternalTable(<span class="kw">_</span>)
             | Statement::ShowDatabases(<span class="kw">_</span>)
             | Statement::CreateTable(<span class="kw">_</span>)
             | Statement::ShowTables(<span class="kw">_</span>)
@@ -1953,7 +1956,8 @@
         <span class="comment">// database ops won&#39;t be checked
         </span>Statement::CreateDatabase(<span class="kw">_</span>) | Statement::ShowDatabases(<span class="kw">_</span>) | Statement::Use(<span class="kw">_</span>) =&gt; {}
         <span class="comment">// show create table and alter are not supported yet
-        </span>Statement::ShowCreateTable(<span class="kw">_</span>) | Statement::Alter(<span class="kw">_</span>) =&gt; {}
+        </span>Statement::ShowCreateTable(<span class="kw">_</span>) | Statement::CreateExternalTable(<span class="kw">_</span>) | Statement::Alter(<span class="kw">_</span>) =&gt; {
+        }
 
         Statement::Insert(insert) =&gt; {
             validate_param(insert.table_name(), query_ctx)<span class="question-mark">?</span>;
