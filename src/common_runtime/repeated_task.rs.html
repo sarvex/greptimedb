@@ -268,7 +268,7 @@
         <span class="kw-2">*</span><span class="self">self</span>.task_handle.lock().<span class="kw">await </span>= <span class="prelude-val">Some</span>(handle);
         <span class="self">self</span>.started.store(<span class="bool-val">true</span>, Ordering::Relaxed);
 
-        <span class="macro">logging::info!</span>(
+        <span class="macro">logging::debug!</span>(
             <span class="string">&quot;Repeated task {} started with interval: {:?}&quot;</span>,
             <span class="self">self</span>.task_fn.name(),
             <span class="self">self</span>.interval
@@ -301,7 +301,7 @@
         token.cancel();
         handle.<span class="kw">await</span>.context(WaitGcTaskStopSnafu { name })<span class="question-mark">?</span>;
 
-        <span class="macro">logging::info!</span>(<span class="string">&quot;Repeated task {} stopped&quot;</span>, name);
+        <span class="macro">logging::debug!</span>(<span class="string">&quot;Repeated task {} stopped&quot;</span>, name);
         <span class="prelude-val">Ok</span>(())
     }
 }

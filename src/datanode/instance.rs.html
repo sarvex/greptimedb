@@ -535,6 +535,17 @@
 <a href="#535" id="535">535</a>
 <a href="#536" id="536">536</a>
 <a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
+<a href="#541" id="541">541</a>
+<a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
+<a href="#546" id="546">546</a>
+<a href="#547" id="547">547</a>
+<a href="#548" id="548">548</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -852,11 +863,22 @@
         ObjectStoreConfig::Oss { .. } =&gt; new_oss_object_store(store_config).<span class="kw">await</span>,
     };
 
+    <span class="comment">// Don&#39;t enable retry layer when using local file backend.
+    </span><span class="kw">let </span>object_store = <span class="kw">if </span>!<span class="macro">matches!</span>(store_config, ObjectStoreConfig::File(..)) {
+        object_store.map(|object_store| object_store.layer(RetryLayer::new().with_jitter()))
+    } <span class="kw">else </span>{
+        object_store
+    };
+
     object_store.map(|object_store| {
         object_store
-            .layer(RetryLayer::new().with_jitter())
             .layer(MetricsLayer)
-            .layer(LoggingLayer::default())
+            .layer(
+                LoggingLayer::default()
+                    <span class="comment">// Print the expected error only in DEBUG level.
+                    // See https://docs.rs/opendal/latest/opendal/layers/struct.LoggingLayer.html#method.with_error_level
+                    </span>.with_error_level(<span class="prelude-val">Some</span>(log::Level::Debug)),
+            )
             .layer(TracingLayer)
     })
 }
