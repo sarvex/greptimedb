@@ -429,6 +429,42 @@
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
 <a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
+<a href="#450" id="450">450</a>
+<a href="#451" id="451">451</a>
+<a href="#452" id="452">452</a>
+<a href="#453" id="453">453</a>
+<a href="#454" id="454">454</a>
+<a href="#455" id="455">455</a>
+<a href="#456" id="456">456</a>
+<a href="#457" id="457">457</a>
+<a href="#458" id="458">458</a>
+<a href="#459" id="459">459</a>
+<a href="#460" id="460">460</a>
+<a href="#461" id="461">461</a>
+<a href="#462" id="462">462</a>
+<a href="#463" id="463">463</a>
+<a href="#464" id="464">464</a>
+<a href="#465" id="465">465</a>
+<a href="#466" id="466">466</a>
+<a href="#467" id="467">467</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -447,6 +483,7 @@
 </span><span class="kw">use </span>std::any::Any;
 <span class="kw">use </span>std::sync::atomic::{AtomicU64, Ordering};
 <span class="kw">use </span>std::sync::Arc;
+<span class="kw">use </span>std::time::Duration;
 
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>common_telemetry::info;
@@ -546,17 +583,10 @@
         };
 
         manifest.save_checkpoint(<span class="kw-2">&amp;</span>checkpoint).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="comment">// TODO(dennis): background task to clean old manifest actions and checkpoints.
-        </span>manifest
+        manifest
             .manifest_store()
             .delete(start_version, last_version + <span class="number">1</span>)
             .<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">if </span>start_version &gt; MIN_VERSION {
-            manifest
-                .manifest_store()
-                .delete_checkpoint(start_version - <span class="number">1</span>)
-                .<span class="kw">await</span><span class="question-mark">?
-        </span>}
 
         <span class="macro">info!</span>(<span class="string">&quot;Region manifest checkpoint, start_version: {}, last_version: {}, compacted actions: {}&quot;</span>, start_version, last_version, compacted_actions);
 
@@ -569,10 +599,17 @@
 }
 
 <span class="kw">impl </span>RegionManifest {
-    <span class="kw">pub fn </span>with_checkpointer(manifest_dir: <span class="kw-2">&amp;</span>str, object_store: ObjectStore) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub fn </span>with_checkpointer(
+        manifest_dir: <span class="kw-2">&amp;</span>str,
+        object_store: ObjectStore,
+        checkpoint_actions_margin: <span class="prelude-ty">Option</span>&lt;u16&gt;,
+        gc_duration: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+    ) -&gt; <span class="self">Self </span>{
         <span class="self">Self</span>::new(
             manifest_dir,
             object_store,
+            checkpoint_actions_margin,
+            gc_duration,
             <span class="prelude-val">Some</span>(Arc::new(RegionManifestCheckpointer {
                 flushed_manifest_version: AtomicU64::new(<span class="number">0</span>),
             })),
@@ -615,7 +652,8 @@
         builder.root(<span class="kw-2">&amp;</span>tmp_dir.path().to_string_lossy());
         <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
 
-        <span class="kw">let </span>manifest = RegionManifest::with_checkpointer(<span class="string">&quot;/manifest/&quot;</span>, object_store);
+        <span class="kw">let </span>manifest = RegionManifest::with_checkpointer(<span class="string">&quot;/manifest/&quot;</span>, object_store, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>);
+        manifest.start().<span class="kw">await</span>.unwrap();
 
         <span class="kw">let </span>region_meta = Arc::new(build_region_meta());
 
@@ -705,6 +743,8 @@
 
         <span class="comment">// Reach end
         </span><span class="macro">assert!</span>(iter.next_action().<span class="kw">await</span>.unwrap().is_none());
+
+        manifest.stop().<span class="kw">await</span>.unwrap();
     }
 
     <span class="kw">async fn </span>assert_scan(manifest: <span class="kw-2">&amp;</span>RegionManifest, start_version: ManifestVersion, expected: u64) {
@@ -725,7 +765,13 @@
         builder.root(<span class="kw-2">&amp;</span>tmp_dir.path().to_string_lossy());
         <span class="kw">let </span>object_store = ObjectStore::new(builder).unwrap().finish();
 
-        <span class="kw">let </span>manifest = RegionManifest::with_checkpointer(<span class="string">&quot;/manifest/&quot;</span>, object_store);
+        <span class="kw">let </span>manifest = RegionManifest::with_checkpointer(
+            <span class="string">&quot;/manifest/&quot;</span>,
+            object_store,
+            <span class="prelude-val">None</span>,
+            <span class="prelude-val">Some</span>(Duration::from_millis(<span class="number">50</span>)),
+        );
+        manifest.start().<span class="kw">await</span>.unwrap();
 
         <span class="kw">let </span>region_meta = Arc::new(build_region_meta());
         <span class="kw">let </span>new_region_meta = Arc::new(build_altered_region_meta());
@@ -756,12 +802,15 @@
         <span class="comment">// update flushed manifest version for doing checkpoint
         </span>manifest.set_flushed_manifest_version(<span class="number">2</span>);
 
+        <span class="kw">let </span><span class="kw-2">mut </span>checkpoint_versions = <span class="macro">vec!</span>[];
+
         <span class="comment">// do a checkpoint
         </span><span class="kw">let </span>checkpoint = manifest.do_checkpoint().<span class="kw">await</span>.unwrap().unwrap();
         <span class="kw">let </span>last_checkpoint = manifest.last_checkpoint().<span class="kw">await</span>.unwrap().unwrap();
         <span class="macro">assert_eq!</span>(checkpoint, last_checkpoint);
         <span class="macro">assert_eq!</span>(checkpoint.compacted_actions, <span class="number">3</span>);
         <span class="macro">assert_eq!</span>(checkpoint.last_version, <span class="number">2</span>);
+        checkpoint_versions.push(<span class="number">2</span>);
         <span class="kw">let </span>alterd_raw_meta = RawRegionMetadata::from(new_region_meta.as_ref());
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(<span class="kw-2">&amp;</span>checkpoint.checkpoint, <span class="prelude-val">Some</span>(RegionManifestData {
             committed_sequence: <span class="number">99</span>,
@@ -807,8 +856,8 @@
         }
 
         assert_scan(<span class="kw-2">&amp;</span>manifest, <span class="number">3</span>, <span class="number">2</span>).<span class="kw">await</span>;
-        <span class="comment">// do another checkpoints
 
+        <span class="comment">// do another checkpoints
         // compacted RegionChange
         </span>manifest.set_flushed_manifest_version(<span class="number">3</span>);
         <span class="kw">let </span>checkpoint = manifest.do_checkpoint().<span class="kw">await</span>.unwrap().unwrap();
@@ -816,6 +865,7 @@
         <span class="macro">assert_eq!</span>(checkpoint, last_checkpoint);
         <span class="macro">assert_eq!</span>(checkpoint.compacted_actions, <span class="number">1</span>);
         <span class="macro">assert_eq!</span>(checkpoint.last_version, <span class="number">3</span>);
+        checkpoint_versions.push(<span class="number">3</span>);
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(<span class="kw-2">&amp;</span>checkpoint.checkpoint, <span class="prelude-val">Some</span>(RegionManifestData {
             committed_sequence: <span class="number">200</span>,
             metadata,
@@ -837,6 +887,7 @@
         <span class="macro">assert_eq!</span>(checkpoint, last_checkpoint);
         <span class="macro">assert_eq!</span>(checkpoint.compacted_actions, <span class="number">1</span>);
         <span class="macro">assert_eq!</span>(checkpoint.last_version, <span class="number">4</span>);
+        checkpoint_versions.push(<span class="number">4</span>);
         <span class="macro">assert!</span>(<span class="macro">matches!</span>(<span class="kw-2">&amp;</span>checkpoint.checkpoint, <span class="prelude-val">Some</span>(RegionManifestData {
             committed_sequence: <span class="number">200</span>,
             metadata,
@@ -858,6 +909,27 @@
             .<span class="kw">await
             </span>.unwrap()
             .is_none());
+
+        <span class="comment">// wait for gc
+        </span>tokio::time::sleep(Duration::from_millis(<span class="number">60</span>)).<span class="kw">await</span>;
+
+        <span class="kw">for </span>v <span class="kw">in </span>checkpoint_versions {
+            <span class="kw">if </span>v &lt; <span class="number">4 </span>{
+                <span class="comment">// ensure old checkpoints were purged.
+                </span><span class="macro">assert!</span>(manifest
+                    .manifest_store()
+                    .load_checkpoint(v)
+                    .<span class="kw">await
+                    </span>.unwrap()
+                    .is_none());
+            } <span class="kw">else </span>{
+                <span class="comment">// the last checkpoints is still exists.
+                </span><span class="kw">let </span>last_checkpoint = manifest.last_checkpoint().<span class="kw">await</span>.unwrap().unwrap();
+                <span class="macro">assert_eq!</span>(checkpoint, last_checkpoint);
+            }
+        }
+
+        manifest.stop().<span class="kw">await</span>.unwrap();
     }
 }
 </code></pre></div>

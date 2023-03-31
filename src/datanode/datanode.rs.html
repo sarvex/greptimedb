@@ -281,6 +281,38 @@
 <a href="#281" id="281">281</a>
 <a href="#282" id="282">282</a>
 <a href="#283" id="283">283</a>
+<a href="#284" id="284">284</a>
+<a href="#285" id="285">285</a>
+<a href="#286" id="286">286</a>
+<a href="#287" id="287">287</a>
+<a href="#288" id="288">288</a>
+<a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
+<a href="#315" id="315">315</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -312,12 +344,23 @@
 
 <span class="kw">pub const </span>DEFAULT_OBJECT_STORE_CACHE_SIZE: ReadableSize = ReadableSize(<span class="number">1024</span>);
 
-<span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
+<span class="doccomment">/// Object storage config
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = <span class="string">&quot;type&quot;</span>)]
 </span><span class="kw">pub enum </span>ObjectStoreConfig {
     File(FileConfig),
     S3(S3Config),
     Oss(OssConfig),
+}
+
+<span class="doccomment">/// Storage engine config
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+#[serde(default)]
+</span><span class="kw">pub struct </span>StorageConfig {
+    <span class="attr">#[serde(flatten)]
+    </span><span class="kw">pub </span>store: ObjectStoreConfig,
+    <span class="kw">pub </span>compaction: CompactionConfig,
+    <span class="kw">pub </span>manifest: RegionManifestConfig,
 }
 
 <span class="attr">#[derive(Debug, Clone, Serialize, Default, Deserialize)]
@@ -390,6 +433,27 @@
     }
 }
 
+<span class="doccomment">/// Options for region manifest
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
+#[serde(default)]
+</span><span class="kw">pub struct </span>RegionManifestConfig {
+    <span class="doccomment">/// Region manifest checkpoint actions margin.
+    /// Manifest service create a checkpoint every [checkpoint_margin] actions.
+    </span><span class="kw">pub </span>checkpoint_margin: <span class="prelude-ty">Option</span>&lt;u16&gt;,
+    <span class="doccomment">/// Region manifest logs and checkpoints gc task execution duration.
+    </span><span class="attr">#[serde(with = <span class="string">&quot;humantime_serde&quot;</span>)]
+    </span><span class="kw">pub </span>gc_duration: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+}
+
+<span class="kw">impl </span>Default <span class="kw">for </span>RegionManifestConfig {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            checkpoint_margin: <span class="prelude-val">Some</span>(<span class="number">10u16</span>),
+            gc_duration: <span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">30</span>)),
+        }
+    }
+}
+
 <span class="doccomment">/// Options for table compaction
 </span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize, Eq, PartialEq)]
 #[serde(default)]
@@ -415,7 +479,7 @@
 <span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>DatanodeOptions&gt; <span class="kw">for </span>SchedulerConfig {
     <span class="kw">fn </span>from(value: <span class="kw-2">&amp;</span>DatanodeOptions) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            max_inflight_tasks: value.compaction.max_inflight_tasks,
+            max_inflight_tasks: value.storage.compaction.max_inflight_tasks,
         }
     }
 }
@@ -423,8 +487,10 @@
 <span class="kw">impl </span>From&lt;<span class="kw-2">&amp;</span>DatanodeOptions&gt; <span class="kw">for </span>StorageEngineConfig {
     <span class="kw">fn </span>from(value: <span class="kw-2">&amp;</span>DatanodeOptions) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            max_files_in_l0: value.compaction.max_files_in_level0,
-            max_purge_tasks: value.compaction.max_purge_tasks,
+            manifest_checkpoint_margin: value.storage.manifest.checkpoint_margin,
+            manifest_gc_duration: value.storage.manifest.gc_duration,
+            max_files_in_l0: value.storage.compaction.max_files_in_level0,
+            max_purge_tasks: value.storage.compaction.max_purge_tasks,
         }
     }
 }
@@ -475,8 +541,7 @@
     <span class="kw">pub </span>mysql_runtime_size: usize,
     <span class="kw">pub </span>meta_client_options: <span class="prelude-ty">Option</span>&lt;MetaClientOptions&gt;,
     <span class="kw">pub </span>wal: WalConfig,
-    <span class="kw">pub </span>storage: ObjectStoreConfig,
-    <span class="kw">pub </span>compaction: CompactionConfig,
+    <span class="kw">pub </span>storage: StorageConfig,
     <span class="kw">pub </span>procedure: <span class="prelude-ty">Option</span>&lt;ProcedureConfig&gt;,
 }
 
@@ -493,8 +558,7 @@
             mysql_runtime_size: <span class="number">2</span>,
             meta_client_options: <span class="prelude-val">None</span>,
             wal: WalConfig::default(),
-            storage: ObjectStoreConfig::default(),
-            compaction: CompactionConfig::default(),
+            storage: StorageConfig::default(),
             procedure: <span class="prelude-val">None</span>,
         }
     }

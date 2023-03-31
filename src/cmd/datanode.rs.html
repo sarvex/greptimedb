@@ -287,6 +287,17 @@
 <a href="#287" id="287">287</a>
 <a href="#288" id="288">288</a>
 <a href="#289" id="289">289</a>
+<a href="#290" id="290">290</a>
+<a href="#291" id="291">291</a>
+<a href="#292" id="292">292</a>
+<a href="#293" id="293">293</a>
+<a href="#294" id="294">294</a>
+<a href="#295" id="295">295</a>
+<a href="#296" id="296">296</a>
+<a href="#297" id="297">297</a>
+<a href="#298" id="298">298</a>
+<a href="#299" id="299">299</a>
+<a href="#300" id="300">300</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -435,7 +446,7 @@
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(data_dir) = cmd.data_dir {
-            opts.storage = ObjectStoreConfig::File(FileConfig { data_dir });
+            opts.storage.store = ObjectStoreConfig::File(FileConfig { data_dir });
         }
 
         <span class="kw">if let </span><span class="prelude-val">Some</span>(wal_dir) = cmd.wal_dir {
@@ -456,7 +467,7 @@
     <span class="kw">use </span>std::time::Duration;
 
     <span class="kw">use </span>common_test_util::temp_dir::create_named_temp_file;
-    <span class="kw">use </span>datanode::datanode::{CompactionConfig, ObjectStoreConfig};
+    <span class="kw">use </span>datanode::datanode::{CompactionConfig, ObjectStoreConfig, RegionManifestConfig};
     <span class="kw">use </span>servers::Mode;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
@@ -492,10 +503,14 @@
             type = &quot;File&quot;
             data_dir = &quot;/tmp/greptimedb/data/&quot;
 
-            [compaction]
-            max_inflight_tasks = 4
-            max_files_in_level0 = 8
+            [storage.compaction]
+            max_inflight_tasks = 3
+            max_files_in_level0 = 7
             max_purge_tasks = 32
+
+            [storage.manifest]
+            checkpoint_margin = 9
+            gc_duration = &#39;7s&#39;
         &quot;#</span>;
         <span class="macro">write!</span>(file, <span class="string">&quot;{}&quot;</span>, toml_str).unwrap();
 
@@ -526,9 +541,9 @@
         <span class="macro">assert_eq!</span>(<span class="number">3000</span>, timeout_millis);
         <span class="macro">assert!</span>(tcp_nodelay);
 
-        <span class="kw">match </span>options.storage {
-            ObjectStoreConfig::File(FileConfig { data_dir }) =&gt; {
-                <span class="macro">assert_eq!</span>(<span class="string">&quot;/tmp/greptimedb/data/&quot;</span>.to_string(), data_dir)
+        <span class="kw">match </span><span class="kw-2">&amp;</span>options.storage.store {
+            ObjectStoreConfig::File(FileConfig { data_dir, .. }) =&gt; {
+                <span class="macro">assert_eq!</span>(<span class="string">&quot;/tmp/greptimedb/data/&quot;</span>, data_dir)
             }
             ObjectStoreConfig::S3 { .. } =&gt; <span class="macro">unreachable!</span>(),
             ObjectStoreConfig::Oss { .. } =&gt; <span class="macro">unreachable!</span>(),
@@ -536,11 +551,18 @@
 
         <span class="macro">assert_eq!</span>(
             CompactionConfig {
-                max_inflight_tasks: <span class="number">4</span>,
-                max_files_in_level0: <span class="number">8</span>,
+                max_inflight_tasks: <span class="number">3</span>,
+                max_files_in_level0: <span class="number">7</span>,
                 max_purge_tasks: <span class="number">32</span>,
             },
-            options.compaction
+            options.storage.compaction,
+        );
+        <span class="macro">assert_eq!</span>(
+            RegionManifestConfig {
+                checkpoint_margin: <span class="prelude-val">Some</span>(<span class="number">9</span>),
+                gc_duration: <span class="prelude-val">Some</span>(Duration::from_secs(<span class="number">7</span>)),
+            },
+            options.storage.manifest,
         );
     }
 

@@ -15,7 +15,7 @@ var sourcesIndex = JSON.parse('{\
 "common_procedure":["",[["local",[],["lock.rs","runner.rs"]],["store",[],["state_store.rs"]]],["error.rs","lib.rs","local.rs","procedure.rs","store.rs","watcher.rs"]],\
 "common_query":["",[["logical_plan",[],["accumulator.rs","expr.rs","udaf.rs","udf.rs"]]],["columnar_value.rs","error.rs","function.rs","lib.rs","logical_plan.rs","physical_plan.rs","prelude.rs","signature.rs"]],\
 "common_recordbatch":["",[],["adapter.rs","error.rs","lib.rs","recordbatch.rs","util.rs"]],\
-"common_runtime":["",[],["error.rs","global.rs","lib.rs","metric.rs","runtime.rs"]],\
+"common_runtime":["",[],["error.rs","global.rs","lib.rs","metric.rs","repeated_task.rs","runtime.rs"]],\
 "common_telemetry":["",[],["lib.rs","logging.rs","macros.rs","metric.rs","panic_hook.rs"]],\
 "common_test_util":["",[],["lib.rs","temp_dir.rs"]],\
 "common_time":["",[],["date.rs","datetime.rs","error.rs","lib.rs","range.rs","timestamp.rs","timestamp_millis.rs","util.rs"]],\

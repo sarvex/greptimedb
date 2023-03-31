@@ -695,6 +695,10 @@
 <a href="#695" id="695">695</a>
 <a href="#696" id="696">696</a>
 <a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -877,6 +881,9 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to create directory {}, source: {}&quot;</span>, dir, source))]
     </span>CreateDir { dir: String, source: std::io::Error },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to remove directory {}, source: {}&quot;</span>, dir, source))]
+    </span>RemoveDir { dir: String, source: std::io::Error },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to open log store, source: {}&quot;</span>, source))]
     </span>OpenLogStore {
@@ -1273,6 +1280,7 @@
             | TcpBind { .. }
             | StartGrpc { .. }
             | CreateDir { .. }
+            | RemoveDir { .. }
             | InsertSystemCatalog { .. }
             | RenameTable { .. }
             | Catalog { .. }

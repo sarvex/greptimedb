@@ -429,6 +429,24 @@
 <a href="#429" id="429">429</a>
 <a href="#430" id="430">430</a>
 <a href="#431" id="431">431</a>
+<a href="#432" id="432">432</a>
+<a href="#433" id="433">433</a>
+<a href="#434" id="434">434</a>
+<a href="#435" id="435">435</a>
+<a href="#436" id="436">436</a>
+<a href="#437" id="437">437</a>
+<a href="#438" id="438">438</a>
+<a href="#439" id="439">439</a>
+<a href="#440" id="440">440</a>
+<a href="#441" id="441">441</a>
+<a href="#442" id="442">442</a>
+<a href="#443" id="443">443</a>
+<a href="#444" id="444">444</a>
+<a href="#445" id="445">445</a>
+<a href="#446" id="446">446</a>
+<a href="#447" id="447">447</a>
+<a href="#448" id="448">448</a>
+<a href="#449" id="449">449</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -452,6 +470,7 @@
 <span class="kw">use </span>object_store::{util, ObjectStore};
 <span class="kw">use </span>snafu::ResultExt;
 <span class="kw">use </span>store_api::logstore::LogStore;
+<span class="kw">use </span>store_api::manifest::Manifest;
 <span class="kw">use </span>store_api::storage::{
     CreateOptions, EngineContext, OpenOptions, Region, RegionDescriptor, StorageEngine,
 };
@@ -721,8 +740,15 @@
 
         <span class="kw">let </span><span class="kw-2">mut </span>guard = SlotGuard::new(name, <span class="kw-2">&amp;</span><span class="self">self</span>.regions);
 
-        <span class="kw">let </span>store_config =
-            <span class="self">self</span>.region_store_config(<span class="kw-2">&amp;</span>opts.parent_dir, opts.write_buffer_size, name, opts.ttl);
+        <span class="kw">let </span>store_config = <span class="self">self
+            </span>.region_store_config(
+                <span class="kw-2">&amp;</span>opts.parent_dir,
+                opts.write_buffer_size,
+                name,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.config,
+                opts.ttl,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>region = <span class="kw">match </span>RegionImpl::open(name.to_string(), store_config, opts).<span class="kw">await</span><span class="question-mark">? </span>{
             <span class="prelude-val">None </span>=&gt; <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>),
@@ -752,12 +778,15 @@
                 .context(error::InvalidRegionDescSnafu {
                     region: <span class="kw-2">&amp;</span>region_name,
                 })<span class="question-mark">?</span>;
-        <span class="kw">let </span>store_config = <span class="self">self</span>.region_store_config(
-            <span class="kw-2">&amp;</span>opts.parent_dir,
-            opts.write_buffer_size,
-            <span class="kw-2">&amp;</span>region_name,
-            opts.ttl,
-        );
+        <span class="kw">let </span>store_config = <span class="self">self
+            </span>.region_store_config(
+                <span class="kw-2">&amp;</span>opts.parent_dir,
+                opts.write_buffer_size,
+                <span class="kw-2">&amp;</span>region_name,
+                <span class="kw-2">&amp;</span><span class="self">self</span>.config,
+                opts.ttl,
+            )
+            .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>region = RegionImpl::create(metadata, store_config).<span class="kw">await</span><span class="question-mark">?</span>;
 
@@ -773,25 +802,32 @@
         slot.get_ready_region()
     }
 
-    <span class="kw">fn </span>region_store_config(
+    <span class="kw">async fn </span>region_store_config(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         parent_dir: <span class="kw-2">&amp;</span>str,
         write_buffer_size: <span class="prelude-ty">Option</span>&lt;usize&gt;,
         region_name: <span class="kw-2">&amp;</span>str,
+        config: <span class="kw-2">&amp;</span>EngineConfig,
         ttl: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
-    ) -&gt; StoreConfig&lt;S&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;StoreConfig&lt;S&gt;&gt; {
         <span class="kw">let </span>parent_dir = util::normalize_dir(parent_dir);
 
         <span class="kw">let </span>sst_dir = <span class="kw-2">&amp;</span>region_sst_dir(<span class="kw-2">&amp;</span>parent_dir, region_name);
         <span class="kw">let </span>sst_layer = Arc::new(FsAccessLayer::new(sst_dir, <span class="self">self</span>.object_store.clone()));
         <span class="kw">let </span>manifest_dir = region_manifest_dir(<span class="kw-2">&amp;</span>parent_dir, region_name);
-        <span class="kw">let </span>manifest = RegionManifest::with_checkpointer(<span class="kw-2">&amp;</span>manifest_dir, <span class="self">self</span>.object_store.clone());
+        <span class="kw">let </span>manifest = RegionManifest::with_checkpointer(
+            <span class="kw-2">&amp;</span>manifest_dir,
+            <span class="self">self</span>.object_store.clone(),
+            config.manifest_checkpoint_margin,
+            config.manifest_gc_duration,
+        );
+        manifest.start().<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>flush_strategy = write_buffer_size
             .map(|size| Arc::new(SizeBasedStrategy::new(size)) <span class="kw">as </span>Arc&lt;<span class="kw">_</span>&gt;)
             .unwrap_or_else(|| <span class="self">self</span>.flush_strategy.clone());
 
-        StoreConfig {
+        <span class="prelude-val">Ok</span>(StoreConfig {
             log_store: <span class="self">self</span>.log_store.clone(),
             sst_layer,
             manifest,
@@ -802,7 +838,7 @@
             engine_config: <span class="self">self</span>.config.clone(),
             file_purger: <span class="self">self</span>.file_purger.clone(),
             ttl,
-        }
+        })
     }
 }
 

@@ -365,7 +365,6 @@
 <a href="#365" id="365">365</a>
 <a href="#366" id="366">366</a>
 <a href="#367" id="367">367</a>
-<a href="#368" id="368">368</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -392,7 +391,7 @@
 <span class="kw">use </span>common_runtime::Builder <span class="kw">as </span>RuntimeBuilder;
 <span class="kw">use </span>common_test_util::temp_dir::{create_temp_dir, TempDir};
 <span class="kw">use </span>datanode::datanode::{
-    DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, S3Config, WalConfig,
+    DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, S3Config, StorageConfig, WalConfig,
 };
 <span class="kw">use </span>datanode::error::{CreateTableSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span>datanode::instance::{Instance, InstanceRef};
@@ -468,8 +467,7 @@
                 access_key_secret: env::var(<span class="string">&quot;GT_OSS_ACCESS_KEY&quot;</span>).unwrap(),
                 bucket: env::var(<span class="string">&quot;GT_OSS_BUCKET&quot;</span>).unwrap(),
                 endpoint: env::var(<span class="string">&quot;GT_OSS_ENDPOINT&quot;</span>).unwrap(),
-                cache_path: <span class="prelude-val">None</span>,
-                cache_capacity: <span class="prelude-val">None</span>,
+                ..Default::default()
             };
 
             <span class="kw">let </span><span class="kw-2">mut </span>builder = Oss::default();
@@ -495,10 +493,7 @@
                 access_key_id: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY_ID&quot;</span>).unwrap(),
                 secret_access_key: env::var(<span class="string">&quot;GT_S3_ACCESS_KEY&quot;</span>).unwrap(),
                 bucket: env::var(<span class="string">&quot;GT_S3_BUCKET&quot;</span>).unwrap(),
-                endpoint: <span class="prelude-val">None</span>,
-                region: <span class="prelude-val">None</span>,
-                cache_path: <span class="prelude-val">None</span>,
-                cache_capacity: <span class="prelude-val">None</span>,
+                ..Default::default()
             };
 
             <span class="kw">let </span><span class="kw-2">mut </span>builder = S3::default();
@@ -557,14 +552,17 @@
 ) -&gt; (DatanodeOptions, TestGuard) {
     <span class="kw">let </span>wal_tmp_dir = create_temp_dir(<span class="kw-2">&amp;</span><span class="macro">format!</span>(<span class="string">&quot;gt_wal_{name}&quot;</span>));
 
-    <span class="kw">let </span>(storage, data_tmp_dir) = get_test_store_config(<span class="kw-2">&amp;</span>store_type, name);
+    <span class="kw">let </span>(store, data_tmp_dir) = get_test_store_config(<span class="kw-2">&amp;</span>store_type, name);
 
     <span class="kw">let </span>opts = DatanodeOptions {
         wal: WalConfig {
             dir: wal_tmp_dir.path().to_str().unwrap().to_string(),
             ..Default::default()
         },
-        storage,
+        storage: StorageConfig {
+            store,
+            ..Default::default()
+        },
         mode: Mode::Standalone,
         ..Default::default()
     };

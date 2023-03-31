@@ -200,7 +200,7 @@
     </span><span class="kw">async fn </span>test_table_manifest() {
         <span class="kw">let </span>(_dir, object_store) = test_util::new_test_object_store(<span class="string">&quot;test_table_manifest&quot;</span>).<span class="kw">await</span>;
 
-        <span class="kw">let </span>manifest = TableManifest::new(<span class="string">&quot;manifest/&quot;</span>, object_store, <span class="prelude-val">None</span>);
+        <span class="kw">let </span>manifest = TableManifest::create(<span class="string">&quot;manifest/&quot;</span>, object_store);
 
         <span class="kw">let </span><span class="kw-2">mut </span>iter = manifest.scan(<span class="number">0</span>, <span class="number">100</span>).<span class="kw">await</span>.unwrap();
         <span class="macro">assert!</span>(iter.next_action().<span class="kw">await</span>.unwrap().is_none());

@@ -62,6 +62,10 @@
 <a href="#62" id="62">62</a>
 <a href="#63" id="63">63</a>
 <a href="#64" id="64">64</a>
+<a href="#65" id="65">65</a>
+<a href="#66" id="66">66</a>
+<a href="#67" id="67">67</a>
+<a href="#68" id="68">68</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -99,6 +103,10 @@
         start: ManifestVersion,
         end: ManifestVersion,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>::Iter, <span class="self">Self</span>::Error&gt;;
+
+    <span class="doccomment">/// Delete logs which version is less than specified version.
+    /// Returns the delete logs number.
+    </span><span class="kw">async fn </span>delete_until(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion) -&gt; <span class="prelude-ty">Result</span>&lt;usize, <span class="self">Self</span>::Error&gt;;
 
     <span class="doccomment">/// Save  a log
     </span><span class="kw">async fn </span>save(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion, bytes: <span class="kw-2">&amp;</span>[u8]) -&gt; <span class="prelude-ty">Result</span>&lt;(), <span class="self">Self</span>::Error&gt;;

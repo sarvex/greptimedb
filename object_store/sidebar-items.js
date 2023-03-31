@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"enum":["EntryMode","ErrorKind","Metakey"],"mod":["cache_policy","layers","services","test_util","util"],"struct":["Entry","Error","ObjectStore"],"trait":["ObjectStoreBuilder"],"type":["Pager","Result"]};
+window.SIDEBAR_ITEMS = {"enum":["EntryMode","ErrorKind","Metakey"],"fn":["raw_normalize_path"],"mod":["cache_policy","layers","services","test_util","util"],"struct":["Entry","Error","ObjectStore"],"trait":["ObjectStoreBuilder"],"type":["Pager","Result"]};

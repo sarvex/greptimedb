@@ -74,6 +74,12 @@
 <a href="#74" id="74">74</a>
 <a href="#75" id="75">75</a>
 <a href="#76" id="76">76</a>
+<a href="#77" id="77">77</a>
+<a href="#78" id="78">78</a>
+<a href="#79" id="79">79</a>
+<a href="#80" id="80">80</a>
+<a href="#81" id="81">81</a>
+<a href="#82" id="82">82</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -91,16 +97,22 @@
 </span><span class="kw">use </span>std::any::Any;
 
 <span class="kw">use </span>common_error::prelude::{ErrorExt, Snafu};
+<span class="kw">use </span>common_runtime::error::Error <span class="kw">as </span>RuntimeError;
 <span class="kw">use </span>snafu::{Backtrace, ErrorCompat};
-<span class="kw">use </span>tokio::task::JoinError;
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to wait for gc task to stop, source: {}&quot;</span>, source))]
-    </span>WaitGcTaskStop {
-        source: JoinError,
-        backtrace: Backtrace,
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start log store gc task, source: {}&quot;</span>, source))]
+    </span>StartGcTask {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: RuntimeError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to stop log store gc task, source: {}&quot;</span>, source))]
+    </span>StopGcTask {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: RuntimeError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to add entry to LogBatch, source: {}&quot;</span>, source))]
