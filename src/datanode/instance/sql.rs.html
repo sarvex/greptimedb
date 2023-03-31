@@ -383,10 +383,6 @@
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
 <a href="#385" id="385">385</a>
-<a href="#386" id="386">386</a>
-<a href="#387" id="387">387</a>
-<a href="#388" id="388">388</a>
-<a href="#389" id="389">389</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -513,11 +509,6 @@
                     .execute(SqlRequest::ShowTables(show_tables), query_ctx)
                     .<span class="kw">await
             </span>}
-            QueryStatement::Sql(Statement::DescribeTable(describe_table)) =&gt; {
-                <span class="self">self</span>.sql_handler
-                    .execute(SqlRequest::DescribeTable(describe_table), query_ctx)
-                    .<span class="kw">await
-            </span>}
             QueryStatement::Sql(Statement::ShowCreateTable(_show_create_table)) =&gt; {
                 <span class="macro">unimplemented!</span>(<span class="string">&quot;SHOW CREATE TABLE is unimplemented yet&quot;</span>);
             }
@@ -574,6 +565,7 @@
             | QueryStatement::Sql(Statement::Use(<span class="kw">_</span>))
             | QueryStatement::Sql(Statement::Tql(<span class="kw">_</span>))
             | QueryStatement::Sql(Statement::Delete(<span class="kw">_</span>))
+            | QueryStatement::Sql(Statement::DescribeTable(<span class="kw">_</span>))
             | QueryStatement::Promql(<span class="kw">_</span>) =&gt; <span class="macro">unreachable!</span>(),
         }
     }

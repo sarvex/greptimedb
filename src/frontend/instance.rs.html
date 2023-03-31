@@ -1290,6 +1290,31 @@
 <a href="#1290" id="1290">1290</a>
 <a href="#1291" id="1291">1291</a>
 <a href="#1292" id="1292">1292</a>
+<a href="#1293" id="1293">1293</a>
+<a href="#1294" id="1294">1294</a>
+<a href="#1295" id="1295">1295</a>
+<a href="#1296" id="1296">1296</a>
+<a href="#1297" id="1297">1297</a>
+<a href="#1298" id="1298">1298</a>
+<a href="#1299" id="1299">1299</a>
+<a href="#1300" id="1300">1300</a>
+<a href="#1301" id="1301">1301</a>
+<a href="#1302" id="1302">1302</a>
+<a href="#1303" id="1303">1303</a>
+<a href="#1304" id="1304">1304</a>
+<a href="#1305" id="1305">1305</a>
+<a href="#1306" id="1306">1306</a>
+<a href="#1307" id="1307">1307</a>
+<a href="#1308" id="1308">1308</a>
+<a href="#1309" id="1309">1309</a>
+<a href="#1310" id="1310">1310</a>
+<a href="#1311" id="1311">1311</a>
+<a href="#1312" id="1312">1312</a>
+<a href="#1313" id="1313">1313</a>
+<a href="#1314" id="1314">1314</a>
+<a href="#1315" id="1315">1315</a>
+<a href="#1316" id="1316">1316</a>
+<a href="#1317" id="1317">1317</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1357,15 +1382,17 @@
 <span class="kw">use </span>sql::dialect::GenericDialect;
 <span class="kw">use </span>sql::parser::ParserContext;
 <span class="kw">use </span>sql::statements::copy::CopyTable;
+<span class="kw">use </span>sql::statements::describe::DescribeTable;
 <span class="kw">use </span>sql::statements::statement::Statement;
 <span class="kw">use </span>sql::statements::tql::Tql;
 
 <span class="kw">use </span><span class="kw">crate</span>::catalog::FrontendCatalogManager;
 <span class="kw">use </span><span class="kw">crate</span>::datanode::DatanodeClients;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
-    <span class="self">self</span>, Error, ExecLogicalPlanSnafu, ExecutePromqlSnafu, ExecuteStatementSnafu, ExternalSnafu,
-    InvalidInsertRequestSnafu, MissingMetasrvOptsSnafu, NotSupportedSnafu, ParseQuerySnafu,
-    ParseSqlSnafu, PlanStatementSnafu, <span class="prelude-ty">Result</span>, SqlExecInterceptedSnafu,
+    <span class="self">self</span>, CatalogSnafu, DescribeStatementSnafu, Error, ExecLogicalPlanSnafu, ExecutePromqlSnafu,
+    ExecuteStatementSnafu, ExternalSnafu, InvalidInsertRequestSnafu, MissingMetasrvOptsSnafu,
+    NotSupportedSnafu, ParseQuerySnafu, ParseSqlSnafu, PlanStatementSnafu, <span class="prelude-ty">Result</span>,
+    SqlExecInterceptedSnafu, TableNotFoundSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::expr_factory::{CreateExprFactoryRef, DefaultCreateExprFactory};
 <span class="kw">use </span><span class="kw">crate</span>::frontend::FrontendOptions;
@@ -1756,6 +1783,27 @@
             </span>.context(ExecLogicalPlanSnafu)
     }
 
+    <span class="kw">async fn </span>describe_table(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+        stmt: DescribeTable,
+        query_ctx: QueryContextRef,
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+        <span class="kw">let </span>(catalog, schema, table) = table_idents_to_full_name(stmt.name(), query_ctx)
+            .map_err(BoxedError::new)
+            .context(ExternalSnafu)<span class="question-mark">?</span>;
+
+        <span class="kw">let </span>table = <span class="self">self
+            </span>.catalog_manager
+            .table(<span class="kw-2">&amp;</span>catalog, <span class="kw-2">&amp;</span>schema, <span class="kw-2">&amp;</span>table)
+            .<span class="kw">await
+            </span>.context(CatalogSnafu)<span class="question-mark">?
+            </span>.with_context(|| TableNotFoundSnafu {
+                table_name: stmt.name().to_string(),
+            })<span class="question-mark">?</span>;
+
+        query::sql::describe_table(table).context(DescribeStatementSnafu)
+    }
+
     <span class="kw">async fn </span>query_statement(<span class="kw-2">&amp;</span><span class="self">self</span>, stmt: Statement, query_ctx: QueryContextRef) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         check_permission(<span class="self">self</span>.plugins.clone(), <span class="kw-2">&amp;</span>stmt, <span class="kw-2">&amp;</span>query_ctx)<span class="question-mark">?</span>;
 
@@ -1771,12 +1819,14 @@
             </span>}
 
             Statement::Tql(tql) =&gt; <span class="self">self</span>.execute_tql(tql, query_ctx).<span class="kw">await</span>,
+
+            Statement::DescribeTable(stmt) =&gt; <span class="self">self</span>.describe_table(stmt, query_ctx).<span class="kw">await</span>,
+
             Statement::CreateDatabase(<span class="kw">_</span>)
             | Statement::CreateExternalTable(<span class="kw">_</span>)
             | Statement::ShowDatabases(<span class="kw">_</span>)
             | Statement::CreateTable(<span class="kw">_</span>)
             | Statement::ShowTables(<span class="kw">_</span>)
-            | Statement::DescribeTable(<span class="kw">_</span>)
             | Statement::Insert(<span class="kw">_</span>)
             | Statement::Alter(<span class="kw">_</span>)
             | Statement::DropTable(<span class="kw">_</span>)
