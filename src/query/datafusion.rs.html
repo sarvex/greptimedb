@@ -554,7 +554,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::plan::LogicalPlan;
 <span class="kw">use </span><span class="kw">crate</span>::planner::{DfLogicalPlanner, LogicalPlanner};
 <span class="kw">use </span><span class="kw">crate</span>::query_engine::{QueryEngineContext, QueryEngineState};
-<span class="kw">use crate</span>::{metric, QueryEngine};
+<span class="kw">use crate</span>::{metrics, QueryEngine};
 
 <span class="kw">pub struct </span>DatafusionQueryEngine {
     state: Arc&lt;QueryEngineState&gt;,
@@ -750,7 +750,7 @@
 
 <span class="kw">impl </span>LogicalOptimizer <span class="kw">for </span>DatafusionQueryEngine {
     <span class="kw">fn </span>optimize(<span class="kw-2">&amp;</span><span class="self">self</span>, plan: <span class="kw-2">&amp;</span>LogicalPlan) -&gt; <span class="prelude-ty">Result</span>&lt;LogicalPlan&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_OPTIMIZE_LOGICAL_ELAPSED);
+        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metrics::METRIC_OPTIMIZE_LOGICAL_ELAPSED);
         <span class="kw">match </span>plan {
             LogicalPlan::DfPlan(df_plan) =&gt; {
                 <span class="kw">let </span>optimized_plan = <span class="self">self
@@ -776,7 +776,7 @@
         ctx: <span class="kw-2">&amp;mut </span>QueryEngineContext,
         logical_plan: <span class="kw-2">&amp;</span>LogicalPlan,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="kw">dyn </span>PhysicalPlan&gt;&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_CREATE_PHYSICAL_ELAPSED);
+        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metrics::METRIC_CREATE_PHYSICAL_ELAPSED);
         <span class="kw">match </span>logical_plan {
             LogicalPlan::DfPlan(df_plan) =&gt; {
                 <span class="kw">let </span>state = ctx.state();
@@ -811,7 +811,7 @@
         ctx: <span class="kw-2">&amp;mut </span>QueryEngineContext,
         plan: Arc&lt;<span class="kw">dyn </span>PhysicalPlan&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Arc&lt;<span class="kw">dyn </span>PhysicalPlan&gt;&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_OPTIMIZE_PHYSICAL_ELAPSED);
+        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metrics::METRIC_OPTIMIZE_PHYSICAL_ELAPSED);
 
         <span class="kw">let </span><span class="kw-2">mut </span>new_plan = plan
             .as_any()
@@ -838,7 +838,7 @@
         ctx: <span class="kw-2">&amp;</span>QueryEngineContext,
         plan: <span class="kw-2">&amp;</span>Arc&lt;<span class="kw">dyn </span>PhysicalPlan&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;SendableRecordBatchStream&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_EXEC_PLAN_ELAPSED);
+        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metrics::METRIC_EXEC_PLAN_ELAPSED);
         <span class="kw">match </span>plan.output_partitioning().partition_count() {
             <span class="number">0 </span>=&gt; <span class="prelude-val">Ok</span>(Box::pin(EmptyRecordBatchStream::new(plan.schema()))),
             <span class="number">1 </span>=&gt; <span class="prelude-val">Ok</span>(plan

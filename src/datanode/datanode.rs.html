@@ -313,6 +313,20 @@
 <a href="#313" id="313">313</a>
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
+<a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
+<a href="#320" id="320">320</a>
+<a href="#321" id="321">321</a>
+<a href="#322" id="322">322</a>
+<a href="#323" id="323">323</a>
+<a href="#324" id="324">324</a>
+<a href="#325" id="325">325</a>
+<a href="#326" id="326">326</a>
+<a href="#327" id="327">327</a>
+<a href="#328" id="328">328</a>
+<a href="#329" id="329">329</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -334,6 +348,7 @@
 <span class="kw">use </span>common_telemetry::info;
 <span class="kw">use </span>meta_client::MetaClientOptions;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>servers::http::HttpOptions;
 <span class="kw">use </span>servers::Mode;
 <span class="kw">use </span>storage::config::EngineConfig <span class="kw">as </span>StorageEngineConfig;
 <span class="kw">use </span>storage::scheduler::SchedulerConfig;
@@ -539,6 +554,7 @@
     <span class="kw">pub </span>rpc_runtime_size: usize,
     <span class="kw">pub </span>mysql_addr: String,
     <span class="kw">pub </span>mysql_runtime_size: usize,
+    <span class="kw">pub </span>http_opts: HttpOptions,
     <span class="kw">pub </span>meta_client_options: <span class="prelude-ty">Option</span>&lt;MetaClientOptions&gt;,
     <span class="kw">pub </span>wal: WalConfig,
     <span class="kw">pub </span>storage: StorageConfig,
@@ -556,6 +572,7 @@
             rpc_runtime_size: <span class="number">8</span>,
             mysql_addr: <span class="string">&quot;127.0.0.1:4406&quot;</span>.to_string(),
             mysql_runtime_size: <span class="number">2</span>,
+            http_opts: HttpOptions::default(),
             meta_client_options: <span class="prelude-val">None</span>,
             wal: WalConfig::default(),
             storage: StorageConfig::default(),
@@ -567,14 +584,17 @@
 <span class="doccomment">/// Datanode service.
 </span><span class="kw">pub struct </span>Datanode {
     opts: DatanodeOptions,
-    services: Services,
+    services: <span class="prelude-ty">Option</span>&lt;Services&gt;,
     instance: InstanceRef,
 }
 
 <span class="kw">impl </span>Datanode {
     <span class="kw">pub async fn </span>new(opts: DatanodeOptions) -&gt; <span class="prelude-ty">Result</span>&lt;Datanode&gt; {
         <span class="kw">let </span>instance = Arc::new(Instance::new(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>);
-        <span class="kw">let </span>services = Services::try_new(instance.clone(), <span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>services = <span class="kw">match </span>opts.mode {
+            Mode::Distributed =&gt; <span class="prelude-val">Some</span>(Services::try_new(instance.clone(), <span class="kw-2">&amp;</span>opts).<span class="kw">await</span><span class="question-mark">?</span>),
+            Mode::Standalone =&gt; <span class="prelude-val">None</span>,
+        };
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             opts,
             services,
@@ -595,8 +615,12 @@
 
     <span class="doccomment">/// Start services of datanode. This method call will block until services are shutdown.
     </span><span class="kw">pub async fn </span>start_services(<span class="kw-2">&amp;mut </span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="self">self</span>.services.start(<span class="kw-2">&amp;</span><span class="self">self</span>.opts).<span class="kw">await
-    </span>}
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(service) = <span class="self">self</span>.services.as_mut() {
+            service.start(<span class="kw-2">&amp;</span><span class="self">self</span>.opts).<span class="kw">await
+        </span>} <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(())
+        }
+    }
 
     <span class="kw">pub fn </span>get_instance(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; InstanceRef {
         <span class="self">self</span>.instance.clone()
@@ -607,8 +631,12 @@
     </span>}
 
     <span class="kw">async fn </span>shutdown_services(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
-        <span class="self">self</span>.services.shutdown().<span class="kw">await
-    </span>}
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(service) = <span class="self">self</span>.services.as_ref() {
+            service.shutdown().<span class="kw">await
+        </span>} <span class="kw">else </span>{
+            <span class="prelude-val">Ok</span>(())
+        }
+    }
 
     <span class="kw">pub async fn </span>shutdown(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="comment">// We must shutdown services first

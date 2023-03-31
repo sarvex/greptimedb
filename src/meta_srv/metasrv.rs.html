@@ -245,6 +245,9 @@
 <a href="#245" id="245">245</a>
 <a href="#246" id="246">246</a>
 <a href="#247" id="247">247</a>
+<a href="#248" id="248">248</a>
+<a href="#249" id="249">249</a>
+<a href="#250" id="250">250</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -268,6 +271,7 @@
 <span class="kw">use </span>common_procedure::ProcedureManagerRef;
 <span class="kw">use </span>common_telemetry::{error, info, warn};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
+<span class="kw">use </span>servers::http::HttpOptions;
 <span class="kw">use </span>snafu::ResultExt;
 <span class="kw">use </span>tokio::sync::broadcast::error::RecvError;
 
@@ -291,6 +295,7 @@
     <span class="kw">pub </span>datanode_lease_secs: i64,
     <span class="kw">pub </span>selector: SelectorType,
     <span class="kw">pub </span>use_memory_store: bool,
+    <span class="kw">pub </span>http_opts: HttpOptions,
 }
 
 <span class="kw">impl </span>Default <span class="kw">for </span>MetaSrvOptions {
@@ -302,6 +307,7 @@
             datanode_lease_secs: <span class="number">15</span>,
             selector: SelectorType::default(),
             use_memory_store: <span class="bool-val">false</span>,
+            http_opts: HttpOptions::default(),
         }
     }
 }

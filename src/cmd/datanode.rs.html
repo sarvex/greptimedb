@@ -298,6 +298,18 @@
 <a href="#298" id="298">298</a>
 <a href="#299" id="299">299</a>
 <a href="#300" id="300">300</a>
+<a href="#301" id="301">301</a>
+<a href="#302" id="302">302</a>
+<a href="#303" id="303">303</a>
+<a href="#304" id="304">304</a>
+<a href="#305" id="305">305</a>
+<a href="#306" id="306">306</a>
+<a href="#307" id="307">307</a>
+<a href="#308" id="308">308</a>
+<a href="#309" id="309">309</a>
+<a href="#310" id="310">310</a>
+<a href="#311" id="311">311</a>
+<a href="#312" id="312">312</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -312,7 +324,9 @@
 // See the License for the specific language governing permissions and
 // limitations under the License.
 
-</span><span class="kw">use </span>clap::Parser;
+</span><span class="kw">use </span>std::time::Duration;
+
+<span class="kw">use </span>clap::Parser;
 <span class="kw">use </span>common_telemetry::logging;
 <span class="kw">use </span>datanode::datanode::{
     Datanode, DatanodeOptions, FileConfig, ObjectStoreConfig, ProcedureConfig,
@@ -386,6 +400,10 @@
     </span>wal_dir: <span class="prelude-ty">Option</span>&lt;String&gt;,
     <span class="attr">#[clap(long)]
     </span>procedure_dir: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attr">#[clap(long)]
+    </span>http_addr: <span class="prelude-ty">Option</span>&lt;String&gt;,
+    <span class="attr">#[clap(long)]
+    </span>http_timeout: <span class="prelude-ty">Option</span>&lt;u64&gt;,
 }
 
 <span class="kw">impl </span>StartCommand {
@@ -454,6 +472,12 @@
         }
         <span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_dir) = cmd.procedure_dir {
             opts.procedure = <span class="prelude-val">Some</span>(ProcedureConfig::from_file_path(procedure_dir));
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(http_addr) = cmd.http_addr {
+            opts.http_opts.addr = http_addr
+        }
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(http_timeout) = cmd.http_timeout {
+            opts.http_opts.timeout = Duration::from_secs(http_timeout)
         }
 
         <span class="prelude-val">Ok</span>(opts)

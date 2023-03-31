@@ -134,7 +134,6 @@
 <a href="#134" id="134">134</a>
 <a href="#135" id="135">135</a>
 <a href="#136" id="136">136</a>
-<a href="#137" id="137">137</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -156,13 +155,13 @@
 <span class="kw">use </span>axum::extract::{Json, Query, State};
 <span class="kw">use </span>axum::{Extension, Form};
 <span class="kw">use </span>common_error::status_code::StatusCode;
-<span class="kw">use </span>common_telemetry::metric;
 <span class="kw">use </span>query::parser::PromQuery;
 <span class="kw">use </span>schemars::JsonSchema;
 <span class="kw">use </span>serde::{Deserialize, Serialize};
 <span class="kw">use </span>session::context::UserInfo;
 
 <span class="kw">use </span><span class="kw">crate</span>::http::{ApiState, JsonResponse};
+<span class="kw">use </span><span class="kw">crate</span>::metrics_handler::MetricsHandler;
 
 <span class="attr">#[derive(Debug, Default, Serialize, Deserialize, JsonSchema)]
 </span><span class="kw">pub struct </span>SqlQuery {
@@ -251,12 +250,11 @@
 
 <span class="doccomment">/// Handler to export metrics
 </span><span class="attr">#[axum_macros::debug_handler]
-</span><span class="kw">pub async fn </span>metrics(Query(_params): Query&lt;HashMap&lt;String, String&gt;&gt;) -&gt; String {
-    <span class="kw">if let </span><span class="prelude-val">Some</span>(handle) = metric::try_handle() {
-        handle.render()
-    } <span class="kw">else </span>{
-        <span class="string">&quot;Prometheus handle not initialized.&quot;</span>.to_owned()
-    }
+</span><span class="kw">pub async fn </span>metrics(
+    State(state): State&lt;MetricsHandler&gt;,
+    Query(_params): Query&lt;HashMap&lt;String, String&gt;&gt;,
+) -&gt; String {
+    state.render()
 }
 
 <span class="attr">#[derive(Debug, Serialize, Deserialize, JsonSchema)]

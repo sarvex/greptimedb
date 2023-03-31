@@ -365,6 +365,8 @@
 <a href="#365" id="365">365</a>
 <a href="#366" id="366">366</a>
 <a href="#367" id="367">367</a>
+<a href="#368" id="368">368</a>
+<a href="#369" id="369">369</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -405,7 +407,8 @@
 <span class="kw">use </span>once_cell::sync::OnceCell;
 <span class="kw">use </span>rand::Rng;
 <span class="kw">use </span>servers::grpc::GrpcServer;
-<span class="kw">use </span>servers::http::{HttpOptions, HttpServer};
+<span class="kw">use </span>servers::http::{HttpOptions, HttpServerBuilder};
+<span class="kw">use </span>servers::metrics_handler::MetricsHandler;
 <span class="kw">use </span>servers::prom::PromServer;
 <span class="kw">use </span>servers::query_handler::grpc::ServerGrpcQueryHandlerAdaptor;
 <span class="kw">use </span>servers::query_handler::sql::ServerSqlQueryHandlerAdaptor;
@@ -638,11 +641,13 @@
     )
     .<span class="kw">await
     </span>.unwrap();
-    <span class="kw">let </span>http_server = HttpServer::new(
-        ServerSqlQueryHandlerAdaptor::arc(Arc::new(build_frontend_instance(instance.clone()))),
-        ServerGrpcQueryHandlerAdaptor::arc(instance.clone()),
-        HttpOptions::default(),
-    );
+    <span class="kw">let </span>http_server = HttpServerBuilder::new(HttpOptions::default())
+        .with_sql_handler(ServerSqlQueryHandlerAdaptor::arc(Arc::new(
+            build_frontend_instance(instance.clone()),
+        )))
+        .with_grpc_handler(ServerGrpcQueryHandlerAdaptor::arc(instance.clone()))
+        .with_metrics_handler(MetricsHandler)
+        .build();
     (http_server.make_app(), guard)
 }
 
@@ -662,12 +667,11 @@
     .<span class="kw">await
     </span>.unwrap();
     <span class="kw">let </span>frontend_ref = Arc::new(frontend);
-    <span class="kw">let </span><span class="kw-2">mut </span>http_server = HttpServer::new(
-        ServerSqlQueryHandlerAdaptor::arc(frontend_ref.clone()),
-        ServerGrpcQueryHandlerAdaptor::arc(frontend_ref),
-        HttpOptions::default(),
-    );
-    http_server.set_script_handler(instance.clone());
+    <span class="kw">let </span>http_server = HttpServerBuilder::new(HttpOptions::default())
+        .with_sql_handler(ServerSqlQueryHandlerAdaptor::arc(frontend_ref.clone()))
+        .with_grpc_handler(ServerGrpcQueryHandlerAdaptor::arc(frontend_ref))
+        .with_script_handler(instance.clone())
+        .build();
     <span class="kw">let </span>app = http_server.make_app();
     (app, guard)
 }
