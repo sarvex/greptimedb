@@ -1166,7 +1166,7 @@
 }
 
 <span class="doccomment">/// Create [`AlterOperation`] according to given `alter_kind`.
-</span><span class="kw">fn </span>create_alter_operation(
+</span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>create_alter_operation(
     table_name: <span class="kw-2">&amp;</span>str,
     alter_kind: <span class="kw-2">&amp;</span>AlterKind,
     table_meta: <span class="kw-2">&amp;mut </span>TableMeta,

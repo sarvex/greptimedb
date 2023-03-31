@@ -402,7 +402,7 @@
 }
 
 <span class="doccomment">/// Alter table request
-</span><span class="attr">#[derive(Debug)]
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>AlterTableRequest {
     <span class="kw">pub </span>catalog_name: String,
     <span class="kw">pub </span>schema_name: String,
@@ -417,13 +417,13 @@
 }
 
 <span class="doccomment">/// Add column request
-</span><span class="attr">#[derive(Debug, Clone)]
+</span><span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 </span><span class="kw">pub struct </span>AddColumnRequest {
     <span class="kw">pub </span>column_schema: ColumnSchema,
     <span class="kw">pub </span>is_key: bool,
 }
 
-<span class="attr">#[derive(Debug, Clone)]
+<span class="attr">#[derive(Debug, Clone, Serialize, Deserialize)]
 </span><span class="kw">pub enum </span>AlterKind {
     AddColumns { columns: Vec&lt;AddColumnRequest&gt; },
     DropColumns { names: Vec&lt;String&gt; },

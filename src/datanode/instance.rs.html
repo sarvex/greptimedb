@@ -524,6 +524,12 @@
 <a href="#524" id="524">524</a>
 <a href="#525" id="525">525</a>
 <a href="#526" id="526">526</a>
+<a href="#527" id="527">527</a>
+<a href="#528" id="528">528</a>
+<a href="#529" id="529">529</a>
+<a href="#530" id="530">530</a>
+<a href="#531" id="531">531</a>
+<a href="#532" id="532">532</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -600,6 +606,7 @@
     <span class="kw">pub</span>(<span class="kw">crate</span>) script_executor: ScriptExecutor,
     <span class="kw">pub</span>(<span class="kw">crate</span>) table_id_provider: <span class="prelude-ty">Option</span>&lt;TableIdProviderRef&gt;,
     <span class="kw">pub</span>(<span class="kw">crate</span>) heartbeat_task: <span class="prelude-ty">Option</span>&lt;HeartbeatTask&gt;,
+    procedure_manager: <span class="prelude-ty">Option</span>&lt;ProcedureManagerRef&gt;,
 }
 
 <span class="kw">pub type </span>InstanceRef = Arc&lt;Instance&gt;;
@@ -709,7 +716,8 @@
         };
 
         <span class="kw">let </span>procedure_manager = create_procedure_manager(<span class="kw-2">&amp;</span>opts.procedure).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span>procedure_manager {
+        <span class="comment">// Register all procedures.
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span>procedure_manager {
             table_engine.register_procedure_loaders(<span class="kw-2">&amp;**</span>procedure_manager);
             table_procedure::register_procedure_loaders(
                 catalog_manager.clone(),
@@ -717,12 +725,6 @@
                 table_engine.clone(),
                 <span class="kw-2">&amp;**</span>procedure_manager,
             );
-
-            <span class="comment">// Recover procedures.
-            </span>procedure_manager
-                .recover()
-                .<span class="kw">await
-                </span>.context(RecoverProcedureSnafu)<span class="question-mark">?</span>;
         }
 
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
@@ -731,12 +733,13 @@
                 table_engine.clone(),
                 catalog_manager.clone(),
                 table_engine,
-                procedure_manager,
+                procedure_manager.clone(),
             ),
             catalog_manager,
             script_executor,
             heartbeat_task,
             table_id_provider,
+            procedure_manager,
         })
     }
 
@@ -747,6 +750,15 @@
             </span>.context(NewCatalogSnafu)<span class="question-mark">?</span>;
         <span class="kw">if let </span><span class="prelude-val">Some</span>(task) = <span class="kw-2">&amp;</span><span class="self">self</span>.heartbeat_task {
             task.start().<span class="kw">await</span><span class="question-mark">?</span>;
+        }
+
+        <span class="comment">// Recover procedures after the catalog manager is started, so we can
+        // ensure we can access all tables from the catalog manager.
+        </span><span class="kw">if let </span><span class="prelude-val">Some</span>(procedure_manager) = <span class="kw-2">&amp;</span><span class="self">self</span>.procedure_manager {
+            procedure_manager
+                .recover()
+                .<span class="kw">await
+                </span>.context(RecoverProcedureSnafu)<span class="question-mark">?</span>;
         }
         <span class="prelude-val">Ok</span>(())
     }

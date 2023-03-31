@@ -257,6 +257,13 @@
 <a href="#257" id="257">257</a>
 <a href="#258" id="258">258</a>
 <a href="#259" id="259">259</a>
+<a href="#260" id="260">260</a>
+<a href="#261" id="261">261</a>
+<a href="#262" id="262">262</a>
+<a href="#263" id="263">263</a>
+<a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -276,7 +283,7 @@
 <span class="kw">use </span>common_error::ext::BoxedError;
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>store_api::storage::RegionNumber;
-<span class="kw">use </span>table::metadata::{TableInfoBuilderError, TableMetaBuilderError};
+<span class="kw">use </span>table::metadata::{TableInfoBuilderError, TableMetaBuilderError, TableVersion};
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
@@ -446,6 +453,12 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid schema, source: {}&quot;</span>, source))]
     </span>InvalidRawSchema { source: datatypes::error::Error },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Table version changed, expect: {}, actual: {}&quot;</span>, expect, actual))]
+    </span>VersionChanged {
+        expect: TableVersion,
+        actual: TableVersion,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -470,7 +483,8 @@
             | InvalidPrimaryKey { .. }
             | MissingTimestampIndex { .. }
             | TableNotFound { .. }
-            | InvalidRawSchema { .. } =&gt; StatusCode::InvalidArguments,
+            | InvalidRawSchema { .. }
+            | VersionChanged { .. } =&gt; StatusCode::InvalidArguments,
 
             TableInfoNotFound { .. } | ConvertRaw { .. } =&gt; StatusCode::Unexpected,
 
