@@ -171,6 +171,21 @@
 <a href="#171" id="171">171</a>
 <a href="#172" id="172">172</a>
 <a href="#173" id="173">173</a>
+<a href="#174" id="174">174</a>
+<a href="#175" id="175">175</a>
+<a href="#176" id="176">176</a>
+<a href="#177" id="177">177</a>
+<a href="#178" id="178">178</a>
+<a href="#179" id="179">179</a>
+<a href="#180" id="180">180</a>
+<a href="#181" id="181">181</a>
+<a href="#182" id="182">182</a>
+<a href="#183" id="183">183</a>
+<a href="#184" id="184">184</a>
+<a href="#185" id="185">185</a>
+<a href="#186" id="186">186</a>
+<a href="#187" id="187">187</a>
+<a href="#188" id="188">188</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -186,6 +201,7 @@
 // limitations under the License.
 
 </span><span class="kw">use </span>std::any::Any;
+<span class="kw">use </span>std::string::FromUtf8Error;
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
@@ -220,10 +236,11 @@
         backtrace: Backtrace,
     },
 
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to put {}, source: {}&quot;</span>, key, source))]
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to put state, key: &#39;{key}&#39;, source: {source}&quot;</span>))]
     </span>PutState {
         key: String,
-        source: object_store::Error,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: BoxedError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to delete {}, source: {}&quot;</span>, key, source))]
@@ -232,10 +249,18 @@
         source: object_store::Error,
     },
 
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to list {}, source: {}&quot;</span>, path, source))]
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to delete keys: &#39;{keys}&#39;, source: {source}&quot;</span>))]
+    </span>DeleteStates {
+        keys: String,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: BoxedError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to list state, path: &#39;{path}&#39;, source: {source}&quot;</span>))]
     </span>ListState {
         path: String,
-        source: object_store::Error,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: BoxedError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to read {}, source: {}&quot;</span>, key, source))]
@@ -280,6 +305,9 @@
         source: Arc&lt;Error&gt;,
         procedure_id: ProcedureId,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Corrupted data, error: {source}&quot;</span>))]
+    </span>CorruptedData { source: FromUtf8Error },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -287,11 +315,13 @@
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
     <span class="kw">fn </span>status_code(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StatusCode {
         <span class="kw">match </span><span class="self">self </span>{
-            Error::External { source } =&gt; source.status_code(),
+            Error::External { source }
+            | Error::PutState { source, .. }
+            | Error::DeleteStates { source, .. }
+            | Error::ListState { source, .. } =&gt; source.status_code(),
+
             Error::ToJson { .. }
-            | Error::PutState { .. }
             | Error::DeleteState { .. }
-            | Error::ListState { .. }
             | Error::ReadState { .. }
             | Error::FromJson { .. }
             | Error::RetryTimesExceeded { .. }
@@ -300,7 +330,7 @@
             Error::LoaderConflict { .. } | Error::DuplicateProcedure { .. } =&gt; {
                 StatusCode::InvalidArguments
             }
-            Error::ProcedurePanic { .. } =&gt; StatusCode::Unexpected,
+            Error::ProcedurePanic { .. } | Error::CorruptedData { .. } =&gt; StatusCode::Unexpected,
             Error::ProcedureExec { source, .. } =&gt; source.status_code(),
         }
     }

@@ -725,6 +725,14 @@
 <a href="#725" id="725">725</a>
 <a href="#726" id="726">726</a>
 <a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
+<a href="#730" id="730">730</a>
+<a href="#731" id="731">731</a>
+<a href="#732" id="732">732</a>
+<a href="#733" id="733">733</a>
+<a href="#734" id="734">734</a>
+<a href="#735" id="735">735</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -749,7 +757,6 @@
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>backon::ExponentialBuilder;
 <span class="kw">use </span>common_telemetry::logging;
-<span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>snafu::ensure;
 <span class="kw">use </span>tokio::sync::watch::{<span class="self">self</span>, Receiver, Sender};
 <span class="kw">use </span>tokio::sync::Notify;
@@ -758,7 +765,7 @@
 <span class="kw">use </span><span class="kw">crate</span>::local::lock::LockMap;
 <span class="kw">use </span><span class="kw">crate</span>::local::runner::Runner;
 <span class="kw">use </span><span class="kw">crate</span>::procedure::BoxedProcedureLoader;
-<span class="kw">use </span><span class="kw">crate</span>::store::{ObjectStateStore, ProcedureMessage, ProcedureStore, StateStoreRef};
+<span class="kw">use </span><span class="kw">crate</span>::store::{ProcedureMessage, ProcedureStore, StateStoreRef};
 <span class="kw">use crate</span>::{
     BoxedProcedure, ContextProvider, LockKey, ProcedureId, ProcedureManager, ProcedureState,
     ProcedureWithId, Watcher,
@@ -1018,10 +1025,17 @@
 <span class="doccomment">/// Config for [LocalManager].
 </span><span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>ManagerConfig {
-    <span class="doccomment">/// Object store
-    </span><span class="kw">pub </span>object_store: ObjectStore,
     <span class="kw">pub </span>max_retry_times: usize,
     <span class="kw">pub </span>retry_delay: Duration,
+}
+
+<span class="kw">impl </span>Default <span class="kw">for </span>ManagerConfig {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            max_retry_times: <span class="number">3</span>,
+            retry_delay: Duration::from_millis(<span class="number">500</span>),
+        }
+    }
 }
 
 <span class="doccomment">/// A [ProcedureManager] that maintains procedure states locally.
@@ -1034,10 +1048,10 @@
 
 <span class="kw">impl </span>LocalManager {
     <span class="doccomment">/// Create a new [LocalManager] with specific `config`.
-    </span><span class="kw">pub fn </span>new(config: ManagerConfig) -&gt; LocalManager {
+    </span><span class="kw">pub fn </span>new(config: ManagerConfig, state_store: StateStoreRef) -&gt; LocalManager {
         LocalManager {
             manager_ctx: Arc::new(ManagerContext::new()),
-            state_store: Arc::new(ObjectStateStore::new(config.object_store)),
+            state_store,
             max_retry_times: config.max_retry_times,
             retry_delay: config.retry_delay,
         }
@@ -1150,6 +1164,7 @@
 </span><span class="kw">mod </span>test_util {
     <span class="kw">use </span>common_test_util::temp_dir::TempDir;
     <span class="kw">use </span>object_store::services::Fs <span class="kw">as </span>Builder;
+    <span class="kw">use </span>object_store::ObjectStore;
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
 
@@ -1173,6 +1188,7 @@
 
     <span class="kw">use super</span>::<span class="kw-2">*</span>;
     <span class="kw">use </span><span class="kw">crate</span>::error::Error;
+    <span class="kw">use </span><span class="kw">crate</span>::store::ObjectStateStore;
     <span class="kw">use crate</span>::{Context, Procedure, Status};
 
     <span class="attr">#[test]
@@ -1281,11 +1297,11 @@
     </span><span class="kw">fn </span>test_register_loader() {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;register&quot;</span>);
         <span class="kw">let </span>config = ManagerConfig {
-            object_store: test_util::new_object_store(<span class="kw-2">&amp;</span>dir),
             max_retry_times: <span class="number">3</span>,
             retry_delay: Duration::from_millis(<span class="number">500</span>),
         };
-        <span class="kw">let </span>manager = LocalManager::new(config);
+        <span class="kw">let </span>state_store = Arc::new(ObjectStateStore::new(test_util::new_object_store(<span class="kw-2">&amp;</span>dir)));
+        <span class="kw">let </span>manager = LocalManager::new(config, state_store);
 
         manager
             .register_loader(<span class="string">&quot;ProcedureToLoad&quot;</span>, ProcedureToLoad::loader())
@@ -1302,11 +1318,11 @@
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;recover&quot;</span>);
         <span class="kw">let </span>object_store = test_util::new_object_store(<span class="kw-2">&amp;</span>dir);
         <span class="kw">let </span>config = ManagerConfig {
-            object_store: object_store.clone(),
             max_retry_times: <span class="number">3</span>,
             retry_delay: Duration::from_millis(<span class="number">500</span>),
         };
-        <span class="kw">let </span>manager = LocalManager::new(config);
+        <span class="kw">let </span>state_store = Arc::new(ObjectStateStore::new(object_store.clone()));
+        <span class="kw">let </span>manager = LocalManager::new(config, state_store);
 
         manager
             .register_loader(<span class="string">&quot;ProcedureToLoad&quot;</span>, ProcedureToLoad::loader())
@@ -1348,11 +1364,11 @@
     </span><span class="kw">async fn </span>test_submit_procedure() {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;submit&quot;</span>);
         <span class="kw">let </span>config = ManagerConfig {
-            object_store: test_util::new_object_store(<span class="kw-2">&amp;</span>dir),
             max_retry_times: <span class="number">3</span>,
             retry_delay: Duration::from_millis(<span class="number">500</span>),
         };
-        <span class="kw">let </span>manager = LocalManager::new(config);
+        <span class="kw">let </span>state_store = Arc::new(ObjectStateStore::new(test_util::new_object_store(<span class="kw-2">&amp;</span>dir)));
+        <span class="kw">let </span>manager = LocalManager::new(config, state_store);
 
         <span class="kw">let </span>procedure_id = ProcedureId::random();
         <span class="macro">assert!</span>(manager
@@ -1396,11 +1412,11 @@
     </span><span class="kw">async fn </span>test_state_changed_on_err() {
         <span class="kw">let </span>dir = create_temp_dir(<span class="string">&quot;on_err&quot;</span>);
         <span class="kw">let </span>config = ManagerConfig {
-            object_store: test_util::new_object_store(<span class="kw-2">&amp;</span>dir),
             max_retry_times: <span class="number">3</span>,
             retry_delay: Duration::from_millis(<span class="number">500</span>),
         };
-        <span class="kw">let </span>manager = LocalManager::new(config);
+        <span class="kw">let </span>state_store = Arc::new(ObjectStateStore::new(test_util::new_object_store(<span class="kw-2">&amp;</span>dir)));
+        <span class="kw">let </span>manager = LocalManager::new(config, state_store);
 
         <span class="attr">#[derive(Debug)]
         </span><span class="kw">struct </span>MockProcedure {

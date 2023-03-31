@@ -514,7 +514,7 @@
 <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">use </span><span class="kw">crate</span>::store::state_store::{ObjectStateStore, StateStoreRef};
 <span class="kw">use crate</span>::{BoxedProcedure, ProcedureId};
 
-<span class="kw">mod </span>state_store;
+<span class="kw">pub mod </span>state_store;
 
 <span class="doccomment">/// Serialized data of a procedure.
 </span><span class="attr">#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]

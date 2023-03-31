@@ -531,6 +531,13 @@
 <a href="#531" id="531">531</a>
 <a href="#532" id="532">532</a>
 <a href="#533" id="533">533</a>
+<a href="#534" id="534">534</a>
+<a href="#535" id="535">535</a>
+<a href="#536" id="536">536</a>
+<a href="#537" id="537">537</a>
+<a href="#538" id="538">538</a>
+<a href="#539" id="539">539</a>
+<a href="#540" id="540">540</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -807,6 +814,12 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing required parameter, param: {:?}&quot;</span>, param))]
     </span>MissingRequiredParameter { param: String },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to recover procedure, source: {source}&quot;</span>))]
+    </span>RecoverProcedure {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: common_procedure::Error,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -874,6 +887,7 @@
             Error::TableNotFound { .. } =&gt; StatusCode::TableNotFound,
             Error::InvalidCatalogValue { source, .. } =&gt; source.status_code(),
             Error::MetaInternal { source } =&gt; source.status_code(),
+            Error::RecoverProcedure { source } =&gt; source.status_code(),
         }
     }
 }
