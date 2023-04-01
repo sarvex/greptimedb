@@ -1140,12 +1140,6 @@
         backtrace: Backtrace,
     },
 
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to write parquet file, source: {}&quot;</span>, source))]
-    </span>WriteParquet {
-        source: parquet::errors::ParquetError,
-        backtrace: Backtrace,
-    },
-
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to poll stream, source: {}&quot;</span>, source))]
     </span>PollStream {
         source: datafusion_common::DataFusionError,
@@ -1214,6 +1208,12 @@
     </span>ShutdownInstance {
         <span class="attr">#[snafu(backtrace)]
         </span>source: BoxedError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to copy table to parquet file, source: {}&quot;</span>, source))]
+    </span>WriteParquet {
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: storage::error::Error,
     },
 }
 

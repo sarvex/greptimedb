@@ -1017,19 +1017,6 @@
 <a href="#1017" id="1017">1017</a>
 <a href="#1018" id="1018">1018</a>
 <a href="#1019" id="1019">1019</a>
-<a href="#1020" id="1020">1020</a>
-<a href="#1021" id="1021">1021</a>
-<a href="#1022" id="1022">1022</a>
-<a href="#1023" id="1023">1023</a>
-<a href="#1024" id="1024">1024</a>
-<a href="#1025" id="1025">1025</a>
-<a href="#1026" id="1026">1026</a>
-<a href="#1027" id="1027">1027</a>
-<a href="#1028" id="1028">1028</a>
-<a href="#1029" id="1029">1029</a>
-<a href="#1030" id="1030">1030</a>
-<a href="#1031" id="1031">1031</a>
-<a href="#1032" id="1032">1032</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1059,7 +1046,7 @@
 <span class="kw">use </span>async_compat::CompatExt;
 <span class="kw">use </span>async_stream::try_stream;
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>common_telemetry::error;
+<span class="kw">use </span>common_telemetry::{error, warn};
 <span class="kw">use </span>common_time::range::TimestampRange;
 <span class="kw">use </span>common_time::timestamp::TimeUnit;
 <span class="kw">use </span>common_time::Timestamp;
@@ -1070,7 +1057,7 @@
 <span class="kw">use </span>futures_util::{Stream, StreamExt, TryStreamExt};
 <span class="kw">use </span>object_store::ObjectStore;
 <span class="kw">use </span>parquet::arrow::arrow_reader::{ArrowPredicate, RowFilter};
-<span class="kw">use </span>parquet::arrow::{ArrowWriter, ParquetRecordBatchStreamBuilder, ProjectionMask};
+<span class="kw">use </span>parquet::arrow::{ParquetRecordBatchStreamBuilder, ProjectionMask};
 <span class="kw">use </span>parquet::basic::{Compression, Encoding, ZstdLevel};
 <span class="kw">use </span>parquet::file::metadata::KeyValue;
 <span class="kw">use </span>parquet::file::properties::WriterProperties;
@@ -1080,15 +1067,14 @@
 <span class="kw">use </span>table::predicate::Predicate;
 <span class="kw">use </span>tokio::io::BufReader;
 
-<span class="kw">use </span><span class="kw">crate</span>::error::{
-    <span class="self">self</span>, DecodeParquetTimeRangeSnafu, NewRecordBatchSnafu, ReadObjectSnafu, ReadParquetSnafu,
-    <span class="prelude-ty">Result</span>, WriteObjectSnafu, WriteParquetSnafu,
-};
+<span class="kw">use </span><span class="kw">crate</span>::error::{<span class="self">self</span>, DecodeParquetTimeRangeSnafu, ReadObjectSnafu, ReadParquetSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::read::{Batch, BatchReader};
 <span class="kw">use </span><span class="kw">crate</span>::schema::compat::ReadAdapter;
-<span class="kw">use </span><span class="kw">crate</span>::schema::{ProjectedSchemaRef, StoreSchema, StoreSchemaRef};
+<span class="kw">use </span><span class="kw">crate</span>::schema::{ProjectedSchemaRef, StoreSchema};
 <span class="kw">use </span><span class="kw">crate</span>::sst;
+<span class="kw">use </span><span class="kw">crate</span>::sst::stream_writer::BufferedWriter;
 <span class="kw">use </span><span class="kw">crate</span>::sst::{FileHandle, Source, SstInfo};
+
 <span class="doccomment">/// Parquet sst writer.
 </span><span class="kw">pub struct </span>ParquetWriter&lt;<span class="lifetime">&#39;a</span>&gt; {
     file_path: <span class="kw-2">&amp;</span><span class="lifetime">&#39;a </span>str,
@@ -1107,8 +1093,8 @@
         </span>}
     }
 
-    <span class="kw">pub async fn </span>write_sst(<span class="self">self</span>, _opts: <span class="kw-2">&amp;</span>sst::WriteOptions) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SstInfo&gt;&gt; {
-        <span class="self">self</span>.write_rows(<span class="prelude-val">None</span>).<span class="kw">await
+    <span class="kw">pub async fn </span>write_sst(<span class="self">self</span>, opts: <span class="kw-2">&amp;</span>sst::WriteOptions) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SstInfo&gt;&gt; {
+        <span class="self">self</span>.write_rows(<span class="prelude-val">None</span>, opts).<span class="kw">await
     </span>}
 
     <span class="doccomment">/// Iterates memtable and writes rows to Parquet file.
@@ -1117,11 +1103,9 @@
     </span><span class="kw">async fn </span>write_rows(
         <span class="kw-2">mut </span><span class="self">self</span>,
         extra_meta: <span class="prelude-ty">Option</span>&lt;HashMap&lt;String, String&gt;&gt;,
+        opts: <span class="kw-2">&amp;</span>sst::WriteOptions,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;SstInfo&gt;&gt; {
-        <span class="kw">let </span>projected_schema = <span class="self">self</span>.source.projected_schema();
-        <span class="kw">let </span>store_schema = projected_schema.schema_to_read();
-        <span class="kw">let </span>schema = store_schema.arrow_schema().clone();
-
+        <span class="kw">let </span>schema = <span class="self">self</span>.source.schema();
         <span class="kw">let </span>writer_props = WriterProperties::builder()
             .set_compression(Compression::ZSTD(ZstdLevel::default()))
             .set_encoding(Encoding::PLAIN)
@@ -1133,62 +1117,48 @@
             }))
             .build();
 
-        <span class="comment">// TODO(hl): Since OpenDAL&#39;s writer is async and ArrowWriter requires a `std::io::Write`,
-        // here we use a Vec&lt;u8&gt; to buffer all parquet bytes in memory and write to object store
-        // at a time. Maybe we should find a better way to bridge ArrowWriter and OpenDAL&#39;s object.
-        </span><span class="kw">let </span><span class="kw-2">mut </span>buf = <span class="macro">vec!</span>[];
-        <span class="kw">let </span><span class="kw-2">mut </span>arrow_writer = ArrowWriter::try_new(<span class="kw-2">&amp;mut </span>buf, schema.clone(), <span class="prelude-val">Some</span>(writer_props))
-            .context(WriteParquetSnafu)<span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>buffered_writer = BufferedWriter::try_new(
+            <span class="self">self</span>.file_path.to_string(),
+            <span class="self">self</span>.object_store.clone(),
+            <span class="kw-2">&amp;</span>schema,
+            <span class="prelude-val">Some</span>(writer_props),
+            opts.sst_write_buffer_size.as_bytes() <span class="kw">as </span>usize,
+        )
+        .<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span><span class="kw-2">mut </span>rows_written = <span class="number">0</span>;
 
-        <span class="kw">let </span><span class="kw-2">mut </span>batches_written = <span class="number">0</span>;
         <span class="kw">while let </span><span class="prelude-val">Some</span>(batch) = <span class="self">self</span>.source.next_batch().<span class="kw">await</span><span class="question-mark">? </span>{
-            <span class="kw">let </span>arrow_batch = RecordBatch::try_new(
-                schema.clone(),
-                batch
-                    .columns()
-                    .iter()
-                    .map(|v| v.to_arrow_array())
-                    .collect::&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;(),
-            )
-            .context(NewRecordBatchSnafu)<span class="question-mark">?</span>;
-            arrow_writer
-                .write(<span class="kw-2">&amp;</span>arrow_batch)
-                .context(WriteParquetSnafu)<span class="question-mark">?</span>;
-            batches_written += <span class="number">1</span>;
+            buffered_writer.write(<span class="kw-2">&amp;</span>batch).<span class="kw">await</span><span class="question-mark">?</span>;
+            rows_written += batch.num_rows();
         }
 
-        <span class="kw">if </span>batches_written == <span class="number">0 </span>{
+        <span class="kw">if </span>rows_written == <span class="number">0 </span>{
             <span class="comment">// if the source does not contain any batch, we skip writing an empty parquet file.
-            </span><span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
+            </span><span class="kw">if </span>!buffered_writer.abort().<span class="kw">await </span>{
+                <span class="macro">warn!</span>(
+                    <span class="string">&quot;Partial file {} has been uploaded to remote storage&quot;</span>,
+                    <span class="self">self</span>.file_path
+                );
+            }
+            <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>);
         }
-        <span class="kw">let </span>file_meta = arrow_writer.close().context(WriteParquetSnafu)<span class="question-mark">?</span>;
 
-        <span class="kw">let </span>time_range = decode_timestamp_range(<span class="kw-2">&amp;</span>file_meta, store_schema)
-            .ok()
-            .flatten();
+        <span class="kw">let </span>(file_meta, file_size) = buffered_writer.close().<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>time_range = decode_timestamp_range(<span class="kw-2">&amp;</span>file_meta, <span class="kw-2">&amp;</span>schema).ok().flatten();
 
         <span class="comment">// object_store.write will make sure all bytes are written or an error is raised.
-        </span><span class="kw">let </span>buf_len = buf.len() <span class="kw">as </span>u64;
-        <span class="self">self</span>.object_store
-            .write(<span class="self">self</span>.file_path, buf)
-            .<span class="kw">await
-            </span>.context(WriteObjectSnafu {
-                path: <span class="self">self</span>.file_path,
-            })<span class="question-mark">?</span>;
-
-        <span class="kw">let </span>file_size = buf_len;
-        <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(SstInfo {
+        </span><span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(SstInfo {
             time_range,
             file_size,
+            num_rows: rows_written,
         }))
     }
 }
 
 <span class="kw">fn </span>decode_timestamp_range(
     file_meta: <span class="kw-2">&amp;</span>FileMetaData,
-    store_schema: <span class="kw-2">&amp;</span>StoreSchemaRef,
+    schema: <span class="kw-2">&amp;</span>datatypes::schema::SchemaRef,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;(Timestamp, Timestamp)&gt;&gt; {
-    <span class="kw">let </span>schema = store_schema.schema();
     <span class="kw">let </span>(<span class="prelude-val">Some</span>(ts_col_idx), <span class="prelude-val">Some</span>(ts_col)) = (schema.timestamp_index(), schema.timestamp_column()) <span class="kw">else </span>{ <span class="kw">return </span><span class="prelude-val">Ok</span>(<span class="prelude-val">None</span>); };
     <span class="kw">let </span>ts_datatype = <span class="kw-2">&amp;</span>ts_col.data_type;
     decode_timestamp_range_inner(file_meta, ts_col_idx, ts_datatype)
@@ -1606,6 +1576,7 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_parquet_writer() {
+        common_telemetry::init_default_ut_logging();
         <span class="kw">let </span>schema = memtable_tests::schema_for_test();
         <span class="kw">let </span>memtable = DefaultMemtableBuilder::default().build(schema);
 
@@ -1733,6 +1704,7 @@
         <span class="kw">let </span>SstInfo {
             time_range,
             file_size,
+            ..
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
@@ -1825,6 +1797,7 @@
         <span class="kw">let </span>SstInfo {
             time_range,
             file_size,
+            ..
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await
@@ -1938,6 +1911,7 @@
         <span class="kw">let </span>SstInfo {
             time_range,
             file_size,
+            ..
         } = writer
             .write_sst(<span class="kw-2">&amp;</span>sst::WriteOptions::default())
             .<span class="kw">await

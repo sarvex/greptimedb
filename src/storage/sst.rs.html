@@ -704,6 +704,36 @@
 <a href="#704" id="704">704</a>
 <a href="#705" id="705">705</a>
 <a href="#706" id="706">706</a>
+<a href="#707" id="707">707</a>
+<a href="#708" id="708">708</a>
+<a href="#709" id="709">709</a>
+<a href="#710" id="710">710</a>
+<a href="#711" id="711">711</a>
+<a href="#712" id="712">712</a>
+<a href="#713" id="713">713</a>
+<a href="#714" id="714">714</a>
+<a href="#715" id="715">715</a>
+<a href="#716" id="716">716</a>
+<a href="#717" id="717">717</a>
+<a href="#718" id="718">718</a>
+<a href="#719" id="719">719</a>
+<a href="#720" id="720">720</a>
+<a href="#721" id="721">721</a>
+<a href="#722" id="722">722</a>
+<a href="#723" id="723">723</a>
+<a href="#724" id="724">724</a>
+<a href="#725" id="725">725</a>
+<a href="#726" id="726">726</a>
+<a href="#727" id="727">727</a>
+<a href="#728" id="728">728</a>
+<a href="#729" id="729">729</a>
+<a href="#730" id="730">730</a>
+<a href="#731" id="731">731</a>
+<a href="#732" id="732">732</a>
+<a href="#733" id="733">733</a>
+<a href="#734" id="734">734</a>
+<a href="#735" id="735">735</a>
+<a href="#736" id="736">736</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -719,6 +749,7 @@
 // limitations under the License.
 
 </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>parquet;
+<span class="kw">mod </span>stream_writer;
 
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::fmt;
@@ -727,9 +758,13 @@
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_trait::async_trait;
+<span class="kw">use </span>common_base::readable_size::ReadableSize;
+<span class="kw">use </span>common_recordbatch::SendableRecordBatchStream;
 <span class="kw">use </span>common_telemetry::{error, info};
 <span class="kw">use </span>common_time::range::TimestampRange;
 <span class="kw">use </span>common_time::Timestamp;
+<span class="kw">use </span>datatypes::schema::SchemaRef;
+<span class="kw">use </span>futures_util::StreamExt;
 <span class="kw">use </span>object_store::{util, ObjectStore};
 <span class="kw">use </span>serde::{Deserialize, Deserializer, Serialize};
 <span class="kw">use </span>snafu::{ResultExt, Snafu};
@@ -738,6 +773,7 @@
 <span class="kw">use </span>uuid::Uuid;
 
 <span class="kw">use </span><span class="kw">crate</span>::chunk::ChunkReaderImpl;
+<span class="kw">use </span><span class="kw">crate</span>::error;
 <span class="kw">use </span><span class="kw">crate</span>::error::{DeleteSstSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">use </span><span class="kw">crate</span>::file_purger::{FilePurgeRequest, FilePurgerRef};
 <span class="kw">use </span><span class="kw">crate</span>::memtable::BoxedBatchIterator;
@@ -750,6 +786,8 @@
 </span><span class="kw">pub const </span>MAX_LEVEL: u8 = <span class="number">2</span>;
 
 <span class="kw">pub type </span>Level = u8;
+
+<span class="kw">pub use </span><span class="kw">crate</span>::sst::stream_writer::BufferedWriter;
 
 <span class="comment">// We only has fixed number of level, so we use array to hold elements. This implementation
 // detail of LevelMetaVec should not be exposed to the user of [LevelMetas].
@@ -1089,10 +1127,19 @@
     </span>FileId::from_str(stripped).map_err(&lt;D::Error <span class="kw">as </span>serde::de::Error&gt;::custom)
 }
 
-<span class="attr">#[derive(Debug, Default)]
+<span class="attr">#[derive(Debug)]
 </span><span class="kw">pub struct </span>WriteOptions {
     <span class="comment">// TODO(yingwen): [flush] row group size.
-</span>}
+    </span><span class="kw">pub </span>sst_write_buffer_size: ReadableSize,
+}
+
+<span class="kw">impl </span>Default <span class="kw">for </span>WriteOptions {
+    <span class="kw">fn </span>default() -&gt; <span class="self">Self </span>{
+        <span class="self">Self </span>{
+            sst_write_buffer_size: ReadableSize::mb(<span class="number">8</span>),
+        }
+    }
+}
 
 <span class="kw">pub struct </span>ReadOptions {
     <span class="doccomment">/// Suggested size of each batch.
@@ -1109,6 +1156,7 @@
 </span><span class="kw">pub struct </span>SstInfo {
     <span class="kw">pub </span>time_range: <span class="prelude-ty">Option</span>&lt;(Timestamp, Timestamp)&gt;,
     <span class="kw">pub </span>file_size: u64,
+    <span class="kw">pub </span>num_rows: usize,
 }
 
 <span class="doccomment">/// SST access layer.
@@ -1145,6 +1193,8 @@
     </span>Iter(BoxedBatchIterator),
     <span class="doccomment">/// Writes row from ChunkReaderImpl (maybe a set of SSTs) to parquet.
     </span>Reader(ChunkReaderImpl),
+    <span class="doccomment">/// Record batch stream yielded by table scan
+    </span>Stream(SendableRecordBatchStream),
 }
 
 <span class="kw">impl </span>Source {
@@ -1155,13 +1205,23 @@
                 .next_chunk()
                 .<span class="kw">await
                 </span>.map(|p| p.map(|chunk| Batch::new(chunk.columns))),
+            Source::Stream(stream) =&gt; stream
+                .next()
+                .<span class="kw">await
+                </span>.transpose()
+                .map(|r| r.map(|r| Batch::new(r.columns().to_vec())))
+                .context(error::CreateRecordBatchSnafu),
         }
     }
 
-    <span class="kw">fn </span>projected_schema(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; ProjectedSchemaRef {
+    <span class="kw">fn </span>schema(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; SchemaRef {
         <span class="kw">match </span><span class="self">self </span>{
-            Source::Iter(iter) =&gt; iter.schema(),
-            Source::Reader(reader) =&gt; reader.projected_schema().clone(),
+            Source::Iter(iter) =&gt; {
+                <span class="kw">let </span>projected_schema = iter.schema();
+                projected_schema.schema_to_read().schema().clone()
+            }
+            Source::Reader(reader) =&gt; reader.projected_schema().schema_to_read().schema().clone(),
+            Source::Stream(stream) =&gt; stream.schema(),
         }
     }
 }

@@ -138,6 +138,7 @@
 <a href="#138" id="138">138</a>
 <a href="#139" id="139">139</a>
 <a href="#140" id="140">140</a>
+<a href="#141" id="141">141</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -272,6 +273,7 @@
                 wal: req.wal.clone(),
                 manifest: req.manifest.clone(),
                 expired_ssts,
+                sst_write_buffer_size: req.sst_write_buffer_size,
             }));
         }
 

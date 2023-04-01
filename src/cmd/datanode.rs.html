@@ -310,6 +310,8 @@
 <a href="#310" id="310">310</a>
 <a href="#311" id="311">311</a>
 <a href="#312" id="312">312</a>
+<a href="#313" id="313">313</a>
+<a href="#314" id="314">314</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -490,6 +492,7 @@
     <span class="kw">use </span>std::io::Write;
     <span class="kw">use </span>std::time::Duration;
 
+    <span class="kw">use </span>common_base::readable_size::ReadableSize;
     <span class="kw">use </span>common_test_util::temp_dir::create_named_temp_file;
     <span class="kw">use </span>datanode::datanode::{CompactionConfig, ObjectStoreConfig, RegionManifestConfig};
     <span class="kw">use </span>servers::Mode;
@@ -578,6 +581,7 @@
                 max_inflight_tasks: <span class="number">3</span>,
                 max_files_in_level0: <span class="number">7</span>,
                 max_purge_tasks: <span class="number">32</span>,
+                sst_write_buffer_size: ReadableSize::mb(<span class="number">8</span>),
             },
             options.storage.compaction,
         );

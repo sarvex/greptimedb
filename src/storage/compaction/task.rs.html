@@ -233,6 +233,12 @@
 <a href="#233" id="233">233</a>
 <a href="#234" id="234">234</a>
 <a href="#235" id="235">235</a>
+<a href="#236" id="236">236</a>
+<a href="#237" id="237">237</a>
+<a href="#238" id="238">238</a>
+<a href="#239" id="239">239</a>
+<a href="#240" id="240">240</a>
+<a href="#241" id="241">241</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -250,6 +256,7 @@
 </span><span class="kw">use </span>std::collections::HashSet;
 <span class="kw">use </span>std::fmt::{Debug, Formatter};
 
+<span class="kw">use </span>common_base::readable_size::ReadableSize;
 <span class="kw">use </span>common_telemetry::{error, info};
 <span class="kw">use </span>store_api::logstore::LogStore;
 <span class="kw">use </span>store_api::storage::RegionId;
@@ -281,6 +288,7 @@
     <span class="kw">pub </span>wal: Wal&lt;S&gt;,
     <span class="kw">pub </span>manifest: RegionManifest,
     <span class="kw">pub </span>expired_ssts: Vec&lt;FileHandle&gt;,
+    <span class="kw">pub </span>sst_write_buffer_size: ReadableSize,
 }
 
 <span class="kw">impl</span>&lt;S: LogStore&gt; Debug <span class="kw">for </span>CompactionTaskImpl&lt;S&gt; {
@@ -306,15 +314,15 @@
         <span class="kw">for </span>output <span class="kw">in </span><span class="self">self</span>.outputs.drain(..) {
             <span class="kw">let </span>schema = <span class="self">self</span>.schema.clone();
             <span class="kw">let </span>sst_layer = <span class="self">self</span>.sst_layer.clone();
+            <span class="kw">let </span>sst_write_buffer_size = <span class="self">self</span>.sst_write_buffer_size;
             compacted_inputs.extend(output.inputs.iter().map(FileHandle::meta));
 
             <span class="comment">// TODO(hl): Maybe spawn to runtime to exploit in-job parallelism.
             </span>futs.push(<span class="kw">async move </span>{
-                <span class="kw">match </span>output.build(region_id, schema, sst_layer).<span class="kw">await </span>{
-                    <span class="prelude-val">Ok</span>(meta) =&gt; <span class="prelude-val">Ok</span>(meta),
-                    <span class="prelude-val">Err</span>(e) =&gt; <span class="prelude-val">Err</span>(e),
-                }
-            });
+                output
+                    .build(region_id, schema, sst_layer, sst_write_buffer_size)
+                    .<span class="kw">await
+            </span>});
         }
 
         <span class="kw">let </span><span class="kw-2">mut </span>outputs = HashSet::with_capacity(futs.len());
@@ -407,6 +415,7 @@
         region_id: RegionId,
         schema: RegionSchemaRef,
         sst_layer: AccessLayerRef,
+        sst_write_buffer_size: ReadableSize,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;FileMeta&gt;&gt; {
         <span class="kw">let </span>reader = build_sst_reader(
             schema,
@@ -418,7 +427,9 @@
         .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>output_file_id = FileId::random();
-        <span class="kw">let </span>opts = WriteOptions {};
+        <span class="kw">let </span>opts = WriteOptions {
+            sst_write_buffer_size,
+        };
 
         <span class="prelude-val">Ok</span>(sst_layer
             .write_sst(output_file_id, Source::Reader(reader), <span class="kw-2">&amp;</span>opts)
@@ -427,6 +438,7 @@
                 |SstInfo {
                      time_range,
                      file_size,
+                     ..
                  }| FileMeta {
                     region_id,
                     file_id: output_file_id,

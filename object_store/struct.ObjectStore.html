@@ -194,7 +194,7 @@ op.write(<span class="string">&quot;path/to/file&quot;</span>, <span class="macr
 </div></details><details class="toggle method-toggle" open><summary><section id="method.writer" class="method"><h4 class="code-header">pub async fn <a href="#method.writer" class="fn">writer</a>(
     &amp;self,
     path: &amp;<a class="primitive" href="https://doc.rust-lang.org/nightly/std/primitive.str.html">str</a>
-) -&gt; impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;Writer, <a class="struct" href="struct.Error.html" title="struct object_store::Error">Error</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Write multiple bytes into path.</p>
+) -&gt; impl <a class="trait" href="https://doc.rust-lang.org/nightly/core/future/future/trait.Future.html" title="trait core::future::future::Future">Future</a>&lt;Output = <a class="enum" href="https://doc.rust-lang.org/nightly/core/result/enum.Result.html" title="enum core::result::Result">Result</a>&lt;<a class="struct" href="struct.Writer.html" title="struct object_store::Writer">Writer</a>, <a class="struct" href="struct.Error.html" title="struct object_store::Error">Error</a>&gt;&gt;</h4></section></summary><div class="docblock"><p>Write multiple bytes into path.</p>
 <h5 id="notes-6"><a href="#notes-6">Notes</a></h5>
 <ul>
 <li>Write will make sure all bytes has been written, or an error will be returned.</li>

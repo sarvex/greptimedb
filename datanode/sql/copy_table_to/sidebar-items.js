@@ -1,1 +1,1 @@
-window.SIDEBAR_ITEMS = {"opaque":[""],"struct":["ParquetWriter"],"type":["DfRecordBatchStream"]};
+window.SIDEBAR_ITEMS = {"opaque":[""]};
