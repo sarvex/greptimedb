@@ -1681,6 +1681,16 @@
 <a href="#1681" id="1681">1681</a>
 <a href="#1682" id="1682">1682</a>
 <a href="#1683" id="1683">1683</a>
+<a href="#1684" id="1684">1684</a>
+<a href="#1685" id="1685">1685</a>
+<a href="#1686" id="1686">1686</a>
+<a href="#1687" id="1687">1687</a>
+<a href="#1688" id="1688">1688</a>
+<a href="#1689" id="1689">1689</a>
+<a href="#1690" id="1690">1690</a>
+<a href="#1691" id="1691">1691</a>
+<a href="#1692" id="1692">1692</a>
+<a href="#1693" id="1693">1693</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1727,15 +1737,15 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     CatalogSnafu, DataFusionPlanningSnafu, ExpectExprSnafu, ExpectRangeSelectorSnafu,
     MultipleVectorSnafu, <span class="prelude-ty">Result</span>, TableNameNotFoundSnafu, TimeIndexNotFoundSnafu,
-    UnexpectedTokenSnafu, UnknownTableSnafu, UnsupportedExprSnafu, ValueNotFoundSnafu,
-    ZeroRangeSelectorSnafu,
+    UnexpectedPlanExprSnafu, UnexpectedTokenSnafu, UnknownTableSnafu, UnsupportedExprSnafu,
+    ValueNotFoundSnafu, ZeroRangeSelectorSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::extension_plan::{
     EmptyMetric, InstantManipulate, Millisecond, RangeManipulate, SeriesDivide, SeriesNormalize,
 };
 <span class="kw">use </span><span class="kw">crate</span>::functions::{
     AbsentOverTime, AvgOverTime, CountOverTime, Delta, IDelta, Increase, LastOverTime, MaxOverTime,
-    MinOverTime, PresentOverTime, Rate, SumOverTime,
+    MinOverTime, PresentOverTime, QuantileOverTime, Rate, SumOverTime,
 };
 
 <span class="kw">const </span>LEFT_PLAN_JOIN_ALIAS: <span class="kw-2">&amp;</span>str = <span class="string">&quot;lhs&quot;</span>;
@@ -2375,6 +2385,16 @@
             <span class="string">&quot;last_over_time&quot; </span>=&gt; ScalarFunc::Udf(LastOverTime::scalar_udf()),
             <span class="string">&quot;absent_over_time&quot; </span>=&gt; ScalarFunc::Udf(AbsentOverTime::scalar_udf()),
             <span class="string">&quot;present_over_time&quot; </span>=&gt; ScalarFunc::Udf(PresentOverTime::scalar_udf()),
+            <span class="string">&quot;quantile_over_time&quot; </span>=&gt; {
+                <span class="kw">let </span>quantile_expr = <span class="kw">match </span>other_input_exprs.get(<span class="number">0</span>) {
+                    <span class="prelude-val">Some</span>(DfExpr::Literal(ScalarValue::Float64(<span class="prelude-val">Some</span>(quantile)))) =&gt; <span class="kw-2">*</span>quantile,
+                    other =&gt; UnexpectedPlanExprSnafu {
+                        desc: <span class="macro">format!</span>(<span class="string">&quot;expect f64 literal as quantile, but found {:?}&quot;</span>, other),
+                    }
+                    .fail()<span class="question-mark">?</span>,
+                };
+                ScalarFunc::Udf(QuantileOverTime::scalar_udf(quantile_expr))
+            }
             <span class="kw">_ </span>=&gt; ScalarFunc::DataFusionBuiltin(
                 BuiltinScalarFunction::from_str(func.name).map_err(|<span class="kw">_</span>| {
                     UnsupportedExprSnafu {
