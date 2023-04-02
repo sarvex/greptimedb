@@ -31,6 +31,9 @@
 <a href="#31" id="31">31</a>
 <a href="#32" id="32">32</a>
 <a href="#33" id="33">33</a>
+<a href="#34" id="34">34</a>
+<a href="#35" id="35">35</a>
+<a href="#36" id="36">36</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -46,6 +49,7 @@
 // limitations under the License.
 
 </span><span class="attr">#![feature(assert_matches)]
+#![feature(trait_upcasting)]
 
 </span><span class="kw">pub mod </span>catalog;
 <span class="kw">pub mod </span>datanode;
@@ -55,11 +59,13 @@
 <span class="kw">pub mod </span>grpc;
 <span class="kw">pub mod </span>influxdb;
 <span class="kw">pub mod </span>instance;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>metric;
 <span class="kw">pub mod </span>mysql;
 <span class="kw">pub mod </span>opentsdb;
 <span class="kw">pub mod </span>postgres;
 <span class="kw">pub mod </span>prom;
 <span class="kw">pub mod </span>prometheus;
+<span class="kw">mod </span>script;
 <span class="kw">mod </span>server;
 <span class="kw">mod </span>table;
 <span class="attr">#[cfg(test)]

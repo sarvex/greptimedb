@@ -367,6 +367,9 @@
 <a href="#367" id="367">367</a>
 <a href="#368" id="368">368</a>
 <a href="#369" id="369">369</a>
+<a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -396,7 +399,7 @@
     DatanodeOptions, FileConfig, ObjectStoreConfig, OssConfig, S3Config, StorageConfig, WalConfig,
 };
 <span class="kw">use </span>datanode::error::{CreateTableSnafu, <span class="prelude-ty">Result</span>};
-<span class="kw">use </span>datanode::instance::{Instance, InstanceRef};
+<span class="kw">use </span>datanode::instance::Instance;
 <span class="kw">use </span>datanode::sql::SqlHandler;
 <span class="kw">use </span>datatypes::data_type::ConcreteDataType;
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, RawSchema};
@@ -624,16 +627,9 @@
     <span class="prelude-val">Ok</span>(())
 }
 
-<span class="kw">fn </span>build_frontend_instance(datanode_instance: InstanceRef) -&gt; FeInstance {
-    <span class="kw">let </span><span class="kw-2">mut </span>frontend_instance = FeInstance::new_standalone(datanode_instance.clone());
-    frontend_instance.set_script_handler(datanode_instance);
-    frontend_instance
-}
-
 <span class="kw">pub async fn </span>setup_test_http_app(store_type: StorageType, name: <span class="kw-2">&amp;</span>str) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         instance.catalog_manager(),
         instance.sql_handler(),
@@ -641,9 +637,13 @@
     )
     .<span class="kw">await
     </span>.unwrap();
+    <span class="kw">let </span>frontend_instance = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
+    instance.start().<span class="kw">await</span>.unwrap();
     <span class="kw">let </span>http_server = HttpServerBuilder::new(HttpOptions::default())
         .with_sql_handler(ServerSqlQueryHandlerAdaptor::arc(Arc::new(
-            build_frontend_instance(instance.clone()),
+            frontend_instance,
         )))
         .with_grpc_handler(ServerGrpcQueryHandlerAdaptor::arc(instance.clone()))
         .with_metrics_handler(MetricsHandler)
@@ -657,7 +657,9 @@
 ) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone());
+    <span class="kw">let </span>frontend = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
     instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         frontend.catalog_manager(),
@@ -669,8 +671,8 @@
     <span class="kw">let </span>frontend_ref = Arc::new(frontend);
     <span class="kw">let </span>http_server = HttpServerBuilder::new(HttpOptions::default())
         .with_sql_handler(ServerSqlQueryHandlerAdaptor::arc(frontend_ref.clone()))
-        .with_grpc_handler(ServerGrpcQueryHandlerAdaptor::arc(frontend_ref))
-        .with_script_handler(instance.clone())
+        .with_grpc_handler(ServerGrpcQueryHandlerAdaptor::arc(frontend_ref.clone()))
+        .with_script_handler(frontend_ref)
         .build();
     <span class="kw">let </span>app = http_server.make_app();
     (app, guard)
@@ -682,7 +684,9 @@
 ) -&gt; (Router, TestGuard) {
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    <span class="kw">let </span>frontend = build_frontend_instance(instance.clone());
+    <span class="kw">let </span>frontend = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
     instance.start().<span class="kw">await</span>.unwrap();
     create_test_table(
         frontend.catalog_manager(),
@@ -704,7 +708,6 @@
 
     <span class="kw">let </span>(opts, guard) = create_tmp_dir_and_datanode_opts(store_type, name);
     <span class="kw">let </span>instance = Arc::new(Instance::with_mock_meta_client(<span class="kw-2">&amp;</span>opts).<span class="kw">await</span>.unwrap());
-    instance.start().<span class="kw">await</span>.unwrap();
 
     <span class="kw">let </span>runtime = Arc::new(
         RuntimeBuilder::default()
@@ -716,7 +719,10 @@
 
     <span class="kw">let </span>fe_grpc_addr = <span class="macro">format!</span>(<span class="string">&quot;127.0.0.1:{}&quot;</span>, get_port());
 
-    <span class="kw">let </span>fe_instance = frontend::instance::Instance::new_standalone(instance.clone());
+    <span class="kw">let </span>fe_instance = FeInstance::try_new_standalone(instance.clone())
+        .<span class="kw">await
+        </span>.unwrap();
+    instance.start().<span class="kw">await</span>.unwrap();
     <span class="kw">let </span>fe_instance_ref = Arc::new(fe_instance);
     <span class="kw">let </span>fe_grpc_server = Arc::new(GrpcServer::new(
         ServerGrpcQueryHandlerAdaptor::arc(fe_instance_ref),

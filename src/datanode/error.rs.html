@@ -692,13 +692,6 @@
 <a href="#692" id="692">692</a>
 <a href="#693" id="693">693</a>
 <a href="#694" id="694">694</a>
-<a href="#695" id="695">695</a>
-<a href="#696" id="696">696</a>
-<a href="#697" id="697">697</a>
-<a href="#698" id="698">698</a>
-<a href="#699" id="699">699</a>
-<a href="#700" id="700">700</a>
-<a href="#701" id="701">701</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1015,12 +1008,6 @@
         </span>source: sql::error::Error,
     },
 
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start script manager, source: {}&quot;</span>, source))]
-    </span>StartScriptManager {
-        <span class="attr">#[snafu(backtrace)]
-        </span>source: script::error::Error,
-    },
-
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to parse string to timestamp, string: {}, source: {}&quot;</span>,
         raw,
@@ -1302,7 +1289,6 @@
             | WriteObject { .. }
             | ListObjects { .. } =&gt; StatusCode::StorageUnavailable,
             OpenLogStore { source } =&gt; source.status_code(),
-            StartScriptManager { source } =&gt; source.status_code(),
             OpenStorageEngine { source } =&gt; source.status_code(),
             RuntimeResource { .. } =&gt; StatusCode::RuntimeResourcesExhausted,
             MetaClientInit { source, .. } =&gt; source.status_code(),

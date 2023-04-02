@@ -416,6 +416,7 @@
 <a href="#416" id="416">416</a>
 <a href="#417" id="417">417</a>
 <a href="#418" id="418">418</a>
+<a href="#419" id="419">419</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -654,8 +655,9 @@
     plugins: Arc&lt;Plugins&gt;,
     datanode_instance: InstanceRef,
 ) -&gt; <span class="prelude-ty">Result</span>&lt;FeInstance&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>frontend_instance = FeInstance::new_standalone(datanode_instance.clone());
-    frontend_instance.set_script_handler(datanode_instance);
+    <span class="kw">let </span><span class="kw-2">mut </span>frontend_instance = FeInstance::try_new_standalone(datanode_instance.clone())
+        .<span class="kw">await
+        </span>.context(StartFrontendSnafu)<span class="question-mark">?</span>;
     frontend_instance.set_plugins(plugins.clone());
     <span class="prelude-val">Ok</span>(frontend_instance)
 }

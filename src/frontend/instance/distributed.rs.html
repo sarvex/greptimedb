@@ -848,7 +848,6 @@
 <a href="#848" id="848">848</a>
 <a href="#849" id="849">849</a>
 <a href="#850" id="850">850</a>
-<a href="#851" id="851">851</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -907,6 +906,7 @@
 <span class="kw">use </span>table::metadata::{RawTableInfo, RawTableMeta, TableIdent, TableType};
 <span class="kw">use </span>table::requests::TableOptions;
 <span class="kw">use </span>table::table::AlterContext;
+<span class="kw">use </span>table::TableRef;
 
 <span class="kw">use </span><span class="kw">crate</span>::catalog::FrontendCatalogManager;
 <span class="kw">use </span><span class="kw">crate</span>::datanode::DatanodeClients;
@@ -944,14 +944,14 @@
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         create_table: <span class="kw-2">&amp;mut </span>CreateTableExpr,
         partitions: <span class="prelude-ty">Option</span>&lt;Partitions&gt;,
-    ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
+    ) -&gt; <span class="prelude-ty">Result</span>&lt;TableRef&gt; {
         <span class="kw">let </span>table_name = TableName::new(
             <span class="kw-2">&amp;</span>create_table.catalog_name,
             <span class="kw-2">&amp;</span>create_table.schema_name,
             <span class="kw-2">&amp;</span>create_table.table_name,
         );
 
-        <span class="kw">if </span><span class="self">self
+        <span class="kw">if let </span><span class="prelude-val">Some</span>(table) = <span class="self">self
             </span>.catalog_manager
             .table(
                 <span class="kw-2">&amp;</span>table_name.catalog_name,
@@ -960,10 +960,9 @@
             )
             .<span class="kw">await
             </span>.context(CatalogSnafu)<span class="question-mark">?
-            </span>.is_some()
-        {
+        </span>{
             <span class="kw">return if </span>create_table.create_if_not_exists {
-                <span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>))
+                <span class="prelude-val">Ok</span>(table)
             } <span class="kw">else </span>{
                 TableAlreadyExistSnafu {
                     table: table_name.to_string(),
@@ -1004,20 +1003,20 @@
 
         create_table.table_id = <span class="prelude-val">Some</span>(TableId { id: table_id });
 
-        <span class="kw">let </span>table = DistTable::new(
+        <span class="kw">let </span>table = Arc::new(DistTable::new(
             table_name.clone(),
             table_info,
             <span class="self">self</span>.catalog_manager.partition_manager(),
             <span class="self">self</span>.catalog_manager.datanode_clients(),
             <span class="self">self</span>.catalog_manager.backend(),
-        );
+        ));
 
         <span class="kw">let </span>request = RegisterTableRequest {
             catalog: table_name.catalog_name.clone(),
             schema: table_name.schema_name.clone(),
             table_name: table_name.table_name.clone(),
             table_id,
-            table: Arc::new(table),
+            table: table.clone(),
         };
         <span class="macro">ensure!</span>(
             <span class="self">self</span>.catalog_manager
@@ -1047,9 +1046,7 @@
                 .<span class="kw">await
                 </span>.context(RequestDatanodeSnafu)<span class="question-mark">?</span>;
         }
-
-        <span class="comment">// Checked in real MySQL, it truly returns &quot;0 rows affected&quot;.
-        </span><span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>))
+        <span class="prelude-val">Ok</span>(table)
     }
 
     <span class="kw">async fn </span>drop_table(<span class="kw-2">&amp;</span><span class="self">self</span>, table_name: TableName) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
@@ -1180,7 +1177,8 @@
             }
             Statement::CreateTable(stmt) =&gt; {
                 <span class="kw">let </span>create_expr = <span class="kw-2">&amp;mut </span>expr_factory::create_to_expr(<span class="kw-2">&amp;</span>stmt, query_ctx)<span class="question-mark">?</span>;
-                <span class="prelude-val">Ok</span>(<span class="self">self</span>.create_table(create_expr, stmt.partitions).<span class="kw">await</span><span class="question-mark">?</span>)
+                <span class="kw">let _ </span>= <span class="self">self</span>.create_table(create_expr, stmt.partitions).<span class="kw">await</span><span class="question-mark">?</span>;
+                <span class="prelude-val">Ok</span>(Output::AffectedRows(<span class="number">0</span>))
             }
             Statement::Alter(alter_table) =&gt; {
                 <span class="kw">let </span>expr = grpc::to_alter_expr(alter_table, query_ctx)<span class="question-mark">?</span>;

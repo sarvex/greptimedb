@@ -1288,33 +1288,6 @@
 <a href="#1288" id="1288">1288</a>
 <a href="#1289" id="1289">1289</a>
 <a href="#1290" id="1290">1290</a>
-<a href="#1291" id="1291">1291</a>
-<a href="#1292" id="1292">1292</a>
-<a href="#1293" id="1293">1293</a>
-<a href="#1294" id="1294">1294</a>
-<a href="#1295" id="1295">1295</a>
-<a href="#1296" id="1296">1296</a>
-<a href="#1297" id="1297">1297</a>
-<a href="#1298" id="1298">1298</a>
-<a href="#1299" id="1299">1299</a>
-<a href="#1300" id="1300">1300</a>
-<a href="#1301" id="1301">1301</a>
-<a href="#1302" id="1302">1302</a>
-<a href="#1303" id="1303">1303</a>
-<a href="#1304" id="1304">1304</a>
-<a href="#1305" id="1305">1305</a>
-<a href="#1306" id="1306">1306</a>
-<a href="#1307" id="1307">1307</a>
-<a href="#1308" id="1308">1308</a>
-<a href="#1309" id="1309">1309</a>
-<a href="#1310" id="1310">1310</a>
-<a href="#1311" id="1311">1311</a>
-<a href="#1312" id="1312">1312</a>
-<a href="#1313" id="1313">1313</a>
-<a href="#1314" id="1314">1314</a>
-<a href="#1315" id="1315">1315</a>
-<a href="#1316" id="1316">1316</a>
-<a href="#1317" id="1317">1317</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1334,6 +1307,7 @@
 <span class="kw">mod </span>influxdb;
 <span class="kw">mod </span>opentsdb;
 <span class="kw">mod </span>prometheus;
+<span class="kw">mod </span>script;
 <span class="kw">mod </span>standalone;
 
 <span class="kw">use </span>std::collections::HashMap;
@@ -1357,7 +1331,6 @@
 <span class="kw">use </span>datafusion::sql::sqlparser::ast::ObjectName;
 <span class="kw">use </span>datanode::instance::sql::table_idents_to_full_name;
 <span class="kw">use </span>datanode::instance::InstanceRef <span class="kw">as </span>DnInstanceRef;
-<span class="kw">use </span>datanode::metrics;
 <span class="kw">use </span>datatypes::schema::Schema;
 <span class="kw">use </span>distributed::DistInstance;
 <span class="kw">use </span>meta_client::client::{MetaClient, MetaClientBuilder};
@@ -1375,7 +1348,6 @@
 <span class="kw">use </span>servers::query_handler::sql::SqlQueryHandler;
 <span class="kw">use </span>servers::query_handler::{
     InfluxdbLineProtocolHandler, OpentsdbProtocolHandler, PrometheusProtocolHandler, ScriptHandler,
-    ScriptHandlerRef,
 };
 <span class="kw">use </span>session::context::QueryContextRef;
 <span class="kw">use </span>snafu::prelude::<span class="kw-2">*</span>;
@@ -1397,6 +1369,8 @@
 <span class="kw">use </span><span class="kw">crate</span>::expr_factory::{CreateExprFactoryRef, DefaultCreateExprFactory};
 <span class="kw">use </span><span class="kw">crate</span>::frontend::FrontendOptions;
 <span class="kw">use </span><span class="kw">crate</span>::instance::standalone::StandaloneGrpcQueryHandler;
+<span class="kw">use </span><span class="kw">crate</span>::metric;
+<span class="kw">use </span><span class="kw">crate</span>::script::ScriptExecutor;
 <span class="kw">use </span><span class="kw">crate</span>::server::{start_server, ServerHandlers, Services};
 
 <span class="attr">#[async_trait]
@@ -1420,9 +1394,7 @@
 <span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>Instance {
     catalog_manager: CatalogManagerRef,
-
-    <span class="doccomment">/// Script handler is None in distributed mode, only works on standalone mode.
-    </span>script_handler: <span class="prelude-ty">Option</span>&lt;ScriptHandlerRef&gt;,
+    script_executor: Arc&lt;ScriptExecutor&gt;,
     statement_handler: StatementHandlerRef,
     query_engine: QueryEngineRef,
     grpc_query_handler: GrpcQueryHandlerRef&lt;Error&gt;,
@@ -1451,23 +1423,29 @@
         <span class="kw">let </span>partition_manager = Arc::new(PartitionRuleManager::new(table_routes));
         <span class="kw">let </span>datanode_clients = Arc::new(DatanodeClients::default());
 
-        <span class="kw">let </span>catalog_manager = Arc::new(FrontendCatalogManager::new(
-            meta_backend,
-            partition_manager,
-            datanode_clients.clone(),
-        ));
+        <span class="kw">let </span><span class="kw-2">mut </span>catalog_manager =
+            FrontendCatalogManager::new(meta_backend, partition_manager, datanode_clients.clone());
 
-        <span class="kw">let </span>dist_instance =
-            DistInstance::new(meta_client, catalog_manager.clone(), datanode_clients);
+        <span class="kw">let </span>dist_instance = DistInstance::new(
+            meta_client,
+            Arc::new(catalog_manager.clone()),
+            datanode_clients,
+        );
         <span class="kw">let </span>dist_instance = Arc::new(dist_instance);
+
+        catalog_manager.set_dist_instance(dist_instance.clone());
+        <span class="kw">let </span>catalog_manager = Arc::new(catalog_manager);
 
         <span class="kw">let </span>query_engine =
             QueryEngineFactory::new_with_plugins(catalog_manager.clone(), plugins.clone())
                 .query_engine();
 
+        <span class="kw">let </span>script_executor =
+            Arc::new(ScriptExecutor::new(catalog_manager.clone(), query_engine.clone()).<span class="kw">await</span><span class="question-mark">?</span>);
+
         <span class="prelude-val">Ok</span>(Instance {
             catalog_manager,
-            script_handler: <span class="prelude-val">None</span>,
+            script_executor,
             create_expr_factory: Arc::new(DefaultCreateExprFactory),
             statement_handler: dist_instance.clone(),
             query_engine,
@@ -1508,18 +1486,22 @@
         <span class="prelude-val">Ok</span>(Arc::new(meta_client))
     }
 
-    <span class="kw">pub fn </span>new_standalone(dn_instance: DnInstanceRef) -&gt; <span class="self">Self </span>{
-        Instance {
-            catalog_manager: dn_instance.catalog_manager().clone(),
-            script_handler: <span class="prelude-val">None</span>,
+    <span class="kw">pub async fn </span>try_new_standalone(dn_instance: DnInstanceRef) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="self">Self</span>&gt; {
+        <span class="kw">let </span>catalog_manager = dn_instance.catalog_manager();
+        <span class="kw">let </span>query_engine = dn_instance.query_engine();
+        <span class="kw">let </span>script_executor =
+            Arc::new(ScriptExecutor::new(catalog_manager.clone(), query_engine.clone()).<span class="kw">await</span><span class="question-mark">?</span>);
+        <span class="prelude-val">Ok</span>(Instance {
+            catalog_manager: catalog_manager.clone(),
+            script_executor,
             create_expr_factory: Arc::new(DefaultCreateExprFactory),
             statement_handler: dn_instance.clone(),
-            query_engine: dn_instance.query_engine(),
+            query_engine,
             grpc_query_handler: StandaloneGrpcQueryHandler::arc(dn_instance.clone()),
             promql_handler: <span class="prelude-val">Some</span>(dn_instance.clone()),
             plugins: Default::default(),
             servers: Arc::new(HashMap::new()),
-        }
+        })
     }
 
     <span class="kw">pub async fn </span>build_servers(
@@ -1534,12 +1516,19 @@
     }
 
     <span class="attr">#[cfg(test)]
-    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>new_distributed(dist_instance: Arc&lt;DistInstance&gt;) -&gt; <span class="self">Self </span>{
-        <span class="kw">let </span>catalog_manager = dist_instance.catalog_manager();
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>new_distributed(
+        catalog_manager: CatalogManagerRef,
+        dist_instance: Arc&lt;DistInstance&gt;,
+    ) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>query_engine = QueryEngineFactory::new(catalog_manager.clone()).query_engine();
+        <span class="kw">let </span>script_executor = Arc::new(
+            ScriptExecutor::new(catalog_manager.clone(), query_engine.clone())
+                .<span class="kw">await
+                </span>.unwrap(),
+        );
         Instance {
             catalog_manager,
-            script_handler: <span class="prelude-val">None</span>,
+            script_executor,
             statement_handler: dist_instance.clone(),
             query_engine,
             create_expr_factory: Arc::new(DefaultCreateExprFactory),
@@ -1552,14 +1541,6 @@
 
     <span class="kw">pub fn </span>catalog_manager(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>CatalogManagerRef {
         <span class="kw-2">&amp;</span><span class="self">self</span>.catalog_manager
-    }
-
-    <span class="kw">pub fn </span>set_script_handler(<span class="kw-2">&amp;mut </span><span class="self">self</span>, handler: ScriptHandlerRef) {
-        <span class="macro">debug_assert!</span>(
-            <span class="self">self</span>.script_handler.is_none(),
-            <span class="string">&quot;Script handler can be set only once!&quot;
-        </span>);
-        <span class="self">self</span>.script_handler = <span class="prelude-val">Some</span>(handler);
     }
 
     <span class="doccomment">/// Handle batch inserts
@@ -1849,7 +1830,7 @@
     <span class="kw">type </span>Error = Error;
 
     <span class="kw">async fn </span>do_query(<span class="kw-2">&amp;</span><span class="self">self</span>, query: <span class="kw-2">&amp;</span>str, query_ctx: QueryContextRef) -&gt; Vec&lt;<span class="prelude-ty">Result</span>&lt;Output&gt;&gt; {
-        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metrics::METRIC_HANDLE_SQL_ELAPSED);
+        <span class="kw">let </span>_timer = <span class="macro">timer!</span>(metric::METRIC_HANDLE_SQL_ELAPSED);
 
         <span class="kw">let </span>query_interceptor = <span class="self">self</span>.plugins.get::&lt;SqlQueryInterceptorRef&lt;Error&gt;&gt;();
         <span class="kw">let </span>query = <span class="kw">match </span>query_interceptor.pre_parsing(query, query_ctx.clone()) {
@@ -1934,41 +1915,6 @@
             .schema(catalog, schema)
             .map(|s| s.is_some())
             .context(error::CatalogSnafu)
-    }
-}
-
-<span class="attr">#[async_trait]
-</span><span class="kw">impl </span>ScriptHandler <span class="kw">for </span>Instance {
-    <span class="kw">async fn </span>insert_script(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        schema: <span class="kw-2">&amp;</span>str,
-        name: <span class="kw-2">&amp;</span>str,
-        script: <span class="kw-2">&amp;</span>str,
-    ) -&gt; server_error::Result&lt;()&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(handler) = <span class="kw-2">&amp;</span><span class="self">self</span>.script_handler {
-            handler.insert_script(schema, name, script).<span class="kw">await
-        </span>} <span class="kw">else </span>{
-            server_error::NotSupportedSnafu {
-                feat: <span class="string">&quot;Script execution in Frontend&quot;</span>,
-            }
-            .fail()
-        }
-    }
-
-    <span class="kw">async fn </span>execute_script(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        schema: <span class="kw-2">&amp;</span>str,
-        script: <span class="kw-2">&amp;</span>str,
-        params: HashMap&lt;String, String&gt;,
-    ) -&gt; server_error::Result&lt;Output&gt; {
-        <span class="kw">if let </span><span class="prelude-val">Some</span>(handler) = <span class="kw-2">&amp;</span><span class="self">self</span>.script_handler {
-            handler.execute_script(schema, script, params).<span class="kw">await
-        </span>} <span class="kw">else </span>{
-            server_error::NotSupportedSnafu {
-                feat: <span class="string">&quot;Script execution in Frontend&quot;</span>,
-            }
-            .fail()
-        }
     }
 }
 

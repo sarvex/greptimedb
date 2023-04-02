@@ -454,7 +454,7 @@
 }
 
 <span class="doccomment">/// Build scripts table
-</span><span class="kw">fn </span>build_scripts_schema() -&gt; RawSchema {
+</span><span class="kw">pub fn </span>build_scripts_schema() -&gt; RawSchema {
     <span class="kw">let </span>cols = <span class="macro">vec!</span>[
         ColumnSchema::new(
             <span class="string">&quot;schema&quot;</span>.to_string(),

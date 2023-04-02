@@ -262,6 +262,11 @@
 <a href="#262" id="262">262</a>
 <a href="#263" id="263">263</a>
 <a href="#264" id="264">264</a>
+<a href="#265" id="265">265</a>
+<a href="#266" id="266">266</a>
+<a href="#267" id="267">267</a>
+<a href="#268" id="268">268</a>
+<a href="#269" id="269">269</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -451,7 +456,12 @@
         .iter()
         .map(|c| column_def_to_schema(c, c.name.to_string() == time_index).context(ParseSqlSnafu))
         .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;ColumnSchema&gt;&gt;&gt;()<span class="question-mark">?</span>;
+    column_schemas_to_defs(column_schemas)
+}
 
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>column_schemas_to_defs(
+    column_schemas: Vec&lt;ColumnSchema&gt;,
+) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;api::v1::ColumnDef&gt;&gt; {
     <span class="kw">let </span>column_datatypes = column_schemas
         .iter()
         .map(|c| {

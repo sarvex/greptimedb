@@ -344,6 +344,13 @@
 <a href="#344" id="344">344</a>
 <a href="#345" id="345">345</a>
 <a href="#346" id="346">346</a>
+<a href="#347" id="347">347</a>
+<a href="#348" id="348">348</a>
+<a href="#349" id="349">349</a>
+<a href="#350" id="350">350</a>
+<a href="#351" id="351">351</a>
+<a href="#352" id="352">352</a>
+<a href="#353" id="353">353</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -565,6 +572,12 @@
         <span class="attr">#[snafu(backtrace)]
         </span>source: table::error::Error,
     },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Invalid system table definition: {err_msg}&quot;</span>))]
+    </span>InvalidSystemTableDef {
+        err_msg: String,
+        backtrace: Backtrace,
+    },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -577,7 +590,8 @@
             | Error::TableNotFound { .. }
             | Error::IllegalManagerState { .. }
             | Error::CatalogNotFound { .. }
-            | Error::InvalidEntryType { .. } =&gt; StatusCode::Unexpected,
+            | Error::InvalidEntryType { .. }
+            | Error::InvalidSystemTableDef { .. } =&gt; StatusCode::Unexpected,
 
             Error::SystemCatalog { .. }
             | Error::EmptyValue { .. }
