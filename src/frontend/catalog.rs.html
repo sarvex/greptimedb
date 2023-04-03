@@ -499,6 +499,7 @@
 <a href="#499" id="499">499</a>
 <a href="#500" id="500">500</a>
 <a href="#501" id="501">501</a>
+<a href="#502" id="502">502</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -936,7 +937,7 @@
 
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
-    <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
+    <span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MITO_ENGINE};
     <span class="kw">use </span>script::table::{build_scripts_schema, SCRIPTS_TABLE_NAME};
     <span class="kw">use </span>table::requests::{CreateTableRequest, TableOptions};
 
@@ -961,6 +962,7 @@
             primary_key_indices: <span class="macro">vec!</span>[<span class="number">0</span>, <span class="number">1</span>],
             create_if_not_exists: <span class="bool-val">true</span>,
             table_options: TableOptions::default(),
+            engine: MITO_ENGINE.to_string(),
         };
 
         <span class="kw">let </span>result = instance

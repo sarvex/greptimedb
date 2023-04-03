@@ -676,7 +676,6 @@
 <a href="#676" id="676">676</a>
 <a href="#677" id="677">677</a>
 <a href="#678" id="678">678</a>
-<a href="#679" id="679">679</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -699,6 +698,7 @@
 <span class="kw">use </span>std::sync::{Arc, RwLock};
 
 <span class="kw">use </span>async_trait::async_trait;
+<span class="kw">pub use </span>common_catalog::consts::MITO_ENGINE;
 <span class="kw">use </span>common_catalog::format_full_table_name;
 <span class="kw">use </span>common_error::ext::BoxedError;
 <span class="kw">use </span>common_procedure::{BoxedProcedure, ProcedureManager};
@@ -734,8 +734,6 @@
 };
 <span class="kw">use </span><span class="kw">crate</span>::manifest::TableManifest;
 <span class="kw">use </span><span class="kw">crate</span>::table::MitoTable;
-
-<span class="kw">pub const </span>MITO_ENGINE: <span class="kw-2">&amp;</span>str = <span class="string">&quot;mito&quot;</span>;
 <span class="kw">pub const </span>INIT_COLUMN_ID: ColumnId = <span class="number">0</span>;
 <span class="kw">const </span>INIT_TABLE_VERSION: TableVersion = <span class="number">0</span>;
 

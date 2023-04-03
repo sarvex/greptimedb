@@ -426,15 +426,6 @@
 <a href="#426" id="426">426</a>
 <a href="#427" id="427">427</a>
 <a href="#428" id="428">428</a>
-<a href="#429" id="429">429</a>
-<a href="#430" id="430">430</a>
-<a href="#431" id="431">431</a>
-<a href="#432" id="432">432</a>
-<a href="#433" id="433">433</a>
-<a href="#434" id="434">434</a>
-<a href="#435" id="435">435</a>
-<a href="#436" id="436">436</a>
-<a href="#437" id="437">437</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -470,7 +461,6 @@
 <span class="kw">use </span>datatypes::vectors::VectorRef;
 <span class="kw">use </span>futures::Stream;
 <span class="kw">use </span>snafu::ResultExt;
-<span class="kw">use </span>table::engine::TableEngineRef;
 <span class="kw">use </span>table::error::TablesRecordBatchSnafu;
 <span class="kw">use </span>table::metadata::{TableId, TableInfoRef};
 <span class="kw">use </span>table::table::scan::SimpleTableScan;
@@ -489,15 +479,13 @@
 </span><span class="kw">pub struct </span>Tables {
     schema: SchemaRef,
     catalogs: CatalogListRef,
-    engine_name: String,
 }
 
 <span class="kw">impl </span>Tables {
-    <span class="kw">pub fn </span>new(catalogs: CatalogListRef, engine_name: String) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub fn </span>new(catalogs: CatalogListRef) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
             schema: Arc::new(build_schema_for_tables()),
             catalogs,
-            engine_name,
         }
     }
 }
@@ -524,7 +512,6 @@
     ) -&gt; table::error::Result&lt;PhysicalPlanRef&gt; {
         <span class="kw">let </span>catalogs = <span class="self">self</span>.catalogs.clone();
         <span class="kw">let </span>schema_ref = <span class="self">self</span>.schema.clone();
-        <span class="kw">let </span>engine_name = <span class="self">self</span>.engine_name.clone();
 
         <span class="kw">let </span>stream = <span class="macro">stream!</span>({
             <span class="kw">for </span>catalog_name <span class="kw">in </span>catalogs
@@ -542,32 +529,29 @@
                     .map_err(BoxedError::new)
                     .context(TablesRecordBatchSnafu)<span class="question-mark">?
                 </span>{
-                    <span class="kw">let </span><span class="kw-2">mut </span>tables_in_schema = Vec::with_capacity(
-                        catalog
-                            .schema_names()
-                            .map_err(BoxedError::new)
-                            .context(TablesRecordBatchSnafu)<span class="question-mark">?
-                            </span>.len(),
-                    );
                     <span class="kw">let </span>schema = catalog
                         .schema(<span class="kw-2">&amp;</span>schema_name)
                         .map_err(BoxedError::new)
                         .context(TablesRecordBatchSnafu)<span class="question-mark">?
                         </span>.unwrap();
-                    <span class="kw">for </span>table_name <span class="kw">in </span>schema
+                    <span class="kw">let </span>names = schema
                         .table_names()
                         .map_err(BoxedError::new)
-                        .context(TablesRecordBatchSnafu)<span class="question-mark">?
-                    </span>{
-                        tables_in_schema.push(table_name);
+                        .context(TablesRecordBatchSnafu)<span class="question-mark">?</span>;
+                    <span class="kw">let </span><span class="kw-2">mut </span>tables = Vec::with_capacity(names.len());
+
+                    <span class="kw">for </span>name <span class="kw">in </span>names {
+                        <span class="kw">let </span>table = schema
+                            .table(<span class="kw-2">&amp;</span>name)
+                            .<span class="kw">await
+                            </span>.map_err(BoxedError::new)
+                            .context(TablesRecordBatchSnafu)<span class="question-mark">?
+                            </span>.unwrap();
+
+                        tables.push(table);
                     }
 
-                    <span class="kw">let </span>vec = tables_to_record_batch(
-                        <span class="kw-2">&amp;</span>catalog_name,
-                        <span class="kw-2">&amp;</span>schema_name,
-                        tables_in_schema,
-                        <span class="kw-2">&amp;</span>engine_name,
-                    );
+                    <span class="kw">let </span>vec = tables_to_record_batch(<span class="kw-2">&amp;</span>catalog_name, <span class="kw-2">&amp;</span>schema_name, tables);
                     <span class="kw">let </span>record_batch_res = RecordBatch::new(schema_ref.clone(), vec);
                     <span class="kw">yield </span>record_batch_res;
                 }
@@ -586,23 +570,21 @@
 </span><span class="kw">fn </span>tables_to_record_batch(
     catalog_name: <span class="kw-2">&amp;</span>str,
     schema_name: <span class="kw-2">&amp;</span>str,
-    table_names: Vec&lt;String&gt;,
-    engine: <span class="kw-2">&amp;</span>str,
+    tables: Vec&lt;TableRef&gt;,
 ) -&gt; Vec&lt;VectorRef&gt; {
-    <span class="kw">let </span><span class="kw-2">mut </span>catalog_vec =
-        ConcreteDataType::string_datatype().create_mutable_vector(table_names.len());
-    <span class="kw">let </span><span class="kw-2">mut </span>schema_vec =
-        ConcreteDataType::string_datatype().create_mutable_vector(table_names.len());
+    <span class="kw">let </span><span class="kw-2">mut </span>catalog_vec = ConcreteDataType::string_datatype().create_mutable_vector(tables.len());
+    <span class="kw">let </span><span class="kw-2">mut </span>schema_vec = ConcreteDataType::string_datatype().create_mutable_vector(tables.len());
     <span class="kw">let </span><span class="kw-2">mut </span>table_name_vec =
-        ConcreteDataType::string_datatype().create_mutable_vector(table_names.len());
-    <span class="kw">let </span><span class="kw-2">mut </span>engine_vec =
-        ConcreteDataType::string_datatype().create_mutable_vector(table_names.len());
+        ConcreteDataType::string_datatype().create_mutable_vector(tables.len());
+    <span class="kw">let </span><span class="kw-2">mut </span>engine_vec = ConcreteDataType::string_datatype().create_mutable_vector(tables.len());
 
-    <span class="kw">for </span>table_name <span class="kw">in </span>table_names {
+    <span class="kw">for </span>table <span class="kw">in </span>tables {
+        <span class="kw">let </span>name = <span class="kw-2">&amp;</span>table.table_info().name;
+        <span class="kw">let </span>engine = <span class="kw-2">&amp;</span>table.table_info().meta.engine;
         <span class="comment">// Safety: All these vectors are string type.
         </span>catalog_vec.push_value_ref(ValueRef::String(catalog_name));
         schema_vec.push_value_ref(ValueRef::String(schema_name));
-        table_name_vec.push_value_ref(ValueRef::String(<span class="kw-2">&amp;</span>table_name));
+        table_name_vec.push_value_ref(ValueRef::String(name));
         engine_vec.push_value_ref(ValueRef::String(engine));
     }
 
@@ -688,13 +670,9 @@
 }
 
 <span class="kw">impl </span>SystemCatalog {
-    <span class="kw">pub fn </span>new(
-        system: SystemCatalogTable,
-        catalogs: CatalogListRef,
-        engine: TableEngineRef,
-    ) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub fn </span>new(system: SystemCatalogTable, catalogs: CatalogListRef) -&gt; <span class="self">Self </span>{
         <span class="kw">let </span>schema = InformationSchema {
-            tables: Arc::new(Tables::new(catalogs, engine.name().to_string())),
+            tables: Arc::new(Tables::new(catalogs)),
             system: Arc::new(system),
         };
         <span class="self">Self </span>{
@@ -708,8 +686,9 @@
         schema: String,
         table_name: String,
         table_id: TableId,
+        engine: String,
     ) -&gt; <span class="kw">crate</span>::error::Result&lt;usize&gt; {
-        <span class="kw">let </span>request = build_table_insert_request(catalog, schema, table_name, table_id);
+        <span class="kw">let </span>request = build_table_insert_request(catalog, schema, table_name, table_id, engine);
         <span class="self">self</span>.information_schema
             .system
             .insert(request)
@@ -820,10 +799,13 @@
             .unwrap()
             .unwrap();
         schema
-            .register_table(<span class="string">&quot;test_table&quot;</span>.to_string(), Arc::new(NumbersTable::default()))
+            .register_table(
+                <span class="string">&quot;test_table&quot;</span>.to_string(),
+                Arc::new(NumbersTable::with_name(<span class="number">1</span>, <span class="string">&quot;test_table&quot;</span>.to_string())),
+            )
             .unwrap();
 
-        <span class="kw">let </span>tables = Tables::new(catalog_list, <span class="string">&quot;test_engine&quot;</span>.to_string());
+        <span class="kw">let </span>tables = Tables::new(catalog_list);
         <span class="kw">let </span>tables_stream = tables.scan(<span class="prelude-val">None</span>, <span class="kw-2">&amp;</span>[], <span class="prelude-val">None</span>).<span class="kw">await</span>.unwrap();
         <span class="kw">let </span>session_ctx = SessionContext::new();
         <span class="kw">let </span><span class="kw-2">mut </span>tables_stream = tables_stream.execute(<span class="number">0</span>, session_ctx.task_ctx()).unwrap();

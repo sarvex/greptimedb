@@ -848,6 +848,21 @@
 <a href="#848" id="848">848</a>
 <a href="#849" id="849">849</a>
 <a href="#850" id="850">850</a>
+<a href="#851" id="851">851</a>
+<a href="#852" id="852">852</a>
+<a href="#853" id="853">853</a>
+<a href="#854" id="854">854</a>
+<a href="#855" id="855">855</a>
+<a href="#856" id="856">856</a>
+<a href="#857" id="857">857</a>
+<a href="#858" id="858">858</a>
+<a href="#859" id="859">859</a>
+<a href="#860" id="860">860</a>
+<a href="#861" id="861">861</a>
+<a href="#862" id="862">862</a>
+<a href="#863" id="863">863</a>
+<a href="#864" id="864">864</a>
+<a href="#865" id="865">865</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -870,14 +885,17 @@
 <span class="kw">use </span>arc_swap::ArcSwap;
 <span class="kw">use </span>async_stream::stream;
 <span class="kw">use </span>async_trait::async_trait;
-<span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID};
+<span class="kw">use </span>common_catalog::consts::{
+    DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID, MITO_ENGINE,
+};
 <span class="kw">use </span>common_telemetry::{debug, error, info};
 <span class="kw">use </span>dashmap::DashMap;
 <span class="kw">use </span>futures::Stream;
 <span class="kw">use </span>futures_util::StreamExt;
 <span class="kw">use </span>parking_lot::RwLock;
 <span class="kw">use </span>snafu::{OptionExt, ResultExt};
-<span class="kw">use </span>table::engine::{EngineContext, TableEngineRef};
+<span class="kw">use </span>table::engine::manager::TableEngineManagerRef;
+<span class="kw">use </span>table::engine::EngineContext;
 <span class="kw">use </span>table::metadata::TableId;
 <span class="kw">use </span>table::requests::{CreateTableRequest, OpenTableRequest};
 <span class="kw">use </span>table::table::numbers::NumbersTable;
@@ -886,7 +904,7 @@
 
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     CatalogNotFoundSnafu, CreateTableSnafu, InvalidCatalogValueSnafu, OpenTableSnafu, <span class="prelude-ty">Result</span>,
-    SchemaNotFoundSnafu, TableExistsSnafu, UnimplementedSnafu,
+    SchemaNotFoundSnafu, TableEngineNotFoundSnafu, TableExistsSnafu, UnimplementedSnafu,
 };
 <span class="kw">use </span><span class="kw">crate</span>::helper::{
     build_catalog_prefix, build_schema_prefix, build_table_global_prefix, CatalogKey, CatalogValue,
@@ -905,14 +923,14 @@
     node_id: u64,
     backend: KvBackendRef,
     catalogs: Arc&lt;RwLock&lt;DashMap&lt;String, CatalogProviderRef&gt;&gt;&gt;,
-    engine: TableEngineRef,
+    engine_manager: TableEngineManagerRef,
     system_table_requests: Mutex&lt;Vec&lt;RegisterSystemTableRequest&gt;&gt;,
 }
 
 <span class="kw">impl </span>RemoteCatalogManager {
-    <span class="kw">pub fn </span>new(engine: TableEngineRef, node_id: u64, backend: KvBackendRef) -&gt; <span class="self">Self </span>{
+    <span class="kw">pub fn </span>new(engine_manager: TableEngineManagerRef, node_id: u64, backend: KvBackendRef) -&gt; <span class="self">Self </span>{
         <span class="self">Self </span>{
-            engine,
+            engine_manager,
             node_id,
             backend,
             catalogs: Default::default(),
@@ -1181,8 +1199,13 @@
             table_name: table_name.clone(),
             table_id,
         };
-        <span class="kw">match </span><span class="self">self
-            </span>.engine
+        <span class="kw">let </span>engine = <span class="self">self
+            </span>.engine_manager
+            .engine(<span class="kw-2">&amp;</span>table_info.meta.engine)
+            .context(TableEngineNotFoundSnafu {
+                engine_name: <span class="kw-2">&amp;</span>table_info.meta.engine,
+            })<span class="question-mark">?</span>;
+        <span class="kw">match </span>engine
             .open_table(<span class="kw-2">&amp;</span>context, request)
             .<span class="kw">await
             </span>.with_context(|<span class="kw">_</span>| OpenTableSnafu {
@@ -1213,9 +1236,10 @@
                     primary_key_indices: meta.primary_key_indices.clone(),
                     create_if_not_exists: <span class="bool-val">true</span>,
                     table_options: meta.options.clone(),
+                    engine: engine.name().to_string(),
                 };
 
-                <span class="self">self</span>.engine
+                engine
                     .create_table(<span class="kw-2">&amp;</span>context, req)
                     .<span class="kw">await
                     </span>.context(CreateTableSnafu {
@@ -1248,7 +1272,13 @@
         <span class="macro">info!</span>(<span class="string">&quot;Max table id allocated: {}&quot;</span>, max_table_id);
 
         <span class="kw">let </span><span class="kw-2">mut </span>system_table_requests = <span class="self">self</span>.system_table_requests.lock().<span class="kw">await</span>;
-        handle_system_table_request(<span class="self">self</span>, <span class="self">self</span>.engine.clone(), <span class="kw-2">&amp;mut </span>system_table_requests).<span class="kw">await</span><span class="question-mark">?</span>;
+        <span class="kw">let </span>engine = <span class="self">self
+            </span>.engine_manager
+            .engine(MITO_ENGINE)
+            .context(TableEngineNotFoundSnafu {
+                engine_name: MITO_ENGINE,
+            })<span class="question-mark">?</span>;
+        handle_system_table_request(<span class="self">self</span>, engine, <span class="kw-2">&amp;mut </span>system_table_requests).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="macro">info!</span>(<span class="string">&quot;All system table opened&quot;</span>);
 
         <span class="self">self</span>.catalog(DEFAULT_CATALOG_NAME)

@@ -540,6 +540,9 @@
 <a href="#540" id="540">540</a>
 <a href="#541" id="541">541</a>
 <a href="#542" id="542">542</a>
+<a href="#543" id="543">543</a>
+<a href="#544" id="544">544</a>
+<a href="#545" id="545">545</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -587,6 +590,7 @@
 <span class="kw">use </span>storage::scheduler::{LocalScheduler, SchedulerConfig};
 <span class="kw">use </span>storage::EngineImpl;
 <span class="kw">use </span>store_api::logstore::LogStore;
+<span class="kw">use </span>table::engine::manager::MemoryTableEngineManager;
 <span class="kw">use </span>table::requests::FlushTableRequest;
 <span class="kw">use </span>table::table::numbers::NumbersTable;
 <span class="kw">use </span>table::table::TableIdProviderRef;
@@ -659,6 +663,8 @@
             object_store,
         ));
 
+        <span class="kw">let </span>engine_manager = Arc::new(MemoryTableEngineManager::new(table_engine.clone()));
+
         <span class="comment">// create remote catalog manager
         </span><span class="kw">let </span>(catalog_manager, table_id_provider) = <span class="kw">match </span>opts.mode {
             Mode::Standalone =&gt; {
@@ -683,7 +689,7 @@
                     )
                 } <span class="kw">else </span>{
                     <span class="kw">let </span>catalog = Arc::new(
-                        catalog::local::LocalCatalogManager::try_new(table_engine.clone())
+                        catalog::local::LocalCatalogManager::try_new(engine_manager)
                             .<span class="kw">await
                             </span>.context(CatalogSnafu)<span class="question-mark">?</span>,
                     );
@@ -697,7 +703,7 @@
 
             Mode::Distributed =&gt; {
                 <span class="kw">let </span>catalog = Arc::new(catalog::remote::RemoteCatalogManager::new(
-                    table_engine.clone(),
+                    engine_manager,
                     opts.node_id.context(MissingNodeIdSnafu)<span class="question-mark">?</span>,
                     Arc::new(MetaKvBackend {
                         client: meta_client.as_ref().unwrap().clone(),
@@ -736,7 +742,7 @@
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             query_engine: query_engine.clone(),
             sql_handler: SqlHandler::new(
-                table_engine.clone(),
+                Arc::new(MemoryTableEngineManager::new(table_engine.clone())),
                 catalog_manager.clone(),
                 table_engine,
                 procedure_manager.clone(),

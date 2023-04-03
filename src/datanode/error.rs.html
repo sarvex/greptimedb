@@ -692,6 +692,14 @@
 <a href="#692" id="692">692</a>
 <a href="#693" id="693">693</a>
 <a href="#694" id="694">694</a>
+<a href="#695" id="695">695</a>
+<a href="#696" id="696">696</a>
+<a href="#697" id="697">697</a>
+<a href="#698" id="698">698</a>
+<a href="#699" id="699">699</a>
+<a href="#700" id="700">700</a>
+<a href="#701" id="701">701</a>
+<a href="#702" id="702">702</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -793,6 +801,13 @@
         table_name: String,
         <span class="attr">#[snafu(backtrace)]
         </span>source: BoxedError,
+    },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Table engine not found: {}, source: {}&quot;</span>, engine_name, source))]
+    </span>TableEngineNotFound {
+        engine_name: String,
+        <span class="attr">#[snafu(backtrace)]
+        </span>source: table::error::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Table not found: {}&quot;</span>, table_name))]
@@ -1227,6 +1242,7 @@
 
             Insert { source, .. } =&gt; source.status_code(),
             Delete { source, .. } =&gt; source.status_code(),
+            TableEngineNotFound { source, .. } =&gt; source.status_code(),
             TableNotFound { .. } =&gt; StatusCode::TableNotFound,
             ColumnNotFound { .. } =&gt; StatusCode::TableColumnNotFound,
 

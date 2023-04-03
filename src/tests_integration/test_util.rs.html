@@ -370,6 +370,12 @@
 <a href="#370" id="370">370</a>
 <a href="#371" id="371">371</a>
 <a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -392,7 +398,9 @@
 
 <span class="kw">use </span>axum::Router;
 <span class="kw">use </span>catalog::CatalogManagerRef;
-<span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID};
+<span class="kw">use </span>common_catalog::consts::{
+    DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MIN_USER_TABLE_ID, MITO_ENGINE,
+};
 <span class="kw">use </span>common_runtime::Builder <span class="kw">as </span>RuntimeBuilder;
 <span class="kw">use </span>common_test_util::temp_dir::{create_temp_dir, TempDir};
 <span class="kw">use </span>datanode::datanode::{
@@ -594,7 +602,10 @@
     ];
 
     <span class="kw">let </span>table_name = <span class="string">&quot;demo&quot;</span>;
-    <span class="kw">let </span>table_engine: TableEngineRef = sql_handler.table_engine();
+    <span class="kw">let </span>table_engine: TableEngineRef = sql_handler
+        .table_engine_manager()
+        .engine(MITO_ENGINE)
+        .unwrap();
     <span class="kw">let </span>table = table_engine
         .create_table(
             <span class="kw-2">&amp;</span>EngineContext::default(),
@@ -609,6 +620,7 @@
                 primary_key_indices: <span class="macro">vec!</span>[<span class="number">0</span>], <span class="comment">// &quot;host&quot; is in primary keys
                 </span>table_options: TableOptions::default(),
                 region_numbers: <span class="macro">vec!</span>[<span class="number">0</span>],
+                engine: MITO_ENGINE.to_string(),
             },
         )
         .<span class="kw">await

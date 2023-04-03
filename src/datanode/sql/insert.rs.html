@@ -217,7 +217,7 @@
             table: <span class="kw-2">&amp;</span>req.table_name.to_string(),
         };
 
-        <span class="kw">let </span>table = <span class="self">self</span>.get_table(<span class="kw-2">&amp;</span>table_ref)<span class="question-mark">?</span>;
+        <span class="kw">let </span>table = <span class="self">self</span>.get_table(<span class="kw-2">&amp;</span>table_ref).<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="kw">let </span>affected_rows = table.insert(req).<span class="kw">await</span>.with_context(|<span class="kw">_</span>| InsertSnafu {
             table_name: table_ref.to_string(),
