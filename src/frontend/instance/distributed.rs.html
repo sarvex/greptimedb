@@ -881,7 +881,7 @@
 <span class="kw">use </span>common_catalog::format_full_table_name;
 <span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_query::Output;
-<span class="kw">use </span>common_telemetry::{debug, info};
+<span class="kw">use </span>common_telemetry::debug;
 <span class="kw">use </span>datanode::instance::sql::table_idents_to_full_name;
 <span class="kw">use </span>datanode::sql::SqlHandler;
 <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
@@ -984,7 +984,7 @@
             }
         );
         <span class="kw">let </span>table_route = table_routes.first().unwrap();
-        <span class="macro">info!</span>(
+        <span class="macro">debug!</span>(
             <span class="string">&quot;Creating distributed table {table_name} with table routes: {}&quot;</span>,
             serde_json::to_string_pretty(table_route)
                 .unwrap_or_else(|<span class="kw">_</span>| <span class="macro">format!</span>(<span class="string">&quot;{table_route:#?}&quot;</span>))

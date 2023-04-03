@@ -330,6 +330,8 @@
 <a href="#330" id="330">330</a>
 <a href="#331" id="331">331</a>
 <a href="#332" id="332">332</a>
+<a href="#333" id="333">333</a>
+<a href="#334" id="334">334</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -356,7 +358,7 @@
 </span><span class="kw">use </span>std::sync::atomic::{AtomicU64, Ordering};
 <span class="kw">use </span>std::sync::Arc;
 
-<span class="kw">use </span>common_telemetry::info;
+<span class="kw">use </span>common_telemetry::{debug, info};
 <span class="kw">use </span>store_api::manifest::ManifestVersion;
 <span class="kw">use </span>store_api::storage::{SchemaRef, SequenceNumber};
 
@@ -569,7 +571,8 @@
         <span class="self">self</span>.manifest_version = manifest_version;
         <span class="kw">let </span>ssts = <span class="self">self</span>.ssts.merge(files, std::iter::empty());
         <span class="macro">info!</span>(
-            <span class="string">&quot;After applying checkpoint, region: {}, flushed_sequence: {}, manifest_version: {}&quot;</span>,
+            <span class="string">&quot;After applying checkpoint, region: {}, id: {}, flushed_sequence: {}, manifest_version: {}&quot;</span>,
+            <span class="self">self</span>.metadata.name(),
             <span class="self">self</span>.metadata.id(),
             <span class="self">self</span>.flushed_sequence,
             <span class="self">self</span>.manifest_version,
@@ -599,8 +602,9 @@
             </span>.ssts
             .merge(handles_to_add, edit.files_to_remove.into_iter());
 
-        <span class="macro">info!</span>(
-            <span class="string">&quot;After applying edit, region: {}, SST files: {:?}&quot;</span>,
+        <span class="macro">debug!</span>(
+            <span class="string">&quot;After applying edit, region: {}, id: {}, SST files: {:?}&quot;</span>,
+            <span class="self">self</span>.metadata.name(),
             <span class="self">self</span>.metadata.id(),
             merged_ssts
         );

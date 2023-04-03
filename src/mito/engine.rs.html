@@ -664,6 +664,19 @@
 <a href="#664" id="664">664</a>
 <a href="#665" id="665">665</a>
 <a href="#666" id="666">666</a>
+<a href="#667" id="667">667</a>
+<a href="#668" id="668">668</a>
+<a href="#669" id="669">669</a>
+<a href="#670" id="670">670</a>
+<a href="#671" id="671">671</a>
+<a href="#672" id="672">672</a>
+<a href="#673" id="673">673</a>
+<a href="#674" id="674">674</a>
+<a href="#675" id="675">675</a>
+<a href="#676" id="676">676</a>
+<a href="#677" id="677">677</a>
+<a href="#678" id="678">678</a>
+<a href="#679" id="679">679</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1081,7 +1094,11 @@
                 .<span class="kw">await
                 </span>.map_err(BoxedError::new)
                 .context(error::CreateRegionSnafu)<span class="question-mark">?</span>;
-            <span class="macro">info!</span>(<span class="string">&quot;Mito engine created region: {:?}&quot;</span>, region.id());
+            <span class="macro">info!</span>(
+                <span class="string">&quot;Mito engine created region: {}, id: {}&quot;</span>,
+                region.name(),
+                region.id()
+            );
             regions.insert(<span class="kw-2">*</span>region_number, region);
         }
 
@@ -1116,7 +1133,12 @@
             .<span class="kw">await</span><span class="question-mark">?</span>,
         );
 
-        <span class="macro">logging::info!</span>(<span class="string">&quot;Mito engine created table: {:?}.&quot;</span>, table.table_info());
+        <span class="macro">logging::info!</span>(
+            <span class="string">&quot;Mito engine created table: {} in schema: {}, table_id: {}.&quot;</span>,
+            table_name,
+            schema_name,
+            table_id
+        );
 
         <span class="self">self</span>.tables
             .write()
@@ -1207,7 +1229,11 @@
             <span class="prelude-val">Some</span>(table <span class="kw">as _</span>)
         };
 
-        <span class="macro">logging::info!</span>(<span class="string">&quot;Mito engine opened table {}&quot;</span>, table_name);
+        <span class="macro">logging::info!</span>(
+            <span class="string">&quot;Mito engine opened table: {} in schema: {}&quot;</span>,
+            table_name,
+            schema_name
+        );
 
         <span class="prelude-val">Ok</span>(table)
     }

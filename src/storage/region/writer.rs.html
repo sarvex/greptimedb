@@ -827,7 +827,7 @@
 
 <span class="kw">use </span>common_base::readable_size::ReadableSize;
 <span class="kw">use </span>common_error::prelude::BoxedError;
-<span class="kw">use </span>common_telemetry::tracing::log::info;
+<span class="kw">use </span>common_telemetry::tracing::log::{debug, info};
 <span class="kw">use </span>common_telemetry::{error, logging};
 <span class="kw">use </span>futures::TryStreamExt;
 <span class="kw">use </span>snafu::{ensure, ResultExt};
@@ -1580,7 +1580,7 @@
             .file_num();
 
         <span class="kw">if </span>level0_file_num &lt;= max_files_in_l0 {
-            <span class="macro">info!</span>(
+            <span class="macro">debug!</span>(
                 <span class="string">&quot;No enough SST files in level 0 (threshold: {}), skip compaction&quot;</span>,
                 max_files_in_l0
             );

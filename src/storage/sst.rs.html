@@ -734,6 +734,23 @@
 <a href="#734" id="734">734</a>
 <a href="#735" id="735">735</a>
 <a href="#736" id="736">736</a>
+<a href="#737" id="737">737</a>
+<a href="#738" id="738">738</a>
+<a href="#739" id="739">739</a>
+<a href="#740" id="740">740</a>
+<a href="#741" id="741">741</a>
+<a href="#742" id="742">742</a>
+<a href="#743" id="743">743</a>
+<a href="#744" id="744">744</a>
+<a href="#745" id="745">745</a>
+<a href="#746" id="746">746</a>
+<a href="#747" id="747">747</a>
+<a href="#748" id="748">748</a>
+<a href="#749" id="749">749</a>
+<a href="#750" id="750">750</a>
+<a href="#751" id="751">751</a>
+<a href="#752" id="752">752</a>
+<a href="#753" id="753">753</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -760,7 +777,7 @@
 <span class="kw">use </span>async_trait::async_trait;
 <span class="kw">use </span>common_base::readable_size::ReadableSize;
 <span class="kw">use </span>common_recordbatch::SendableRecordBatchStream;
-<span class="kw">use </span>common_telemetry::{error, info};
+<span class="kw">use </span>common_telemetry::{debug, error};
 <span class="kw">use </span>common_time::range::TimestampRange;
 <span class="kw">use </span>common_time::Timestamp;
 <span class="kw">use </span>datatypes::schema::SchemaRef;
@@ -796,11 +813,19 @@
 <span class="doccomment">/// Metadata of all SSTs under a region.
 ///
 /// Files are organized into multiple level, though there may be only one level.
-</span><span class="attr">#[derive(Debug, Clone)]
+</span><span class="attr">#[derive(Clone)]
 </span><span class="kw">pub struct </span>LevelMetas {
     levels: LevelMetaVec,
     sst_layer: AccessLayerRef,
     file_purger: FilePurgerRef,
+}
+
+<span class="kw">impl </span>std::fmt::Debug <span class="kw">for </span>LevelMetas {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        f.debug_struct(<span class="string">&quot;LevelMetas&quot;</span>)
+            .field(<span class="string">&quot;levels&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.levels)
+            .finish()
+    }
 }
 
 <span class="kw">impl </span>LevelMetas {
@@ -855,13 +880,22 @@
 }
 
 <span class="doccomment">/// Metadata of files in same SST level.
-</span><span class="attr">#[derive(Debug, Default, Clone)]
+</span><span class="attr">#[derive(Default, Clone)]
 </span><span class="kw">pub struct </span>LevelMeta {
     level: Level,
     <span class="doccomment">/// Handles to the files in this level.
     </span><span class="comment">// TODO(yingwen): Now for simplicity, files are unordered, maybe sort the files by time range
     // or use another structure to hold them.
     </span>files: HashMap&lt;FileId, FileHandle&gt;,
+}
+
+<span class="kw">impl </span>std::fmt::Debug <span class="kw">for </span>LevelMeta {
+    <span class="kw">fn </span>fmt(<span class="kw-2">&amp;</span><span class="self">self</span>, f: <span class="kw-2">&amp;mut </span>std::fmt::Formatter&lt;<span class="lifetime">&#39;_</span>&gt;) -&gt; std::fmt::Result {
+        f.debug_struct(<span class="string">&quot;LevelMeta&quot;</span>)
+            .field(<span class="string">&quot;level&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.level)
+            .field(<span class="string">&quot;files&quot;</span>, <span class="kw-2">&amp;</span><span class="self">self</span>.files.keys())
+            .finish()
+    }
 }
 
 <span class="kw">impl </span>LevelMeta {
@@ -1028,7 +1062,7 @@
             };
             <span class="kw">match </span><span class="self">self</span>.file_purger.schedule(request) {
                 <span class="prelude-val">Ok</span>(res) =&gt; {
-                    <span class="macro">info!</span>(
+                    <span class="macro">debug!</span>(
                         <span class="string">&quot;Scheduled SST purge task, region: {}, name: {}, res: {}&quot;</span>,
                         <span class="self">self</span>.meta.region_id,
                         <span class="self">self</span>.meta.file_id.as_parquet(),
@@ -1037,7 +1071,7 @@
                 }
                 <span class="prelude-val">Err</span>(e) =&gt; {
                     <span class="macro">error!</span>(e; <span class="string">&quot;Failed to schedule SST purge task, region: {}, name: {}&quot;</span>,
-                    <span class="self">self</span>.meta.region_id, <span class="self">self</span>.meta.file_id.as_parquet());
+                           <span class="self">self</span>.meta.region_id, <span class="self">self</span>.meta.file_id.as_parquet());
                 }
             }
         }

@@ -257,7 +257,7 @@
 <span class="kw">use </span>std::fmt::{Debug, Formatter};
 
 <span class="kw">use </span>common_base::readable_size::ReadableSize;
-<span class="kw">use </span>common_telemetry::{error, info};
+<span class="kw">use </span>common_telemetry::{debug, error};
 <span class="kw">use </span>store_api::logstore::LogStore;
 <span class="kw">use </span>store_api::storage::RegionId;
 
@@ -356,7 +356,7 @@
             files_to_add: Vec::from_iter(output.into_iter()),
             files_to_remove: Vec::from_iter(input.into_iter()),
         };
-        <span class="macro">info!</span>(
+        <span class="macro">debug!</span>(
             <span class="string">&quot;Compacted region: {}, region edit: {:?}&quot;</span>,
             version.metadata().name(),
             edit
