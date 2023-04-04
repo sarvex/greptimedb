@@ -622,8 +622,8 @@
         source: tonic::transport::Error,
         backtrace: Backtrace,
     },
-    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start gRPC server, source: {}&quot;</span>, source))]
-    </span>StartMetricsExport {
+    <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start http server, source: {}&quot;</span>, source))]
+    </span>StartHttp {
         <span class="attr">#[snafu(backtrace)]
         </span>source: servers::error::Error,
     },
@@ -925,7 +925,7 @@
             Error::InvalidCatalogValue { source, .. } =&gt; source.status_code(),
             Error::MetaInternal { source } =&gt; source.status_code(),
             Error::RecoverProcedure { source } =&gt; source.status_code(),
-            Error::ShutdownServer { source, .. } | Error::StartMetricsExport { source } =&gt; {
+            Error::ShutdownServer { source, .. } | Error::StartHttp { source } =&gt; {
                 source.status_code()
             }
         }
