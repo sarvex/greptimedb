@@ -1283,6 +1283,8 @@
 <a href="#1283" id="1283">1283</a>
 <a href="#1284" id="1284">1284</a>
 <a href="#1285" id="1285">1285</a>
+<a href="#1286" id="1286">1286</a>
+<a href="#1287" id="1287">1287</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1317,6 +1319,7 @@
 <span class="kw">use </span>catalog::remote::MetaKvBackend;
 <span class="kw">use </span>catalog::CatalogManagerRef;
 <span class="kw">use </span>common_base::Plugins;
+<span class="kw">use </span>common_catalog::consts::MITO_ENGINE;
 <span class="kw">use </span>common_error::ext::BoxedError;
 <span class="kw">use </span>common_grpc::channel_manager::{ChannelConfig, ChannelManager};
 <span class="kw">use </span>common_query::Output;
@@ -1583,7 +1586,7 @@
                     <span class="string">&quot;Table {}.{}.{} does not exist, try create table&quot;</span>,
                     catalog_name, schema_name, table_name,
                 );
-                <span class="self">self</span>.create_table_by_columns(ctx, table_name, columns)
+                <span class="self">self</span>.create_table_by_columns(ctx, table_name, columns, MITO_ENGINE)
                     .<span class="kw">await</span><span class="question-mark">?</span>;
                 <span class="macro">info!</span>(
                     <span class="string">&quot;Successfully created table on insertion: {}.{}.{}&quot;</span>,
@@ -1620,6 +1623,7 @@
         ctx: QueryContextRef,
         table_name: <span class="kw-2">&amp;</span>str,
         columns: <span class="kw-2">&amp;</span>[Column],
+        engine: <span class="kw-2">&amp;</span>str,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;Output&gt; {
         <span class="kw">let </span>catalog_name = <span class="kw-2">&amp;</span>ctx.current_catalog();
         <span class="kw">let </span>schema_name = <span class="kw-2">&amp;</span>ctx.current_schema();
@@ -1627,7 +1631,7 @@
         <span class="comment">// Create table automatically, build schema from data.
         </span><span class="kw">let </span>create_expr = <span class="self">self
             </span>.create_expr_factory
-            .create_expr_by_columns(catalog_name, schema_name, table_name, columns)
+            .create_expr_by_columns(catalog_name, schema_name, table_name, columns, engine)
             .<span class="kw">await</span><span class="question-mark">?</span>;
 
         <span class="macro">info!</span>(

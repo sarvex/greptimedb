@@ -500,6 +500,7 @@
 <a href="#500" id="500">500</a>
 <a href="#501" id="501">501</a>
 <a href="#502" id="502">502</a>
+<a href="#503" id="503">503</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -695,6 +696,7 @@
                 table_options: (<span class="kw-2">&amp;</span>request.table_options).into(),
                 table_id: <span class="prelude-val">None</span>, <span class="comment">// Should and will be assigned by Meta.
                 </span>region_ids: <span class="macro">vec!</span>[<span class="number">0</span>],
+                engine: request.engine,
             };
 
             <span class="kw">let </span>table = dist_instance

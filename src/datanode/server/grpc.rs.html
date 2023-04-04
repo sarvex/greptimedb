@@ -256,6 +256,7 @@
 <a href="#256" id="256">256</a>
 <a href="#257" id="257">257</a>
 <a href="#258" id="258">258</a>
+<a href="#259" id="259">259</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -364,7 +365,7 @@
 <span class="attr">#[cfg(test)]
 </span><span class="kw">mod </span>tests {
     <span class="kw">use </span>api::v1::{column_def, ColumnDataType, ColumnDef, TableId};
-    <span class="kw">use </span>common_catalog::consts::MIN_USER_TABLE_ID;
+    <span class="kw">use </span>common_catalog::consts::{MIN_USER_TABLE_ID, MITO_ENGINE};
     <span class="kw">use </span>common_grpc_expr::create_table_schema;
     <span class="kw">use </span>datatypes::prelude::ConcreteDataType;
     <span class="kw">use </span>datatypes::schema::{ColumnDefaultConstraint, ColumnSchema, RawSchema};
@@ -495,6 +496,7 @@
                 id: MIN_USER_TABLE_ID,
             }),
             region_ids: <span class="macro">vec!</span>[<span class="number">0</span>],
+            engine: MITO_ENGINE.to_string(),
         }
     }
 

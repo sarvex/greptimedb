@@ -253,7 +253,6 @@
 <a href="#253" id="253">253</a>
 <a href="#254" id="254">254</a>
 <a href="#255" id="255">255</a>
-<a href="#256" id="256">256</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -270,7 +269,7 @@
 
 </span><span class="kw">use </span>api::v1::alter_expr::Kind;
 <span class="kw">use </span>api::v1::{column_def, AlterExpr, CreateTableExpr, DropColumns, RenameTable};
-<span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME, MITO_ENGINE};
+<span class="kw">use </span>common_catalog::consts::{DEFAULT_CATALOG_NAME, DEFAULT_SCHEMA_NAME};
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, RawSchema};
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
 <span class="kw">use </span>table::metadata::TableId;
@@ -434,8 +433,7 @@
         primary_key_indices,
         create_if_not_exists: expr.create_if_not_exists,
         table_options,
-        <span class="comment">// TODO(weny): remove hard-code
-        </span>engine: MITO_ENGINE.to_string(),
+        engine: expr.engine,
     })
 }
 
