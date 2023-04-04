@@ -1052,11 +1052,11 @@
             </span><span class="number">180_000</span>, <span class="number">240_000</span>, <span class="comment">// every 60s
             </span><span class="number">241_000</span>, <span class="number">271_000</span>, <span class="number">291_000</span>, <span class="comment">// others
         </span>])) <span class="kw">as _</span>;
-        <span class="kw">let </span>value_column = Arc::new(Float64Array::from_slice([<span class="number">1.0</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
+        <span class="kw">let </span>field_column = Arc::new(Float64Array::from_slice([<span class="number">1.0</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>path_column = Arc::new(StringArray::from_slice([<span class="string">&quot;foo&quot;</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>data = RecordBatch::try_new(
             schema.clone(),
-            <span class="macro">vec!</span>[timestamp_column, value_column, path_column],
+            <span class="macro">vec!</span>[timestamp_column, field_column, path_column],
         )
         .unwrap();
 

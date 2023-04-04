@@ -605,7 +605,7 @@
         <span class="comment">// Just build a region desc and use its columns metadata.
         </span><span class="kw">let </span>desc = RegionDescBuilder::new(<span class="string">&quot;test&quot;</span>)
             .enable_version_column(<span class="bool-val">false</span>)
-            .push_value_column((<span class="string">&quot;v&quot;</span>, LogicalTypeId::UInt64, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v&quot;</span>, LogicalTypeId::UInt64, <span class="bool-val">true</span>))
             .build();
         <span class="kw">let </span>metadata: RegionMetadata = desc.try_into().unwrap();
         metadata.schema().clone()

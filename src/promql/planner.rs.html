@@ -1971,7 +1971,7 @@
 </span><span class="kw">const </span>SPECIAL_TIME_FUNCTION: <span class="kw-2">&amp;</span>str = <span class="string">&quot;time&quot;</span>;
 
 <span class="doccomment">/// default value column name for empty metric
-</span><span class="kw">const </span>DEFAULT_VALUE_COLUMN: <span class="kw-2">&amp;</span>str = <span class="string">&quot;value&quot;</span>;
+</span><span class="kw">const </span>DEFAULT_FIELD_COLUMN: <span class="kw-2">&amp;</span>str = <span class="string">&quot;value&quot;</span>;
 
 <span class="doccomment">/// Special modifier to project field columns under multi-field mode
 </span><span class="kw">const </span>FIELD_COLUMN_MATCHER: <span class="kw-2">&amp;</span>str = <span class="string">&quot;__field__&quot;</span>;
@@ -1987,7 +1987,7 @@
     <span class="comment">// planner states
     </span>table_name: <span class="prelude-ty">Option</span>&lt;String&gt;,
     time_index_column: <span class="prelude-ty">Option</span>&lt;String&gt;,
-    value_columns: Vec&lt;String&gt;,
+    field_columns: Vec&lt;String&gt;,
     tag_columns: Vec&lt;String&gt;,
     field_column_matcher: <span class="prelude-ty">Option</span>&lt;Vec&lt;Matcher&gt;&gt;,
     <span class="doccomment">/// The range in millisecond of range selector. None if there is no range selector.
@@ -2065,7 +2065,7 @@
             PromExpr::Unary(UnaryExpr { expr }) =&gt; {
                 <span class="comment">// Unary Expr in PromQL implys the `-` operator
                 </span><span class="kw">let </span>input = <span class="self">self</span>.prom_expr_to_plan(<span class="kw-2">*</span>expr.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
-                <span class="self">self</span>.projection_for_each_value_column(input, |col| {
+                <span class="self">self</span>.projection_for_each_field_column(input, |col| {
                     <span class="prelude-val">Ok</span>(DfExpr::Negative(Box::new(DfExpr::Column(col.into()))))
                 })<span class="question-mark">?
             </span>}
@@ -2113,9 +2113,9 @@
                             <span class="prelude-val">Ok</span>(binary_expr)
                         };
                         <span class="kw">if </span>is_comparison_op &amp;&amp; !should_return_bool {
-                            <span class="self">self</span>.filter_on_value_column(input, bin_expr_builder)<span class="question-mark">?
+                            <span class="self">self</span>.filter_on_field_column(input, bin_expr_builder)<span class="question-mark">?
                         </span>} <span class="kw">else </span>{
-                            <span class="self">self</span>.projection_for_each_value_column(input, bin_expr_builder)<span class="question-mark">?
+                            <span class="self">self</span>.projection_for_each_field_column(input, bin_expr_builder)<span class="question-mark">?
                         </span>}
                     }
                     <span class="comment">// lhs is a column, rhs is a literal
@@ -2136,27 +2136,27 @@
                             <span class="prelude-val">Ok</span>(binary_expr)
                         };
                         <span class="kw">if </span>is_comparison_op &amp;&amp; !should_return_bool {
-                            <span class="self">self</span>.filter_on_value_column(input, bin_expr_builder)<span class="question-mark">?
+                            <span class="self">self</span>.filter_on_field_column(input, bin_expr_builder)<span class="question-mark">?
                         </span>} <span class="kw">else </span>{
-                            <span class="self">self</span>.projection_for_each_value_column(input, bin_expr_builder)<span class="question-mark">?
+                            <span class="self">self</span>.projection_for_each_field_column(input, bin_expr_builder)<span class="question-mark">?
                         </span>}
                     }
                     <span class="comment">// both are columns. join them on time index
                     </span>(<span class="prelude-val">None</span>, <span class="prelude-val">None</span>) =&gt; {
                         <span class="kw">let </span>left_input = <span class="self">self</span>.prom_expr_to_plan(<span class="kw-2">*</span>lhs.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
-                        <span class="kw">let </span>left_value_columns = <span class="self">self</span>.ctx.value_columns.clone();
+                        <span class="kw">let </span>left_field_columns = <span class="self">self</span>.ctx.field_columns.clone();
                         <span class="kw">let </span>left_schema = left_input.schema().clone();
 
                         <span class="kw">let </span>right_input = <span class="self">self</span>.prom_expr_to_plan(<span class="kw-2">*</span>rhs.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
-                        <span class="kw">let </span>right_value_columns = <span class="self">self</span>.ctx.value_columns.clone();
+                        <span class="kw">let </span>right_field_columns = <span class="self">self</span>.ctx.field_columns.clone();
                         <span class="kw">let </span>right_schema = right_input.schema().clone();
 
-                        <span class="kw">let </span><span class="kw-2">mut </span>value_columns =
-                            left_value_columns.iter().zip(right_value_columns.iter());
-                        <span class="comment">// the new ctx.value_columns for the generated join plan
-                        </span><span class="kw">let </span>join_plan = <span class="self">self</span>.join_on_non_value_columns(left_input, right_input)<span class="question-mark">?</span>;
+                        <span class="kw">let </span><span class="kw-2">mut </span>field_columns =
+                            left_field_columns.iter().zip(right_field_columns.iter());
+                        <span class="comment">// the new ctx.field_columns for the generated join plan
+                        </span><span class="kw">let </span>join_plan = <span class="self">self</span>.join_on_non_field_columns(left_input, right_input)<span class="question-mark">?</span>;
                         <span class="kw">let </span>bin_expr_builder = |<span class="kw">_</span>: <span class="kw-2">&amp;</span>String| {
-                            <span class="kw">let </span>(left_col_name, right_col_name) = value_columns.next().unwrap();
+                            <span class="kw">let </span>(left_col_name, right_col_name) = field_columns.next().unwrap();
                             <span class="kw">let </span>left_col = left_schema
                                 .field_with_name(<span class="prelude-val">None</span>, left_col_name)
                                 .context(DataFusionPlanningSnafu)<span class="question-mark">?
@@ -2180,9 +2180,9 @@
                             <span class="prelude-val">Ok</span>(binary_expr)
                         };
                         <span class="kw">if </span>is_comparison_op &amp;&amp; !should_return_bool {
-                            <span class="self">self</span>.filter_on_value_column(join_plan, bin_expr_builder)<span class="question-mark">?
+                            <span class="self">self</span>.filter_on_field_column(join_plan, bin_expr_builder)<span class="question-mark">?
                         </span>} <span class="kw">else </span>{
-                            <span class="self">self</span>.projection_for_each_value_column(join_plan, bin_expr_builder)<span class="question-mark">?
+                            <span class="self">self</span>.projection_for_each_field_column(join_plan, bin_expr_builder)<span class="question-mark">?
                         </span>}
                     }
                 }
@@ -2253,7 +2253,7 @@
                         .time_index_column
                         .clone()
                         .expect(<span class="string">&quot;time index should be set in `setup_context`&quot;</span>),
-                    <span class="self">self</span>.ctx.value_columns.clone(),
+                    <span class="self">self</span>.ctx.field_columns.clone(),
                     normalize,
                 )
                 .context(DataFusionPlanningSnafu)<span class="question-mark">?</span>;
@@ -2266,7 +2266,7 @@
                 <span class="comment">// TODO(ruihang): refactor this, transform the AST in advance to include an empty metric table.
                 </span><span class="kw">if </span>func.name == SPECIAL_TIME_FUNCTION {
                     <span class="self">self</span>.ctx.time_index_column = <span class="prelude-val">Some</span>(SPECIAL_TIME_FUNCTION.to_string());
-                    <span class="self">self</span>.ctx.value_columns = <span class="macro">vec!</span>[DEFAULT_VALUE_COLUMN.to_string()];
+                    <span class="self">self</span>.ctx.field_columns = <span class="macro">vec!</span>[DEFAULT_FIELD_COLUMN.to_string()];
                     <span class="self">self</span>.ctx.table_name = <span class="prelude-val">Some</span>(String::new());
 
                     <span class="kw">return </span><span class="prelude-val">Ok</span>(LogicalPlan::Extension(Extension {
@@ -2276,7 +2276,7 @@
                                 <span class="self">self</span>.ctx.end,
                                 <span class="self">self</span>.ctx.interval,
                                 SPECIAL_TIME_FUNCTION.to_string(),
-                                DEFAULT_VALUE_COLUMN.to_string(),
+                                DEFAULT_FIELD_COLUMN.to_string(),
                             )
                             .context(DataFusionPlanningSnafu)<span class="question-mark">?</span>,
                         ),
@@ -2356,7 +2356,7 @@
 
         <span class="comment">// make a projection plan if there is any `__field__` matcher
         </span><span class="kw">if let </span><span class="prelude-val">Some</span>(field_matchers) = <span class="kw-2">&amp;</span><span class="self">self</span>.ctx.field_column_matcher {
-            <span class="kw">let </span>col_set = <span class="self">self</span>.ctx.value_columns.iter().collect::&lt;HashSet&lt;<span class="kw">_</span>&gt;&gt;();
+            <span class="kw">let </span>col_set = <span class="self">self</span>.ctx.field_columns.iter().collect::&lt;HashSet&lt;<span class="kw">_</span>&gt;&gt;();
             <span class="comment">// opt-in set
             </span><span class="kw">let </span><span class="kw-2">mut </span>result_set = HashSet::new();
             <span class="comment">// opt-out set
@@ -2384,14 +2384,14 @@
                         }
                     }
                     MatchOp::Re(regex) =&gt; {
-                        <span class="kw">for </span>col <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.value_columns {
+                        <span class="kw">for </span>col <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.field_columns {
                             <span class="kw">if </span>regex.is_match(col) {
                                 result_set.insert(col.clone());
                             }
                         }
                     }
                     MatchOp::NotRe(regex) =&gt; {
-                        <span class="kw">for </span>col <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.value_columns {
+                        <span class="kw">for </span>col <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.field_columns {
                             <span class="kw">if </span>regex.is_match(col) {
                                 reverse_set.insert(col.clone());
                             }
@@ -2407,7 +2407,7 @@
                 result_set.remove(<span class="kw-2">&amp;</span>col);
             }
 
-            <span class="self">self</span>.ctx.value_columns = result_set.iter().cloned().collect();
+            <span class="self">self</span>.ctx.field_columns = result_set.iter().cloned().collect();
             <span class="kw">let </span>exprs = result_set
                 .into_iter()
                 .map(|col| DfExpr::Column(col.into()))
@@ -2498,7 +2498,7 @@
                 </span><span class="kw">if let </span><span class="prelude-val">Some</span>(time_index) = <span class="kw-2">&amp;</span><span class="self">self</span>.ctx.time_index_column {
                     all_fields.remove(time_index);
                 }
-                <span class="kw">for </span>value <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.value_columns {
+                <span class="kw">for </span>value <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.field_columns {
                     all_fields.remove(value);
                 }
 
@@ -2597,10 +2597,10 @@
         </span><span class="kw">let </span>values = table
             .table_info()
             .meta
-            .value_column_names()
+            .field_column_names()
             .cloned()
             .collect();
-        <span class="self">self</span>.ctx.value_columns = values;
+        <span class="self">self</span>.ctx.field_columns = values;
 
         <span class="comment">// set primary key (tag) columns
         </span><span class="kw">let </span>tags = table
@@ -2658,7 +2658,7 @@
         <span class="comment">// TODO(ruihang): check function args list
 
         // TODO(ruihang): set this according to in-param list
-        </span><span class="kw">let </span>value_column_pos = <span class="number">0</span>;
+        </span><span class="kw">let </span>field_column_pos = <span class="number">0</span>;
         <span class="kw">let </span>scalar_func = <span class="kw">match </span>func.name {
             <span class="string">&quot;increase&quot; </span>=&gt; ScalarFunc::ExtrapolateUdf(Increase::scalar_udf(
                 <span class="self">self</span>.ctx.range.context(ExpectRangeSelectorSnafu)<span class="question-mark">?</span>,
@@ -2704,19 +2704,19 @@
         };
 
         <span class="comment">// TODO(ruihang): handle those functions doesn&#39;t require input
-        </span><span class="kw">let </span><span class="kw-2">mut </span>exprs = Vec::with_capacity(<span class="self">self</span>.ctx.value_columns.len());
-        <span class="kw">for </span>value <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.value_columns {
+        </span><span class="kw">let </span><span class="kw-2">mut </span>exprs = Vec::with_capacity(<span class="self">self</span>.ctx.field_columns.len());
+        <span class="kw">for </span>value <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.field_columns {
             <span class="kw">let </span>col_expr = DfExpr::Column(Column::from_name(value));
 
             <span class="kw">match </span>scalar_func.clone() {
                 ScalarFunc::DataFusionBuiltin(fun) =&gt; {
-                    other_input_exprs.insert(value_column_pos, col_expr);
+                    other_input_exprs.insert(field_column_pos, col_expr);
                     <span class="kw">let </span>fn_expr = DfExpr::ScalarFunction {
                         fun,
                         args: other_input_exprs.clone(),
                     };
                     exprs.push(fn_expr);
-                    other_input_exprs.remove(value_column_pos);
+                    other_input_exprs.remove(field_column_pos);
                 }
                 ScalarFunc::Udf(fun) =&gt; {
                     <span class="kw">let </span>ts_range_expr = DfExpr::Column(Column::from_name(
@@ -2724,15 +2724,15 @@
                             <span class="self">self</span>.ctx.time_index_column.as_ref().unwrap(),
                         ),
                     ));
-                    other_input_exprs.insert(value_column_pos, ts_range_expr);
-                    other_input_exprs.insert(value_column_pos + <span class="number">1</span>, col_expr);
+                    other_input_exprs.insert(field_column_pos, ts_range_expr);
+                    other_input_exprs.insert(field_column_pos + <span class="number">1</span>, col_expr);
                     <span class="kw">let </span>fn_expr = DfExpr::ScalarUDF {
                         fun: Arc::new(fun),
                         args: other_input_exprs.clone(),
                     };
                     exprs.push(fn_expr);
-                    other_input_exprs.remove(value_column_pos + <span class="number">1</span>);
-                    other_input_exprs.remove(value_column_pos);
+                    other_input_exprs.remove(field_column_pos + <span class="number">1</span>);
+                    other_input_exprs.remove(field_column_pos);
                 }
                 ScalarFunc::ExtrapolateUdf(fun) =&gt; {
                     <span class="kw">let </span>ts_range_expr = DfExpr::Column(Column::from_name(
@@ -2740,34 +2740,34 @@
                             <span class="self">self</span>.ctx.time_index_column.as_ref().unwrap(),
                         ),
                     ));
-                    other_input_exprs.insert(value_column_pos, ts_range_expr);
-                    other_input_exprs.insert(value_column_pos + <span class="number">1</span>, col_expr);
+                    other_input_exprs.insert(field_column_pos, ts_range_expr);
+                    other_input_exprs.insert(field_column_pos + <span class="number">1</span>, col_expr);
                     other_input_exprs
-                        .insert(value_column_pos + <span class="number">2</span>, <span class="self">self</span>.create_time_index_column_expr()<span class="question-mark">?</span>);
+                        .insert(field_column_pos + <span class="number">2</span>, <span class="self">self</span>.create_time_index_column_expr()<span class="question-mark">?</span>);
                     <span class="kw">let </span>fn_expr = DfExpr::ScalarUDF {
                         fun: Arc::new(fun),
                         args: other_input_exprs.clone(),
                     };
                     exprs.push(fn_expr);
-                    other_input_exprs.remove(value_column_pos + <span class="number">2</span>);
-                    other_input_exprs.remove(value_column_pos + <span class="number">1</span>);
-                    other_input_exprs.remove(value_column_pos);
+                    other_input_exprs.remove(field_column_pos + <span class="number">2</span>);
+                    other_input_exprs.remove(field_column_pos + <span class="number">1</span>);
+                    other_input_exprs.remove(field_column_pos);
                 }
             }
         }
 
         <span class="comment">// update value columns&#39; name, and alias them to remove qualifiers
-        </span><span class="kw">let </span><span class="kw-2">mut </span>new_value_columns = Vec::with_capacity(exprs.len());
+        </span><span class="kw">let </span><span class="kw-2">mut </span>new_field_columns = Vec::with_capacity(exprs.len());
         exprs = exprs
             .into_iter()
             .map(|expr| {
                 <span class="kw">let </span>display_name = expr.display_name()<span class="question-mark">?</span>;
-                new_value_columns.push(display_name.clone());
+                new_field_columns.push(display_name.clone());
                 <span class="prelude-val">Ok</span>(expr.alias(display_name))
             })
             .collect::&lt;std::result::Result&lt;Vec&lt;<span class="kw">_</span>&gt;, <span class="kw">_</span>&gt;&gt;()
             .context(DataFusionPlanningSnafu)<span class="question-mark">?</span>;
-        <span class="self">self</span>.ctx.value_columns = new_value_columns;
+        <span class="self">self</span>.ctx.field_columns = new_field_columns;
 
         <span class="prelude-val">Ok</span>(exprs)
     }
@@ -2802,8 +2802,8 @@
     }
 
     <span class="kw">fn </span>create_empty_values_filter_expr(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;DfExpr&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>exprs = Vec::with_capacity(<span class="self">self</span>.ctx.value_columns.len());
-        <span class="kw">for </span>value <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.value_columns {
+        <span class="kw">let </span><span class="kw-2">mut </span>exprs = Vec::with_capacity(<span class="self">self</span>.ctx.field_columns.len());
+        <span class="kw">for </span>value <span class="kw">in </span><span class="kw-2">&amp;</span><span class="self">self</span>.ctx.field_columns {
             <span class="kw">let </span>expr = DfExpr::Column(Column::from_name(value)).is_not_null();
             exprs.push(expr);
         }
@@ -2845,7 +2845,7 @@
         <span class="comment">// perform aggregate operation to each value column
         </span><span class="kw">let </span>exprs: Vec&lt;DfExpr&gt; = <span class="self">self
             </span>.ctx
-            .value_columns
+            .field_columns
             .iter()
             .map(|col| {
                 DfExpr::AggregateFunction(AggregateFunction {
@@ -2858,13 +2858,13 @@
             .collect();
 
         <span class="comment">// update value column name according to the aggregators
-        </span><span class="kw">let </span><span class="kw-2">mut </span>new_value_columns = Vec::with_capacity(<span class="self">self</span>.ctx.value_columns.len());
+        </span><span class="kw">let </span><span class="kw-2">mut </span>new_field_columns = Vec::with_capacity(<span class="self">self</span>.ctx.field_columns.len());
         <span class="kw">let </span>normalized_exprs =
             normalize_cols(exprs.iter().cloned(), input_plan).context(DataFusionPlanningSnafu)<span class="question-mark">?</span>;
         <span class="kw">for </span>expr <span class="kw">in </span>normalized_exprs {
-            new_value_columns.push(expr.display_name().context(DataFusionPlanningSnafu)<span class="question-mark">?</span>);
+            new_field_columns.push(expr.display_name().context(DataFusionPlanningSnafu)<span class="question-mark">?</span>);
         }
-        <span class="self">self</span>.ctx.value_columns = new_value_columns;
+        <span class="self">self</span>.ctx.field_columns = new_field_columns;
 
         <span class="prelude-val">Ok</span>(exprs)
     }
@@ -2937,7 +2937,7 @@
 
     <span class="doccomment">/// Build a inner join on time index column and tag columns to concat two logical plans.
     /// The left plan will be alised as [`LEFT_PLAN_JOIN_ALIAS`].
-    </span><span class="kw">fn </span>join_on_non_value_columns(
+    </span><span class="kw">fn </span>join_on_non_field_columns(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         left: LogicalPlan,
         right: LogicalPlan,
@@ -2977,7 +2977,7 @@
     ///
     /// This function will update the value columns in the context. Those new column names
     /// don&#39;t contains qualifier.
-    </span><span class="kw">fn </span>projection_for_each_value_column&lt;F&gt;(
+    </span><span class="kw">fn </span>projection_for_each_field_column&lt;F&gt;(
         <span class="kw-2">&amp;mut </span><span class="self">self</span>,
         input: LogicalPlan,
         name_to_expr: F,
@@ -2985,7 +2985,7 @@
     <span class="kw">where
         </span>F: FnMut(<span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;DfExpr&gt;,
     {
-        <span class="kw">let </span>non_value_columns_iter = <span class="self">self
+        <span class="kw">let </span>non_field_columns_iter = <span class="self">self
             </span>.ctx
             .tag_columns
             .iter()
@@ -2998,27 +2998,27 @@
             });
 
         <span class="comment">// build computation exprs
-        </span><span class="kw">let </span>result_value_columns = <span class="self">self
+        </span><span class="kw">let </span>result_field_columns = <span class="self">self
             </span>.ctx
-            .value_columns
+            .field_columns
             .iter()
             .map(name_to_expr)
             .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?</span>;
 
         <span class="comment">// alias the computation exprs to remove qualifier
-        </span><span class="self">self</span>.ctx.value_columns = result_value_columns
+        </span><span class="self">self</span>.ctx.field_columns = result_field_columns
             .iter()
             .map(|expr| expr.display_name())
             .collect::&lt;DfResult&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()
             .context(DataFusionPlanningSnafu)<span class="question-mark">?</span>;
-        <span class="kw">let </span>value_columns_iter = result_value_columns
+        <span class="kw">let </span>field_columns_iter = result_field_columns
             .into_iter()
-            .zip(<span class="self">self</span>.ctx.value_columns.iter())
+            .zip(<span class="self">self</span>.ctx.field_columns.iter())
             .map(|(expr, name)| <span class="prelude-val">Ok</span>(DfExpr::Alias(Box::new(expr), name.to_string())));
 
         <span class="comment">// chain non-value columns (unchanged) and value columns (applied computation then alias)
-        </span><span class="kw">let </span>project_fields = non_value_columns_iter
-            .chain(value_columns_iter)
+        </span><span class="kw">let </span>project_fields = non_field_columns_iter
+            .chain(field_columns_iter)
             .collect::&lt;<span class="prelude-ty">Result</span>&lt;Vec&lt;<span class="kw">_</span>&gt;&gt;&gt;()<span class="question-mark">?</span>;
 
         LogicalPlanBuilder::from(input)
@@ -3030,7 +3030,7 @@
 
     <span class="doccomment">/// Build a filter plan that filter on value column. Notice that only one value column
     /// is expected.
-    </span><span class="kw">fn </span>filter_on_value_column&lt;F&gt;(
+    </span><span class="kw">fn </span>filter_on_field_column&lt;F&gt;(
         <span class="kw-2">&amp;</span><span class="self">self</span>,
         input: LogicalPlan,
         <span class="kw-2">mut </span>name_to_expr: F,
@@ -3039,16 +3039,16 @@
         </span>F: FnMut(<span class="kw-2">&amp;</span>String) -&gt; <span class="prelude-ty">Result</span>&lt;DfExpr&gt;,
     {
         <span class="macro">ensure!</span>(
-            <span class="self">self</span>.ctx.value_columns.len() == <span class="number">1</span>,
+            <span class="self">self</span>.ctx.field_columns.len() == <span class="number">1</span>,
             UnsupportedExprSnafu {
                 name: <span class="string">&quot;filter on multi-value input&quot;
             </span>}
         );
 
-        <span class="kw">let </span>value_column_filter = name_to_expr(<span class="kw-2">&amp;</span><span class="self">self</span>.ctx.value_columns[<span class="number">0</span>])<span class="question-mark">?</span>;
+        <span class="kw">let </span>field_column_filter = name_to_expr(<span class="kw-2">&amp;</span><span class="self">self</span>.ctx.field_columns[<span class="number">0</span>])<span class="question-mark">?</span>;
 
         LogicalPlanBuilder::from(input)
-            .filter(value_column_filter)
+            .filter(field_column_filter)
             .context(DataFusionPlanningSnafu)<span class="question-mark">?
             </span>.build()
             .context(DataFusionPlanningSnafu)

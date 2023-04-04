@@ -921,7 +921,7 @@
             .map(|idx| <span class="kw-2">&amp;</span>columns_schemas[<span class="kw-2">*</span>idx].name)
     }
 
-    <span class="kw">pub fn </span>value_column_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>String&gt; {
+    <span class="kw">pub fn </span>field_column_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw">impl </span>Iterator&lt;Item = <span class="kw-2">&amp;</span>String&gt; {
         <span class="kw">let </span>columns_schemas = <span class="kw-2">&amp;</span><span class="self">self</span>.schema.column_schemas();
         <span class="self">self</span>.value_indices.iter().filter_map(|idx| {
             <span class="kw">let </span>column = <span class="kw-2">&amp;</span>columns_schemas[<span class="kw-2">*</span>idx];

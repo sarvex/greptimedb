@@ -799,7 +799,7 @@
     </span><span class="kw">fn </span>test_region_manifest_builder() {
         <span class="kw">let </span>desc = RegionDescBuilder::new(<span class="string">&quot;test_region_manifest_builder&quot;</span>)
             .enable_version_column(<span class="bool-val">true</span>)
-            .push_value_column((<span class="string">&quot;v0&quot;</span>, LogicalTypeId::Int64, <span class="bool-val">true</span>))
+            .push_field_column((<span class="string">&quot;v0&quot;</span>, LogicalTypeId::Int64, <span class="bool-val">true</span>))
             .build();
         <span class="kw">let </span>region_metadata: RegionMetadata = desc.try_into().unwrap();
 

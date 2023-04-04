@@ -649,7 +649,7 @@
     range: Millisecond,
 
     time_index: String,
-    value_columns: Vec&lt;String&gt;,
+    field_columns: Vec&lt;String&gt;,
     input: LogicalPlan,
     output_schema: DFSchemaRef,
 }
@@ -661,18 +661,18 @@
         interval: Millisecond,
         range: Millisecond,
         time_index: String,
-        value_columns: Vec&lt;String&gt;,
+        field_columns: Vec&lt;String&gt;,
         input: LogicalPlan,
     ) -&gt; DataFusionResult&lt;<span class="self">Self</span>&gt; {
         <span class="kw">let </span>output_schema =
-            <span class="self">Self</span>::calculate_output_schema(input.schema(), <span class="kw-2">&amp;</span>time_index, <span class="kw-2">&amp;</span>value_columns)<span class="question-mark">?</span>;
+            <span class="self">Self</span>::calculate_output_schema(input.schema(), <span class="kw-2">&amp;</span>time_index, <span class="kw-2">&amp;</span>field_columns)<span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             start,
             end,
             interval,
             range,
             time_index,
-            value_columns,
+            field_columns,
             input,
             output_schema,
         })
@@ -693,7 +693,7 @@
     <span class="kw">fn </span>calculate_output_schema(
         input_schema: <span class="kw-2">&amp;</span>DFSchemaRef,
         time_index: <span class="kw-2">&amp;</span>str,
-        value_columns: <span class="kw-2">&amp;</span>[String],
+        field_columns: <span class="kw-2">&amp;</span>[String],
     ) -&gt; DataFusionResult&lt;DFSchemaRef&gt; {
         <span class="kw">let </span><span class="kw-2">mut </span>columns = input_schema.fields().clone();
 
@@ -711,7 +711,7 @@
         )));
 
         <span class="comment">// process value columns
-        </span><span class="kw">for </span>name <span class="kw">in </span>value_columns {
+        </span><span class="kw">for </span>name <span class="kw">in </span>field_columns {
             <span class="kw">let </span><span class="prelude-val">Some</span>(index) = input_schema.index_of_column_by_name(<span class="prelude-val">None</span>, name)<span class="question-mark">? </span><span class="kw">else </span>{
                 <span class="kw">return </span><span class="prelude-val">Err</span>(datafusion::common::field_not_found(<span class="prelude-val">None</span>::&lt;TableReference&gt;, name, input_schema.as_ref()))
             };
@@ -732,7 +732,7 @@
             range: <span class="self">self</span>.range,
             time_index_column: <span class="self">self</span>.time_index.clone(),
             time_range_column: <span class="self">self</span>.range_timestamp_name(),
-            value_columns: <span class="self">self</span>.value_columns.clone(),
+            field_columns: <span class="self">self</span>.field_columns.clone(),
             input: exec_input,
             output_schema: SchemaRef::new(<span class="self">self</span>.output_schema.as_ref().into()),
             metric: ExecutionPlanMetricsSet::new(),
@@ -761,7 +761,7 @@
         <span class="macro">write!</span>(
             f,
             <span class="string">&quot;PromRangeManipulate: req range=[{}..{}], interval=[{}], eval range=[{}], time index=[{}], values={:?}&quot;</span>,
-            <span class="self">self</span>.start, <span class="self">self</span>.end, <span class="self">self</span>.interval, <span class="self">self</span>.range, <span class="self">self</span>.time_index, <span class="self">self</span>.value_columns
+            <span class="self">self</span>.start, <span class="self">self</span>.end, <span class="self">self</span>.interval, <span class="self">self</span>.range, <span class="self">self</span>.time_index, <span class="self">self</span>.field_columns
         )
     }
 
@@ -774,7 +774,7 @@
             interval: <span class="self">self</span>.interval,
             range: <span class="self">self</span>.range,
             time_index: <span class="self">self</span>.time_index.clone(),
-            value_columns: <span class="self">self</span>.value_columns.clone(),
+            field_columns: <span class="self">self</span>.field_columns.clone(),
             input: inputs[<span class="number">0</span>].clone(),
             output_schema: <span class="self">self</span>.output_schema.clone(),
         }
@@ -789,7 +789,7 @@
     range: Millisecond,
     time_index_column: String,
     time_range_column: String,
-    value_columns: Vec&lt;String&gt;,
+    field_columns: Vec&lt;String&gt;,
 
     input: Arc&lt;<span class="kw">dyn </span>ExecutionPlan&gt;,
     output_schema: SchemaRef,
@@ -833,7 +833,7 @@
             range: <span class="self">self</span>.range,
             time_index_column: <span class="self">self</span>.time_index_column.clone(),
             time_range_column: <span class="self">self</span>.time_range_column.clone(),
-            value_columns: <span class="self">self</span>.value_columns.clone(),
+            field_columns: <span class="self">self</span>.field_columns.clone(),
             output_schema: <span class="self">self</span>.output_schema.clone(),
             input: children[<span class="number">0</span>].clone(),
             metric: <span class="self">self</span>.metric.clone(),
@@ -853,8 +853,8 @@
             .column_with_name(<span class="kw-2">&amp;</span><span class="self">self</span>.time_index_column)
             .unwrap_or_else(|| <span class="macro">panic!</span>(<span class="string">&quot;time index column {} not found&quot;</span>, <span class="self">self</span>.time_index_column))
             .<span class="number">0</span>;
-        <span class="kw">let </span>value_columns = <span class="self">self
-            </span>.value_columns
+        <span class="kw">let </span>field_columns = <span class="self">self
+            </span>.field_columns
             .iter()
             .map(|value_col| {
                 schema
@@ -869,7 +869,7 @@
             interval: <span class="self">self</span>.interval,
             range: <span class="self">self</span>.range,
             time_index,
-            value_columns,
+            field_columns,
             output_schema: <span class="self">self</span>.output_schema.clone(),
             input,
             metric: baseline_metric,
@@ -918,7 +918,7 @@
     interval: Millisecond,
     range: Millisecond,
     time_index: usize,
-    value_columns: Vec&lt;usize&gt;,
+    field_columns: Vec&lt;usize&gt;,
 
     output_schema: SchemaRef,
     input: SendableRecordBatchStream,
@@ -957,7 +957,7 @@
 
         <span class="comment">// transform columns
         </span><span class="kw">let </span><span class="kw-2">mut </span>new_columns = input.columns().to_vec();
-        <span class="kw">for </span>index <span class="kw">in </span><span class="self">self</span>.value_columns.iter() {
+        <span class="kw">for </span>index <span class="kw">in </span><span class="self">self</span>.field_columns.iter() {
             other_columns.remove(index);
             <span class="kw">let </span>column = input.column(<span class="kw-2">*</span>index);
             <span class="kw">let </span>new_column = Arc::new(
@@ -1053,14 +1053,14 @@
             </span><span class="number">180_000</span>, <span class="number">240_000</span>, <span class="comment">// every 60s
             </span><span class="number">241_000</span>, <span class="number">271_000</span>, <span class="number">291_000</span>, <span class="comment">// others
         </span>])) <span class="kw">as _</span>;
-        <span class="kw">let </span>value_column: ArrayRef = Arc::new(Float64Array::from_slice([<span class="number">1.0</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
+        <span class="kw">let </span>field_column: ArrayRef = Arc::new(Float64Array::from_slice([<span class="number">1.0</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>path_column = Arc::new(StringArray::from_slice([<span class="string">&quot;foo&quot;</span>; <span class="number">10</span>])) <span class="kw">as _</span>;
         <span class="kw">let </span>data = RecordBatch::try_new(
             schema.clone(),
             <span class="macro">vec!</span>[
                 timestamp_column,
-                value_column.clone(),
-                value_column,
+                field_column.clone(),
+                field_column,
                 path_column,
             ],
         )
@@ -1078,12 +1078,12 @@
     ) {
         <span class="kw">let </span>memory_exec = Arc::new(prepare_test_data());
         <span class="kw">let </span>time_index = TIME_INDEX_COLUMN.to_string();
-        <span class="kw">let </span>value_columns = <span class="macro">vec!</span>[<span class="string">&quot;value_1&quot;</span>.to_string(), <span class="string">&quot;value_2&quot;</span>.to_string()];
+        <span class="kw">let </span>field_columns = <span class="macro">vec!</span>[<span class="string">&quot;value_1&quot;</span>.to_string(), <span class="string">&quot;value_2&quot;</span>.to_string()];
         <span class="kw">let </span>manipulate_output_schema = SchemaRef::new(
             RangeManipulate::calculate_output_schema(
                 <span class="kw-2">&amp;</span>memory_exec.schema().to_dfschema_ref().unwrap(),
                 <span class="kw-2">&amp;</span>time_index,
-                <span class="kw-2">&amp;</span>value_columns,
+                <span class="kw-2">&amp;</span>field_columns,
             )
             .unwrap()
             .as_ref()
@@ -1094,7 +1094,7 @@
             end,
             interval,
             range,
-            value_columns,
+            field_columns,
             output_schema: manipulate_output_schema,
             time_range_column: RangeManipulate::build_timestamp_range_name(<span class="kw-2">&amp;</span>time_index),
             time_index_column: time_index,
