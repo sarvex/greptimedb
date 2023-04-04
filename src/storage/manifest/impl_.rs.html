@@ -368,6 +368,17 @@
 <a href="#368" id="368">368</a>
 <a href="#369" id="369">369</a>
 <a href="#370" id="370">370</a>
+<a href="#371" id="371">371</a>
+<a href="#372" id="372">372</a>
+<a href="#373" id="373">373</a>
+<a href="#374" id="374">374</a>
+<a href="#375" id="375">375</a>
+<a href="#376" id="376">376</a>
+<a href="#377" id="377">377</a>
+<a href="#378" id="378">378</a>
+<a href="#379" id="379">379</a>
+<a href="#380" id="380">380</a>
+<a href="#381" id="381">381</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -451,11 +462,15 @@
         <span class="self">Self</span>::new(manifest_dir, object_store, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>, <span class="prelude-val">None</span>)
     }
 
-    <span class="kw">pub fn </span>checkpointer(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>Checkpointer&lt;Checkpoint = S, MetaAction = M&gt;&gt;&gt; {
+    <span class="attr">#[inline]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>checkpointer(
+        <span class="kw-2">&amp;</span><span class="self">self</span>,
+    ) -&gt; <span class="kw-2">&amp;</span><span class="prelude-ty">Option</span>&lt;Arc&lt;<span class="kw">dyn </span>Checkpointer&lt;Checkpoint = S, MetaAction = M&gt;&gt;&gt; {
         <span class="kw-2">&amp;</span><span class="self">self</span>.checkpointer
     }
 
-    <span class="kw">pub fn </span>set_last_checkpoint_version(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion) {
+    <span class="attr">#[inline]
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>set_last_checkpoint_version(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion) {
         <span class="self">self</span>.last_checkpoint_version
             .store(version, Ordering::Relaxed);
     }
@@ -465,7 +480,7 @@
         <span class="self">self</span>.inner.update_state(version, protocol);
     }
 
-    <span class="kw">pub async fn </span>save_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>, checkpoint: <span class="kw-2">&amp;</span>RegionCheckpoint) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>save_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>, checkpoint: <span class="kw-2">&amp;</span>RegionCheckpoint) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="macro">ensure!</span>(
             checkpoint
                 .protocol
@@ -481,8 +496,19 @@
             .<span class="kw">await
     </span>}
 
+    <span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">async fn </span>may_do_checkpoint(<span class="kw-2">&amp;</span><span class="self">self</span>, version: ManifestVersion) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
+        <span class="kw">if </span>version - <span class="self">self</span>.last_checkpoint_version.load(Ordering::Relaxed)
+            &gt;= <span class="self">self</span>.checkpoint_actions_margin <span class="kw">as </span>u64
+        {
+            <span class="kw">let </span>s = <span class="self">self</span>.do_checkpoint().<span class="kw">await</span><span class="question-mark">?</span>;
+            <span class="macro">debug!</span>(<span class="string">&quot;Manifest checkpoint, checkpoint: {:#?}&quot;</span>, s);
+        }
+
+        <span class="prelude-val">Ok</span>(())
+    }
+
     <span class="attr">#[inline]
-    </span><span class="kw">pub fn </span>manifest_store(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;ManifestObjectStore&gt; {
+    </span><span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">fn </span>manifest_store(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span>Arc&lt;ManifestObjectStore&gt; {
         <span class="self">self</span>.inner.manifest_store()
     }
 }
@@ -498,12 +524,8 @@
 
     <span class="kw">async fn </span>update(<span class="kw-2">&amp;</span><span class="self">self</span>, action_list: M) -&gt; <span class="prelude-ty">Result</span>&lt;ManifestVersion&gt; {
         <span class="kw">let </span>version = <span class="self">self</span>.inner.save(action_list).<span class="kw">await</span><span class="question-mark">?</span>;
-        <span class="kw">if </span>version - <span class="self">self</span>.last_checkpoint_version.load(Ordering::Relaxed)
-            &gt;= <span class="self">self</span>.checkpoint_actions_margin <span class="kw">as </span>u64
-        {
-            <span class="kw">let </span>s = <span class="self">self</span>.do_checkpoint().<span class="kw">await</span><span class="question-mark">?</span>;
-            <span class="macro">debug!</span>(<span class="string">&quot;Manifest checkpoint, checkpoint: {:#?}&quot;</span>, s);
-        }
+
+        <span class="self">self</span>.may_do_checkpoint(version).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="prelude-val">Ok</span>(version)
     }
 
