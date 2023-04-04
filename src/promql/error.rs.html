@@ -153,6 +153,10 @@
 <a href="#153" id="153">153</a>
 <a href="#154" id="154">154</a>
 <a href="#155" id="155">155</a>
+<a href="#156" id="156">156</a>
+<a href="#157" id="157">157</a>
+<a href="#158" id="158">158</a>
+<a href="#159" id="159">159</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -255,6 +259,9 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Zero range in range selector&quot;</span>))]
     </span>ZeroRangeSelector { backtrace: Backtrace },
+
+    <span class="attr">#[snafu(display(<span class="string">&quot;Cannot find column {col}&quot;</span>))]
+    </span>ColumnNotFound { col: String, backtrace: Backtrace },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
@@ -268,7 +275,8 @@
             | MultipleVector { .. }
             | ExpectExpr { .. }
             | ExpectRangeSelector { .. }
-            | ZeroRangeSelector { .. } =&gt; StatusCode::InvalidArguments,
+            | ZeroRangeSelector { .. }
+            | ColumnNotFound { .. } =&gt; StatusCode::InvalidArguments,
 
             UnknownTable { .. }
             | DataFusionPlanning { .. }
