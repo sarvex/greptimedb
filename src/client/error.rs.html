@@ -110,15 +110,6 @@
 <a href="#110" id="110">110</a>
 <a href="#111" id="111">111</a>
 <a href="#112" id="112">112</a>
-<a href="#113" id="113">113</a>
-<a href="#114" id="114">114</a>
-<a href="#115" id="115">115</a>
-<a href="#116" id="116">116</a>
-<a href="#117" id="117">117</a>
-<a href="#118" id="118">118</a>
-<a href="#119" id="119">119</a>
-<a href="#120" id="120">120</a>
-<a href="#121" id="121">121</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -137,16 +128,14 @@
 <span class="kw">use </span>std::str::FromStr;
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>snafu::Location;
 <span class="kw">use </span>tonic::{Code, Status};
 
 <span class="attr">#[derive(Debug, Snafu)]
 #[snafu(visibility(<span class="kw">pub</span>))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal Flight messages, reason: {}&quot;</span>, reason))]
-    </span>IllegalFlightMessages {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>IllegalFlightMessages { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to do Flight get, code: {}, source: {}&quot;</span>, tonic_code, source))]
     </span>FlightGet {
@@ -168,13 +157,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Illegal GRPC client state: {}&quot;</span>, err_msg))]
-    </span>IllegalGrpcClientState {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>IllegalGrpcClientState { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing required field in protobuf, field: {}&quot;</span>, field))]
-    </span>MissingField { field: String, backtrace: Backtrace },
+    </span>MissingField { field: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to create gRPC channel, peer address: {}, source: {}&quot;</span>,
@@ -212,10 +198,6 @@
             }
             Error::IllegalGrpcClientState { .. } =&gt; StatusCode::Unexpected,
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {

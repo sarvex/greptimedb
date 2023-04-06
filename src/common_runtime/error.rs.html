@@ -51,6 +51,11 @@
 <a href="#51" id="51">51</a>
 <a href="#52" id="52">52</a>
 <a href="#53" id="53">53</a>
+<a href="#54" id="54">54</a>
+<a href="#55" id="55">55</a>
+<a href="#56" id="56">56</a>
+<a href="#57" id="57">57</a>
+<a href="#58" id="58">58</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -68,6 +73,7 @@
 </span><span class="kw">use </span>std::any::Any;
 
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
+<span class="kw">use </span>snafu::Location;
 <span class="kw">use </span>tokio::task::JoinError;
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -78,10 +84,10 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build runtime, source: {}&quot;</span>, source))]
     </span>BuildRuntime {
         source: std::io::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
     <span class="attr">#[snafu(display(<span class="string">&quot;Repeated task {} not started yet&quot;</span>, name))]
-    </span>IllegalState { name: String, backtrace: Backtrace },
+    </span>IllegalState { name: String, location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to wait for repeated task {} to stop, source: {}&quot;</span>,
@@ -91,18 +97,22 @@
     </span>WaitGcTaskStop {
         name: String,
         source: JoinError,
-        backtrace: Backtrace,
+        location: Location,
     },
 }
 
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
-    }
-
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
         <span class="self">self
     </span>}
+
+    <span class="kw">fn </span>location_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;common_error::snafu::Location&gt; {
+        <span class="kw">match </span><span class="self">self </span>{
+            Error::BuildRuntime { location, .. }
+            | Error::IllegalState { location, .. }
+            | Error::WaitGcTaskStop { location, .. } =&gt; <span class="prelude-val">Some</span>(<span class="kw-2">*</span>location),
+        }
+    }
 }
 </code></pre></div>
 </section></main><div id="rustdoc-vars" data-root-path="../../" data-static-root-path="../../static.files/" data-current-crate="common_runtime" data-themes="" data-resource-suffix="" data-rustdoc-version="1.69.0-nightly (34e6673a0 2023-02-25)" data-search-js="search-14421e1532aead08.js" data-settings-js="settings-f0c5c39777a9a2f6.js" data-settings-css="settings-0bcba95ff279c1db.css" ></div></body></html>

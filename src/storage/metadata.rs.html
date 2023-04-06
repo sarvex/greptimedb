@@ -1418,10 +1418,6 @@
 <a href="#1418" id="1418">1418</a>
 <a href="#1419" id="1419">1419</a>
 <a href="#1420" id="1420">1420</a>
-<a href="#1421" id="1421">1421</a>
-<a href="#1422" id="1422">1422</a>
-<a href="#1423" id="1423">1423</a>
-<a href="#1424" id="1424">1424</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1445,7 +1441,7 @@
 <span class="kw">use </span>datatypes::data_type::ConcreteDataType;
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, Metadata};
 <span class="kw">use </span>serde::{Deserialize, Serialize};
-<span class="kw">use </span>snafu::{ensure, OptionExt};
+<span class="kw">use </span>snafu::{ensure, Location, OptionExt};
 <span class="kw">use </span>store_api::storage::consts::{<span class="self">self</span>, ReservedColumnId};
 <span class="kw">use </span>store_api::storage::{
     AddColumn, AlterOperation, AlterRequest, ColumnDescriptor, ColumnDescriptorBuilder,
@@ -1462,16 +1458,16 @@
 #[snafu(visibility(<span class="kw">pub</span>(<span class="kw">crate</span>)))]
 </span><span class="kw">pub enum </span>Error {
     <span class="attr">#[snafu(display(<span class="string">&quot;Column name {} already exists&quot;</span>, name))]
-    </span>ColNameExists { name: String, backtrace: Backtrace },
+    </span>ColNameExists { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column family name {} already exists&quot;</span>, name))]
-    </span>CfNameExists { name: String, backtrace: Backtrace },
+    </span>CfNameExists { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column family id {} already exists&quot;</span>, id))]
-    </span>CfIdExists { id: ColumnId, backtrace: Backtrace },
+    </span>CfIdExists { id: ColumnId, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column id {} already exists&quot;</span>, id))]
-    </span>ColIdExists { id: ColumnId, backtrace: Backtrace },
+    </span>ColIdExists { id: ColumnId, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build schema, source: {}&quot;</span>, source))]
     </span>InvalidSchema {
@@ -1480,10 +1476,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Column name {} is reserved by the system&quot;</span>, name))]
-    </span>ReservedColumn { name: String, backtrace: Backtrace },
+    </span>ReservedColumn { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Missing timestamp key column&quot;</span>))]
-    </span>MissingTimestamp { backtrace: Backtrace },
+    </span>MissingTimestamp { location: Location },
 
     <span class="comment">// Variants for validating `AlterRequest`, which won&#39;t have a backtrace.
     </span><span class="attr">#[snafu(display(<span class="string">&quot;Expect altering metadata with version {}, given {}&quot;</span>, expect, given))]
@@ -1523,16 +1519,16 @@
         <span class="comment">// Store key and value in one string to reduce the enum size.
         </span>key_value: String,
         source: std::num::ParseIntError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Metadata of {} not found&quot;</span>, key))]
-    </span>MetaNotFound { key: String, backtrace: Backtrace },
+    </span>MetaNotFound { key: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build column descriptor, source: {}&quot;</span>, source))]
     </span>BuildColumnDescriptor {
         source: ColumnDescriptorBuilderError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert from arrow schema, source: {}&quot;</span>, source))]
@@ -1542,7 +1538,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid internal column index in arrow schema&quot;</span>))]
-    </span>InvalidIndex { backtrace: Backtrace },
+    </span>InvalidIndex { location: Location },
 
     <span class="attr">#[snafu(display(
         <span class="string">&quot;Failed to convert arrow chunk to batch, name: {}, source: {}&quot;</span>,
@@ -1562,7 +1558,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid projection, {}&quot;</span>, msg))]
-    </span>InvalidProjection { msg: String, backtrace: Backtrace },
+    </span>InvalidProjection { msg: String, location: Location },
 }
 
 <span class="kw">pub type </span><span class="prelude-ty">Result</span>&lt;T&gt; = std::result::Result&lt;T, Error&gt;;
@@ -1570,10 +1566,6 @@
 <span class="kw">impl </span>ErrorExt <span class="kw">for </span>Error {
     <span class="kw">fn </span>status_code(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; StatusCode {
         StatusCode::InvalidArguments
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>std::any::Any {

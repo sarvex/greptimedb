@@ -407,18 +407,6 @@
 <a href="#407" id="407">407</a>
 <a href="#408" id="408">408</a>
 <a href="#409" id="409">409</a>
-<a href="#410" id="410">410</a>
-<a href="#411" id="411">411</a>
-<a href="#412" id="412">412</a>
-<a href="#413" id="413">413</a>
-<a href="#414" id="414">414</a>
-<a href="#415" id="415">415</a>
-<a href="#416" id="416">416</a>
-<a href="#417" id="417">417</a>
-<a href="#418" id="418">418</a>
-<a href="#419" id="419">419</a>
-<a href="#420" id="420">420</a>
-<a href="#421" id="421">421</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -445,6 +433,7 @@
 <span class="kw">use </span>common_error::prelude::<span class="kw-2">*</span>;
 <span class="kw">use </span>query::parser::PromQuery;
 <span class="kw">use </span>serde_json::json;
+<span class="kw">use </span>snafu::Location;
 <span class="kw">use </span>tonic::codegen::http::{HeaderMap, HeaderValue};
 <span class="kw">use </span>tonic::metadata::MetadataMap;
 <span class="kw">use </span>tonic::Code;
@@ -479,10 +468,7 @@
     </span>StartGrpc { source: tonic::transport::Error },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;{} server is already started&quot;</span>, server))]
-    </span>AlreadyStarted {
-        server: String,
-        backtrace: Backtrace,
-    },
+    </span>AlreadyStarted { server: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to bind address {}, source: {}&quot;</span>, addr, source))]
     </span>TcpBind {
@@ -543,10 +529,7 @@
     </span>NotSupported { feat: String },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid query: {}&quot;</span>, reason))]
-    </span>InvalidQuery {
-        reason: String,
-        backtrace: Backtrace,
-    },
+    </span>InvalidQuery { reason: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse InfluxDB line protocol, source: {}&quot;</span>, source))]
     </span>InfluxdbLineProtocol {
@@ -561,10 +544,10 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to convert time precision, name: {}&quot;</span>, name))]
-    </span>TimePrecision { name: String, backtrace: Backtrace },
+    </span>TimePrecision { name: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Connection reset by peer&quot;</span>))]
-    </span>ConnResetByPeer { backtrace: Backtrace },
+    </span>ConnResetByPeer { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Hyper error, source: {}&quot;</span>, source))]
     </span>Hyper { source: hyper::Error },
@@ -572,13 +555,13 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid OpenTSDB line, source: {}&quot;</span>, source))]
     </span>InvalidOpentsdbLine {
         source: FromUtf8Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid OpenTSDB Json request, source: {}&quot;</span>, source))]
     </span>InvalidOpentsdbJsonRequest {
         source: serde_json::error::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(
@@ -594,26 +577,26 @@
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decode prometheus remote request, source: {}&quot;</span>, source))]
     </span>DecodePromRemoteRequest {
-        backtrace: Backtrace,
+        location: Location,
         source: prost::DecodeError,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to decompress prometheus remote request, source: {}&quot;</span>, source))]
     </span>DecompressPromRemoteRequest {
-        backtrace: Backtrace,
+        location: Location,
         source: snap::Error,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid prometheus remote request, msg: {}&quot;</span>, msg))]
-    </span>InvalidPromRemoteRequest { msg: String, backtrace: Backtrace },
+    </span>InvalidPromRemoteRequest { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid prometheus remote read query result, msg: {}&quot;</span>, msg))]
-    </span>InvalidPromRemoteReadQueryResult { msg: String, backtrace: Backtrace },
+    </span>InvalidPromRemoteReadQueryResult { msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid Flight ticket, source: {}&quot;</span>, source))]
     </span>InvalidFlightTicket {
         source: api::DecodeError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to start frontend service, source: {}&quot;</span>, source))]
@@ -623,10 +606,7 @@
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build context, msg: {}&quot;</span>, err_msg))]
-    </span>BuildingContext {
-        err_msg: String,
-        backtrace: Backtrace,
-    },
+    </span>BuildingContext { err_msg: String, location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Tls is required for {}, plain connection is rejected&quot;</span>, server))]
     </span>TlsRequired { server: String },
@@ -646,25 +626,25 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid visibility ASCII chars, source: {}&quot;</span>, source))]
     </span>InvisibleASCII {
         source: hyper::header::ToStrError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Unsupported http auth scheme, name: {}&quot;</span>, name))]
     </span>UnsupportedAuthScheme { name: String },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid http authorization header&quot;</span>))]
-    </span>InvalidAuthorizationHeader { backtrace: Backtrace },
+    </span>InvalidAuthorizationHeader { location: Location },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid base64 value, source: {:?}&quot;</span>, source))]
     </span>InvalidBase64Value {
         source: DecodeError,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Invalid utf-8 value, source: {:?}&quot;</span>, source))]
     </span>InvalidUtf8Value {
         source: FromUtf8Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Error accessing catalog: {}&quot;</span>, source))]
@@ -695,13 +675,13 @@
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build gRPC reflection service, source: {}&quot;</span>, source))]
     </span>GrpcReflectionService {
         source: tonic_reflection::server::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to build HTTP response, source: {source}&quot;</span>))]
     </span>BuildHttpResponse {
         source: http::Error,
-        backtrace: Backtrace,
+        location: Location,
     },
 
     <span class="attr">#[snafu(display(<span class="string">&quot;Failed to parse PromQL: {query:?}, source: {source}&quot;</span>))]
@@ -778,10 +758,6 @@
 
             ParsePromQL { source, .. } =&gt; source.status_code(),
         }
-    }
-
-    <span class="kw">fn </span>backtrace_opt(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Option</span>&lt;<span class="kw-2">&amp;</span>Backtrace&gt; {
-        ErrorCompat::backtrace(<span class="self">self</span>)
     }
 
     <span class="kw">fn </span>as_any(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="kw-2">&amp;</span><span class="kw">dyn </span>Any {
