@@ -244,11 +244,6 @@
 <a href="#244" id="244">244</a>
 <a href="#245" id="245">245</a>
 <a href="#246" id="246">246</a>
-<a href="#247" id="247">247</a>
-<a href="#248" id="248">248</a>
-<a href="#249" id="249">249</a>
-<a href="#250" id="250">250</a>
-<a href="#251" id="251">251</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -268,8 +263,6 @@
 <span class="kw">use </span>common_query::Output;
 <span class="kw">use </span>common_recordbatch::{util, RecordBatch};
 <span class="kw">use </span>common_telemetry::error;
-<span class="kw">use </span>common_time::datetime::DateTime;
-<span class="kw">use </span>common_time::timestamp::TimeUnit;
 <span class="kw">use </span>datatypes::prelude::{ConcreteDataType, Value};
 <span class="kw">use </span>datatypes::schema::{ColumnSchema, SchemaRef};
 <span class="kw">use </span>opensrv_mysql::{
@@ -414,10 +407,7 @@
                     Value::Binary(v) =&gt; row_writer.write_col(v.deref())<span class="question-mark">?</span>,
                     Value::Date(v) =&gt; row_writer.write_col(v.val())<span class="question-mark">?</span>,
                     Value::DateTime(v) =&gt; row_writer.write_col(v.val())<span class="question-mark">?</span>,
-                    Value::Timestamp(v) =&gt; row_writer.write_col(
-                        <span class="comment">// safety: converting timestamp with whatever unit to second will not cause overflow
-                        </span>DateTime::new(v.convert_to(TimeUnit::Second).unwrap().value()).to_string(),
-                    )<span class="question-mark">?</span>,
+                    Value::Timestamp(v) =&gt; row_writer.write_col(v.to_iso8601_string())<span class="question-mark">?</span>,
                     Value::List(<span class="kw">_</span>) =&gt; {
                         <span class="kw">return </span><span class="prelude-val">Err</span>(Error::Internal {
                             err_msg: <span class="macro">format!</span>(
@@ -464,7 +454,7 @@
         ConcreteDataType::Binary(<span class="kw">_</span>) | ConcreteDataType::String(<span class="kw">_</span>) =&gt; {
             <span class="prelude-val">Ok</span>(ColumnType::MYSQL_TYPE_VARCHAR)
         }
-        ConcreteDataType::Timestamp(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(ColumnType::MYSQL_TYPE_DATETIME),
+        ConcreteDataType::Timestamp(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(ColumnType::MYSQL_TYPE_TIMESTAMP),
         <span class="kw">_ </span>=&gt; error::InternalSnafu {
             err_msg: <span class="macro">format!</span>(
                 <span class="string">&quot;not implemented for column datatype {:?}&quot;</span>,
