@@ -129,6 +129,7 @@
 <a href="#129" id="129">129</a>
 <a href="#130" id="130">130</a>
 <a href="#131" id="131">131</a>
+<a href="#132" id="132">132</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -153,7 +154,7 @@
 <span class="kw">use </span>tokio::sync::oneshot::Sender;
 <span class="kw">use </span>tokio::sync::Notify;
 
-<span class="kw">use </span><span class="kw">crate</span>::compaction::picker::{Picker, PickerContext};
+<span class="kw">use </span><span class="kw">crate</span>::compaction::picker::Picker;
 <span class="kw">use </span><span class="kw">crate</span>::compaction::task::CompactionTask;
 <span class="kw">use </span><span class="kw">crate</span>::error::Result;
 <span class="kw">use </span><span class="kw">crate</span>::manifest::region::RegionManifest;
@@ -190,6 +191,7 @@
     <span class="kw">pub </span>manifest: RegionManifest,
     <span class="kw">pub </span>wal: Wal&lt;S&gt;,
     <span class="kw">pub </span>ttl: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+    <span class="kw">pub </span>compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
     <span class="doccomment">/// Compaction result sender.
     </span><span class="kw">pub </span>sender: <span class="prelude-ty">Option</span>&lt;Sender&lt;<span class="prelude-ty">Result</span>&lt;()&gt;&gt;&gt;,
 
@@ -232,7 +234,7 @@
         finish_notifier: Arc&lt;Notify&gt;,
     ) -&gt; <span class="prelude-ty">Result</span>&lt;()&gt; {
         <span class="kw">let </span>region_id = req.key();
-        <span class="kw">let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.picker.pick(<span class="kw-2">&amp;</span>PickerContext {}, <span class="kw-2">&amp;</span>req)<span class="question-mark">? </span><span class="kw">else </span>{
+        <span class="kw">let </span><span class="prelude-val">Some</span>(task) = <span class="self">self</span>.picker.pick(<span class="kw-2">&amp;</span>req)<span class="question-mark">? </span><span class="kw">else </span>{
             <span class="macro">info!</span>(<span class="string">&quot;No file needs compaction in region: {:?}&quot;</span>, region_id);
             req.complete(<span class="prelude-val">Ok</span>(()));
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());

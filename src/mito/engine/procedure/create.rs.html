@@ -383,6 +383,10 @@
 <a href="#383" id="383">383</a>
 <a href="#384" id="384">384</a>
 <a href="#385" id="385">385</a>
+<a href="#386" id="386">386</a>
+<a href="#387" id="387">387</a>
+<a href="#388" id="388">388</a>
+<a href="#389" id="389">389</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -548,15 +552,18 @@
         <span class="kw">let </span>table_options = <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_options;
         <span class="kw">let </span>write_buffer_size = table_options.write_buffer_size.map(|size| size.<span class="number">0 </span><span class="kw">as </span>usize);
         <span class="kw">let </span>ttl = table_options.ttl;
+        <span class="kw">let </span>compaction_time_window = table_options.compaction_time_window;
         <span class="kw">let </span>open_opts = OpenOptions {
             parent_dir: table_dir.clone(),
             write_buffer_size,
             ttl,
+            compaction_time_window,
         };
         <span class="kw">let </span>create_opts = CreateOptions {
             parent_dir: table_dir,
             write_buffer_size,
             ttl,
+            compaction_time_window,
         };
 
         <span class="kw">let </span>primary_key_indices = <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.primary_key_indices;
@@ -601,6 +608,7 @@
                 .name(region_name.clone())
                 .row_key(row_key.clone())
                 .default_cf(default_cf.clone())
+                .compaction_time_window(compaction_time_window)
                 .build()
                 .context(BuildRegionDescriptorSnafu {
                     table_name: <span class="kw-2">&amp;</span><span class="self">self</span>.data.request.table_name,

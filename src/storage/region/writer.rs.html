@@ -808,6 +808,24 @@
 <a href="#808" id="808">808</a>
 <a href="#809" id="809">809</a>
 <a href="#810" id="810">810</a>
+<a href="#811" id="811">811</a>
+<a href="#812" id="812">812</a>
+<a href="#813" id="813">813</a>
+<a href="#814" id="814">814</a>
+<a href="#815" id="815">815</a>
+<a href="#816" id="816">816</a>
+<a href="#817" id="817">817</a>
+<a href="#818" id="818">818</a>
+<a href="#819" id="819">819</a>
+<a href="#820" id="820">820</a>
+<a href="#821" id="821">821</a>
+<a href="#822" id="822">822</a>
+<a href="#823" id="823">823</a>
+<a href="#824" id="824">824</a>
+<a href="#825" id="825">825</a>
+<a href="#826" id="826">826</a>
+<a href="#827" id="827">827</a>
+<a href="#828" id="828">828</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -878,9 +896,15 @@
         memtable_builder: MemtableBuilderRef,
         config: Arc&lt;EngineConfig&gt;,
         ttl: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+        compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
     ) -&gt; RegionWriter {
         RegionWriter {
-            inner: Mutex::new(WriterInner::new(memtable_builder, config, ttl)),
+            inner: Mutex::new(WriterInner::new(
+                memtable_builder,
+                config,
+                ttl,
+                compaction_time_window,
+            )),
             version_mutex: Mutex::new(()),
         }
     }
@@ -1171,6 +1195,7 @@
     </span>closed: bool,
     engine_config: Arc&lt;EngineConfig&gt;,
     ttl: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+    compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
 }
 
 <span class="kw">impl </span>WriterInner {
@@ -1178,6 +1203,7 @@
         memtable_builder: MemtableBuilderRef,
         engine_config: Arc&lt;EngineConfig&gt;,
         ttl: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+        compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
     ) -&gt; WriterInner {
         WriterInner {
             memtable_builder,
@@ -1185,6 +1211,7 @@
             engine_config,
             closed: <span class="bool-val">false</span>,
             ttl,
+            compaction_time_window,
         }
     }
 
@@ -1448,7 +1475,13 @@
             <span class="kw">return </span><span class="prelude-val">Ok</span>(());
         }
 
-        <span class="kw">let </span>cb = <span class="self">Self</span>::build_flush_callback(<span class="kw-2">&amp;</span>current_version, ctx, <span class="kw-2">&amp;</span><span class="self">self</span>.engine_config, <span class="self">self</span>.ttl);
+        <span class="kw">let </span>cb = <span class="self">Self</span>::build_flush_callback(
+            <span class="kw-2">&amp;</span>current_version,
+            ctx,
+            <span class="kw-2">&amp;</span><span class="self">self</span>.engine_config,
+            <span class="self">self</span>.ttl,
+            <span class="self">self</span>.compaction_time_window,
+        );
 
         <span class="kw">let </span>flush_req = FlushJob {
             max_memtable_id: max_memtable_id.unwrap(),
@@ -1488,6 +1521,7 @@
             manifest: writer_ctx.manifest.clone(),
             wal: writer_ctx.wal.clone(),
             ttl: <span class="self">self</span>.ttl,
+            compaction_time_window: <span class="self">self</span>.compaction_time_window,
             sender: <span class="prelude-val">None</span>,
             sst_write_buffer_size,
         };
@@ -1535,6 +1569,7 @@
         ctx: <span class="kw-2">&amp;</span>WriterContext&lt;S&gt;,
         config: <span class="kw-2">&amp;</span>Arc&lt;EngineConfig&gt;,
         ttl: <span class="prelude-ty">Option</span>&lt;Duration&gt;,
+        compaction_time_window: <span class="prelude-ty">Option</span>&lt;i64&gt;,
     ) -&gt; <span class="prelude-ty">Option</span>&lt;FlushCallback&gt; {
         <span class="kw">let </span>region_id = version.metadata().id();
         <span class="kw">let </span>compaction_request = CompactionRequestImpl {
@@ -1545,6 +1580,7 @@
             manifest: ctx.manifest.clone(),
             wal: ctx.wal.clone(),
             ttl,
+            compaction_time_window,
             sender: <span class="prelude-val">None</span>,
             sst_write_buffer_size: config.sst_write_buffer_size,
         };
