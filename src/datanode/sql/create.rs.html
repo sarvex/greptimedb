@@ -576,6 +576,16 @@
 <a href="#576" id="576">576</a>
 <a href="#577" id="577">577</a>
 <a href="#578" id="578">578</a>
+<a href="#579" id="579">579</a>
+<a href="#580" id="580">580</a>
+<a href="#581" id="581">581</a>
+<a href="#582" id="582">582</a>
+<a href="#583" id="583">583</a>
+<a href="#584" id="584">584</a>
+<a href="#585" id="585">585</a>
+<a href="#586" id="586">586</a>
+<a href="#587" id="587">587</a>
+<a href="#588" id="588">588</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -927,7 +937,12 @@
 
     <span class="attr">#[tokio::test]
     </span><span class="kw">async fn </span>test_create_table_with_options() {
-        <span class="kw">let </span>sql = <span class="string">r#&quot;CREATE TABLE demo_table (timestamp BIGINT TIME INDEX, value DOUBLE, host STRING PRIMARY KEY) engine=mito with(regions=1, ttl=&#39;7days&#39;,write_buffer_size=&#39;32MB&#39;,some=&#39;other&#39;);&quot;#</span>;
+        <span class="kw">let </span>sql = <span class="string">r#&quot;
+            CREATE TABLE demo_table (
+                &quot;timestamp&quot; BIGINT TIME INDEX, 
+                &quot;value&quot; DOUBLE,
+                host STRING PRIMARY KEY
+            ) engine=mito with(regions=1, ttl=&#39;7days&#39;,write_buffer_size=&#39;32MB&#39;,some=&#39;other&#39;);&quot;#</span>;
         <span class="kw">let </span>parsed_stmt = sql_to_statement(sql);
         <span class="kw">let </span>handler = create_mock_sql_handler().<span class="kw">await</span>;
         <span class="kw">let </span>c = handler
@@ -946,7 +961,12 @@
     </span><span class="kw">pub async fn </span>test_create_with_inline_primary_key() {
         <span class="kw">let </span>handler = create_mock_sql_handler().<span class="kw">await</span>;
         <span class="kw">let </span>parsed_stmt = sql_to_statement(
-            <span class="string">r#&quot;CREATE TABLE demo_table (timestamp BIGINT TIME INDEX, value DOUBLE, host STRING PRIMARY KEY) engine=mito with(regions=1);&quot;#</span>,
+            <span class="string">r#&quot;
+            CREATE TABLE demo_table(
+                &quot;timestamp&quot; BIGINT TIME INDEX, 
+                &quot;value&quot; DOUBLE,
+                host STRING PRIMARY KEY
+            ) engine=mito with(regions=1);&quot;#</span>,
         );
         <span class="kw">let </span>c = handler
             .create_to_request(<span class="number">42</span>, parsed_stmt, <span class="kw-2">&amp;</span>TableReference::bare(<span class="string">&quot;demo_table&quot;</span>))
@@ -985,8 +1005,8 @@
         <span class="kw">let </span>handler = create_mock_sql_handler().<span class="kw">await</span>;
         <span class="kw">let </span>parsed_stmt = sql_to_statement(
             <span class="string">r#&quot;create table demo_table (
-                      timestamp BIGINT TIME INDEX,
-                      value DOUBLE,
+                      &quot;timestamp&quot; BIGINT TIME INDEX,
+                      &quot;value&quot; DOUBLE,
                       host STRING PRIMARY KEY,
                       PRIMARY KEY(host)) engine=mito with(regions=1);&quot;#</span>,
         );
@@ -1001,8 +1021,8 @@
         <span class="kw">let </span>handler = create_mock_sql_handler().<span class="kw">await</span>;
         <span class="kw">let </span>parsed_stmt = sql_to_statement(
             <span class="string">r#&quot;create table demo_table (
-                      timestamp BIGINT TIME INDEX,
-                      value DOUBLE PRIMARY KEY,
+                      &quot;timestamp&quot; BIGINT TIME INDEX,
+                      &quot;value&quot; DOUBLE PRIMARY KEY,
                       host STRING PRIMARY KEY) engine=mito with(regions=1);&quot;#</span>,
         );
         <span class="kw">let </span>error = handler

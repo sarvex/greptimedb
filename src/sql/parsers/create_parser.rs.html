@@ -1442,6 +1442,34 @@
 <a href="#1442" id="1442">1442</a>
 <a href="#1443" id="1443">1443</a>
 <a href="#1444" id="1444">1444</a>
+<a href="#1445" id="1445">1445</a>
+<a href="#1446" id="1446">1446</a>
+<a href="#1447" id="1447">1447</a>
+<a href="#1448" id="1448">1448</a>
+<a href="#1449" id="1449">1449</a>
+<a href="#1450" id="1450">1450</a>
+<a href="#1451" id="1451">1451</a>
+<a href="#1452" id="1452">1452</a>
+<a href="#1453" id="1453">1453</a>
+<a href="#1454" id="1454">1454</a>
+<a href="#1455" id="1455">1455</a>
+<a href="#1456" id="1456">1456</a>
+<a href="#1457" id="1457">1457</a>
+<a href="#1458" id="1458">1458</a>
+<a href="#1459" id="1459">1459</a>
+<a href="#1460" id="1460">1460</a>
+<a href="#1461" id="1461">1461</a>
+<a href="#1462" id="1462">1462</a>
+<a href="#1463" id="1463">1463</a>
+<a href="#1464" id="1464">1464</a>
+<a href="#1465" id="1465">1465</a>
+<a href="#1466" id="1466">1466</a>
+<a href="#1467" id="1467">1467</a>
+<a href="#1468" id="1468">1468</a>
+<a href="#1469" id="1469">1469</a>
+<a href="#1470" id="1470">1470</a>
+<a href="#1471" id="1471">1471</a>
+<a href="#1472" id="1472">1472</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -1464,6 +1492,7 @@
 <span class="kw">use </span>snafu::{ensure, OptionExt, ResultExt};
 <span class="kw">use </span>sqlparser::ast::{ColumnOption, ColumnOptionDef, DataType, Value};
 <span class="kw">use </span>sqlparser::dialect::keywords::Keyword;
+<span class="kw">use </span>sqlparser::keywords::ALL_KEYWORDS;
 <span class="kw">use </span>sqlparser::parser::IsOptional::Mandatory;
 <span class="kw">use </span>sqlparser::parser::{Parser, ParserError};
 <span class="kw">use </span>sqlparser::tokenizer::{Token, TokenWithLocation, Word};
@@ -1830,6 +1859,16 @@
         <span class="kw">let </span>parser = <span class="kw-2">&amp;mut </span><span class="self">self</span>.parser;
 
         <span class="kw">let </span>name = parser.parse_identifier()<span class="question-mark">?</span>;
+        <span class="kw">if </span>name.quote_style.is_none() &amp;&amp;
+            <span class="comment">// &quot;ALL_KEYWORDS&quot; are sorted.
+            </span>ALL_KEYWORDS.binary_search(<span class="kw-2">&amp;</span>name.value.to_uppercase().as_str()).is_ok()
+        {
+            <span class="kw">return </span><span class="prelude-val">Err</span>(ParserError::ParserError(<span class="macro">format!</span>(
+                <span class="string">&quot;Cannot use keyword &#39;{}&#39; as column name. Hint: add quotes to the name.&quot;</span>,
+                <span class="kw-2">&amp;</span>name.value
+            )));
+        }
+
         <span class="kw">let </span>data_type = parser.parse_data_type()<span class="question-mark">?</span>;
         <span class="kw">let </span>collation = <span class="kw">if </span>parser.parse_keyword(Keyword::COLLATE) {
             <span class="prelude-val">Some</span>(parser.parse_object_name()<span class="question-mark">?</span>)
@@ -2884,6 +2923,23 @@ ENGINE=mito&quot;</span>;
         <span class="kw">let </span>result = ParserContext::create_with_dialect(sql, <span class="kw-2">&amp;</span>GenericDialect {});
         <span class="macro">assert!</span>(result.is_err());
         <span class="macro">assert_matches!</span>(result, <span class="prelude-val">Err</span>(<span class="kw">crate</span>::error::Error::InvalidTimeIndex { .. }));
+    }
+
+    <span class="attr">#[test]
+    </span><span class="kw">fn </span>test_invalid_column_name() {
+        <span class="kw">let </span>sql = <span class="string">&quot;create table foo(user string, i bigint time index)&quot;</span>;
+        <span class="kw">let </span>result = ParserContext::create_with_dialect(sql, <span class="kw-2">&amp;</span>GenericDialect {});
+        <span class="macro">assert!</span>(result
+            .unwrap_err()
+            .to_string()
+            .contains(<span class="string">&quot;Cannot use keyword &#39;user&#39; as column name&quot;</span>));
+
+        <span class="comment">// If column name is quoted, it&#39;s valid even same with keyword.
+        </span><span class="kw">let </span>sql = <span class="string">r#&quot;
+            create table foo(&quot;user&quot; string, i bigint time index)
+        &quot;#</span>;
+        <span class="kw">let </span>result = ParserContext::create_with_dialect(sql, <span class="kw-2">&amp;</span>GenericDialect {});
+        <span class="macro">assert!</span>(result.is_ok());
     }
 }
 </code></pre></div>
