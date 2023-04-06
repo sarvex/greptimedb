@@ -77,7 +77,3 @@ storage = { path = "../storage" }
 store-api = { path = "../store-api" }
 tokio-test = "0.4"
 criterion = { version = "0.4", features = ["html_reports"] }
-
-[[bench]]
-name = "script_benchmark"
-harness = false
