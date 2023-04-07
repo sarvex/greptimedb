@@ -600,8 +600,6 @@
 <a href="#600" id="600">600</a>
 <a href="#601" id="601">601</a>
 <a href="#602" id="602">602</a>
-<a href="#603" id="603">603</a>
-<a href="#604" id="604">604</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -678,7 +676,7 @@
             })<span class="question-mark">?</span>;
         <span class="kw">let </span>table = SystemCatalogTable::new(engine.clone()).<span class="kw">await</span><span class="question-mark">?</span>;
         <span class="kw">let </span>memory_catalog_list = <span class="kw">crate</span>::local::memory::new_memory_catalog_list()<span class="question-mark">?</span>;
-        <span class="kw">let </span>system_catalog = Arc::new(SystemCatalog::new(table, memory_catalog_list.clone()));
+        <span class="kw">let </span>system_catalog = Arc::new(SystemCatalog::new(table));
         <span class="prelude-val">Ok</span>(<span class="self">Self </span>{
             system: system_catalog,
             catalogs: memory_catalog_list,
@@ -909,9 +907,7 @@
     }
 
     <span class="kw">fn </span>catalog_names(<span class="kw-2">&amp;</span><span class="self">self</span>) -&gt; <span class="prelude-ty">Result</span>&lt;Vec&lt;String&gt;&gt; {
-        <span class="kw">let </span><span class="kw-2">mut </span>res = <span class="self">self</span>.catalogs.catalog_names()<span class="question-mark">?</span>;
-        res.push(SYSTEM_CATALOG_NAME.to_string());
-        <span class="prelude-val">Ok</span>(res)
+        <span class="self">self</span>.catalogs.catalog_names()
     }
 
     <span class="kw">fn </span>catalog(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; <span class="prelude-ty">Result</span>&lt;<span class="prelude-ty">Option</span>&lt;CatalogProviderRef&gt;&gt; {

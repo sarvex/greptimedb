@@ -514,7 +514,6 @@
             | LogicalPlan::DropView { .. }
             | LogicalPlan::Distinct { .. }
             | LogicalPlan::Values { .. }
-            | LogicalPlan::SetVariable { .. }
             | LogicalPlan::Analyze { .. } =&gt; {
                 <span class="kw">let </span>inputs = plan.inputs();
                 <span class="kw">let </span><span class="kw-2">mut </span>new_inputs = Vec::with_capacity(inputs.len());
@@ -541,7 +540,8 @@
             | LogicalPlan::Prepare(<span class="kw">_</span>)
             | LogicalPlan::Dml(<span class="kw">_</span>)
             | LogicalPlan::DescribeTable(<span class="kw">_</span>)
-            | LogicalPlan::Unnest(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(plan.clone())),
+            | LogicalPlan::Unnest(<span class="kw">_</span>)
+            | LogicalPlan::Statement(<span class="kw">_</span>) =&gt; <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(plan.clone())),
         }
     }
 

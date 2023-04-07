@@ -1039,7 +1039,6 @@
             | LogicalPlan::CreateCatalog(<span class="kw">_</span>)
             | LogicalPlan::DropView(<span class="kw">_</span>)
             | LogicalPlan::Distinct(<span class="kw">_</span>)
-            | LogicalPlan::SetVariable(<span class="kw">_</span>)
             | LogicalPlan::CreateExternalTable(<span class="kw">_</span>)
             | LogicalPlan::CreateMemoryTable(<span class="kw">_</span>)
             | LogicalPlan::DropTable(<span class="kw">_</span>)
@@ -1050,7 +1049,8 @@
             | LogicalPlan::Prepare(<span class="kw">_</span>)
             | LogicalPlan::Dml(<span class="kw">_</span>)
             | LogicalPlan::DescribeTable(<span class="kw">_</span>)
-            | LogicalPlan::Unnest(<span class="kw">_</span>) =&gt; InvalidParametersSnafu {
+            | LogicalPlan::Unnest(<span class="kw">_</span>)
+            | LogicalPlan::Statement(<span class="kw">_</span>) =&gt; InvalidParametersSnafu {
                 reason: <span class="macro">format!</span>(
                     <span class="string">&quot;Trying to convert DDL/DML plan to substrait proto, plan: {plan:?}&quot;</span>,
                 ),

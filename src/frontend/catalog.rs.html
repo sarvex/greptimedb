@@ -485,22 +485,6 @@
 <a href="#485" id="485">485</a>
 <a href="#486" id="486">486</a>
 <a href="#487" id="487">487</a>
-<a href="#488" id="488">488</a>
-<a href="#489" id="489">489</a>
-<a href="#490" id="490">490</a>
-<a href="#491" id="491">491</a>
-<a href="#492" id="492">492</a>
-<a href="#493" id="493">493</a>
-<a href="#494" id="494">494</a>
-<a href="#495" id="495">495</a>
-<a href="#496" id="496">496</a>
-<a href="#497" id="497">497</a>
-<a href="#498" id="498">498</a>
-<a href="#499" id="499">499</a>
-<a href="#500" id="500">500</a>
-<a href="#501" id="501">501</a>
-<a href="#502" id="502">502</a>
-<a href="#503" id="503">503</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -914,22 +898,6 @@
             <span class="self">self</span>.backend.clone(),
         ));
         <span class="prelude-val">Ok</span>(<span class="prelude-val">Some</span>(table))
-    }
-
-    <span class="kw">fn </span>register_table(
-        <span class="kw-2">&amp;</span><span class="self">self</span>,
-        _name: String,
-        _table: TableRef,
-    ) -&gt; catalog::error::Result&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
-        <span class="macro">unimplemented!</span>(<span class="string">&quot;Frontend schema provider does not support register table&quot;</span>)
-    }
-
-    <span class="kw">fn </span>rename_table(<span class="kw-2">&amp;</span><span class="self">self</span>, _name: <span class="kw-2">&amp;</span>str, _new_name: String) -&gt; catalog_err::Result&lt;TableRef&gt; {
-        <span class="macro">unimplemented!</span>(<span class="string">&quot;Frontend schema provider does not support rename table&quot;</span>)
-    }
-
-    <span class="kw">fn </span>deregister_table(<span class="kw-2">&amp;</span><span class="self">self</span>, _name: <span class="kw-2">&amp;</span>str) -&gt; catalog::error::Result&lt;<span class="prelude-ty">Option</span>&lt;TableRef&gt;&gt; {
-        <span class="macro">unimplemented!</span>(<span class="string">&quot;Frontend schema provider does not support deregister table&quot;</span>)
     }
 
     <span class="kw">fn </span>table_exist(<span class="kw-2">&amp;</span><span class="self">self</span>, name: <span class="kw-2">&amp;</span>str) -&gt; catalog::error::Result&lt;bool&gt; {

@@ -493,7 +493,6 @@
 <a href="#493" id="493">493</a>
 <a href="#494" id="494">494</a>
 <a href="#495" id="495">495</a>
-<a href="#496" id="496">496</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -510,14 +509,14 @@
 
 </span><span class="doccomment">//! Planner, QueryEngine implementations based on DataFusion.
 
-</span><span class="kw">mod </span>catalog_adapter;
-<span class="kw">mod </span>error;
+</span><span class="kw">mod </span>error;
 <span class="kw">mod </span>planner;
 
 <span class="kw">use </span>std::collections::HashMap;
 <span class="kw">use </span>std::sync::Arc;
 
 <span class="kw">use </span>async_trait::async_trait;
+<span class="kw">pub use </span>catalog::datafusion::catalog_adapter::DfCatalogListAdapter;
 <span class="kw">use </span>common_error::prelude::BoxedError;
 <span class="kw">use </span>common_function::scalars::aggregate::AggregateFunctionMetaRef;
 <span class="kw">use </span>common_function::scalars::udf::create_udf;
@@ -540,7 +539,6 @@
 <span class="kw">use </span>table::requests::{DeleteRequest, InsertRequest};
 <span class="kw">use </span>table::TableRef;
 
-<span class="kw">pub use </span><span class="kw">crate</span>::datafusion::catalog_adapter::DfCatalogListAdapter;
 <span class="kw">pub use </span><span class="kw">crate</span>::datafusion::planner::DfContextProviderAdapter;
 <span class="kw">use </span><span class="kw">crate</span>::error::{
     CatalogNotFoundSnafu, CatalogSnafu, CreateRecordBatchSnafu, DataFusionSnafu,

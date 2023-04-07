@@ -275,6 +275,8 @@
 <a href="#275" id="275">275</a>
 <a href="#276" id="276">276</a>
 <a href="#277" id="277">277</a>
+<a href="#278" id="278">278</a>
+<a href="#279" id="279">279</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -306,8 +308,10 @@
 <span class="kw">use </span><span class="kw">crate</span>::error::{CreateTableSnafu, <span class="prelude-ty">Result</span>};
 <span class="kw">pub use </span><span class="kw">crate</span>::schema::{SchemaProvider, SchemaProviderRef};
 
+<span class="kw">pub mod </span>datafusion;
 <span class="kw">pub mod </span>error;
 <span class="kw">pub mod </span>helper;
+<span class="kw">pub</span>(<span class="kw">crate</span>) <span class="kw">mod </span>information_schema;
 <span class="kw">pub mod </span>local;
 <span class="kw">pub mod </span>remote;
 <span class="kw">pub mod </span>schema;
