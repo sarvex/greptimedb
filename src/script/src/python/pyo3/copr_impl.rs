@@ -22,6 +22,7 @@ use datatypes::prelude::ConcreteDataType;
 use datatypes::vectors::{Helper, VectorRef};
 use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyModule, PyString, PyTuple};
+
 use pyo3::{pymethods, IntoPy, PyAny, PyCell, PyObject, PyResult, Python, ToPyObject};
 use snafu::{ensure, Backtrace, GenerateImplicitData, ResultExt};
 
@@ -150,7 +151,7 @@ coprocessor = copr
         })()
         .map_err(|err| error::Error::PyRuntime {
             msg: err.into_value(py).to_string(),
-            backtrace: Backtrace::generate(),
+            location: snafu::location!(),
         })?;
         ensure!(
             cols.len() == copr.deco_args.ret_names.len(),
