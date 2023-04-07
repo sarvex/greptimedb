@@ -24,7 +24,7 @@ use pyo3::exceptions::{PyRuntimeError, PyValueError};
 use pyo3::types::{PyBool, PyDict, PyFloat, PyInt, PyList, PyModule, PyString, PyTuple};
 
 use pyo3::{pymethods, IntoPy, PyAny, PyCell, PyObject, PyResult, Python, ToPyObject};
-use snafu::{ensure, Backtrace, GenerateImplicitData, ResultExt};
+use snafu::{ensure, ResultExt, Location};
 
 use crate::python::error::{self, NewRecordBatchSnafu, OtherSnafu, Result};
 use crate::python::ffi_types::copr::PyQueryEngine;
