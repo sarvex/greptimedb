@@ -314,6 +314,9 @@
 <a href="#314" id="314">314</a>
 <a href="#315" id="315">315</a>
 <a href="#316" id="316">316</a>
+<a href="#317" id="317">317</a>
+<a href="#318" id="318">318</a>
+<a href="#319" id="319">319</a>
 </pre><pre class="rust"><code><span class="comment">// Copyright 2023 Greptime Team
 //
 // Licensed under the Apache License, Version 2.0 (the &quot;License&quot;);
@@ -483,6 +486,9 @@
         <span class="kw">if let </span><span class="prelude-val">Some</span>(http_timeout) = cmd.http_timeout {
             opts.http_opts.timeout = Duration::from_secs(http_timeout)
         }
+
+        <span class="comment">// Disable dashboard in datanode.
+        </span>opts.http_opts.disable_dashboard = <span class="bool-val">true</span>;
 
         <span class="prelude-val">Ok</span>(opts)
     }
